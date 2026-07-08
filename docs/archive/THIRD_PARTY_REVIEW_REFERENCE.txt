@@ -1,0 +1,161 @@
+═══════════════════════════════════════════════════════════════════
+  QGAI v2 — THIRD-PARTY BUG REVIEW REFERENCE
+  Date: 2026-06-14
+  Purpose: independent verification of today's changes before backtest
+═══════════════════════════════════════════════════════════════════
+
+This document gives a third-party reviewer the full context of today's
+changes so they can independently verify correctness. Our own audit
+(5 passes) found and fixed 4 bugs — listed below for cross-check.
+
+═══════════════════════════════════════════════════════════════════
+  SYSTEM OVERVIEW
+═══════════════════════════════════════════════════════════════════
+  QGAI v2: Python algorithmic gold (XAUUSD) trading on MT5 (M15).
+  ML stack: XGBoost/LightGBM ensemble + HMM regime detection.
+  Models: combined (xgb), buy, sell, ranging, trending, volatile,
+          big_win, duration, hmm. (9 models)
+  Strategy: 2-SMMA (period 2) trend signal + AI win_prob filter.
+            Ratchet trailing SL (line + buffer). Pure flip exit.
+
+═══════════════════════════════════════════════════════════════════
+  TODAY'S CHANGES (8 files)
+═══════════════════════════════════════════════════════════════════
+
+CHANGE 1 — Strategy (config.py, bridge_core.py, backtest_replay.py):
+  a) ATR-based SL REMOVED. SL is now ratchet line + buffer only.
+  b) skip-counter-trend: if no ratchet line available → skip trade
+     (no ATR fallback). Pure ratchet trades only.
+  c) Equity-based TP: trade closes when profit reaches X% of equity
+     (replaces price-based TP cap). Flag: --tp-equity-pct
+  d) Daily TP disabled (only daily SL 9% remains).
+  e) Buffer to be swept: 0.06/0.09/0.12/0.15/0.18/0.21%
+
+CHANGE 2 — Features (features.py): NEW OB SUPPORT/RESISTANCE FEATURES
+  REMOVED 5 old OB distance features:
+    h4_bull_ob_dist, h4_bear_ob_dist, h1_ob_alignment,
+    h1_bull_ob_dist, h1_bear_ob_dist
+  ADDED 8 direction-aware S/R features (4 per timeframe H4, H1):
+    {tf}_resist_dist  : % dist to nearest OB in profit direction
+    {tf}_support_dist : % dist to nearest OB in loss direction
+    {tf}_in_ob_zone   : 1 if price inside any recent OB zone
+    {tf}_ob_strength  : strength (range_pct) of nearest resistance OB
+  Feature count: 66 → 69.
+
+CHANGE 3 — Training bug fix (train.py): "Bug #6"
+  main() (trains combined + state + big/dur models) was calling
+  build_feature_matrix WITHOUT passing h1_ob/h4_ob/ratio/h4 tables.
+  → ALL OB + h4_range + trend_ratio features were fallback (999/0).
+  Fixed: now passes h4_df, ratio_df, h1_ob, h4_ob_df.
+  IMPACT: in_range_phase went from DEAD to #1 feature (importance
+          0.0431) after fix — confirms the bug was real.
+
+═══════════════════════════════════════════════════════════════════
+  BUGS WE FOUND & FIXED (cross-check these)
+═══════════════════════════════════════════════════════════════════
+
+BUG #1 (features.py, scan()): ob_strength NaN leak
+  Original: float(ob.get("ob_strength", 0.0) or 0.0)
+  Problem: NaN is truthy → "NaN or 0.0" = NaN → float(NaN) = NaN
+  Fix: _str = ob.get("ob_strength", 0.0)
+       strength = 0.0 if pd.isna(_str) else float(_str)
+
+BUG #2 (features.py, get_ob_features): price=0 division
+  dist = abs(price-mid)/price → ZeroDivisionError if price=0
+  Fix: guard at top — if price<=0 return sentinel dict (8 keys)
+
+BUG #3 (verified NOT a bug): support_dist=0 when price in zone
+  → correct behaviour (price at support = distance 0)
+
+BUG #6 (train.py): OB tables not passed to main models [CRITICAL]
+  → see CHANGE 3. Fixed.
+
+═══════════════════════════════════════════════════════════════════
+  SPECIFIC AREAS TO REVIEW (reviewer focus)
+═══════════════════════════════════════════════════════════════════
+
+[A] LOOKAHEAD / DATA LEAK
+  - get_ob_features filters OBs by (datetime < t). Verify no future
+    OB leaks into a signal at time t.
+  - OB detection in build_ob_table uses range_pct.shift(-1) (next
+    bar impulse). This is the OB's confirming impulse. QUESTION:
+    when t = bar[i+1], is OB at bar[i] truly "known"? This is a
+    PRE-EXISTING design (not changed today) but worth a fresh look.
+  - Direction-aware features depend on trade_type. Verify trade_type
+    at inference = the signal being evaluated (not actual outcome).
+
+[B] DIRECTION-AWARE FEATURE CONSISTENCY
+  - resist_dist/support_dist meaning: "profit-blocking OB" /
+    "loss-cushion OB". Verify this is consistent BUY vs SELL
+    (different price side, same semantic).
+  - Combined + state models train on mixed BUY/SELL rows. Is the
+    direction-aware feature semantically valid when mixed? (We argue
+    yes: "distance to profit-blocker" is direction-agnostic meaning.)
+
+[C] EQUITY-TP MATH (backtest_replay.py)
+  - tp_equity_usd = equity(at entry) × pct/100
+  - close when bar_hi_r × risk_usd >= tp_equity_usd
+  - tp_price = entry + s×(tp_equity_usd/risk_usd)×sl_dist
+  - With risk = 3% equity: tp_equity% / risk% = R-multiple
+    (3% → 1.0R, 4% → 1.33R). Verify this identity.
+  - Verify intrabar trigger (bar high/low) is realistic for a TP.
+
+[D] FEATURE/MODEL CONSISTENCY
+  - FEATURE_COLS = 69. build_feature_matrix selects X = df[FEATURE_COLS].
+    Verify compute_features ALWAYS produces all 69 keys (both the
+    real OB path and the fallback path).
+  - State feature lists (RANGING=50, TRENDING=46, VOLATILE=38) must
+    be subsets of FEATURE_COLS. OB features are in RANGING only.
+  - inference.py uses model.feature_names (per-model) — verify it
+    matches what each model was trained on.
+
+[E] EXIT PRIORITY (backtest_replay.py update())
+  - Order: SL check → equity-TP check → (ratchet_bar) flip check
+  - Same bar: SL (pessimistic) wins, then equity-TP (intrabar),
+    then FLIP (at close). Verify this ordering is intended.
+
+[F] SENTINEL VALUE (999)
+  - "no OB on this side" → dist = 999. Typical dists are 0-5.
+    Verify 999 doesn't distort tree splits (should be fine for
+    XGBoost/LightGBM — tree-based, scale-invariant).
+
+═══════════════════════════════════════════════════════════════════
+  KEY FUNCTION — get_ob_features (features.py ~line 264)
+═══════════════════════════════════════════════════════════════════
+  See features.py. Core logic:
+  - For each timeframe (h4, h1): scan past OBs (datetime < t, tail 5)
+  - resistance = OB in profit direction; support = OB in loss dir
+  - in_zone = price inside any OB's [low, high]
+  - strength = nearest resistance OB's range_pct (NaN-guarded)
+  - All distances as % of price (stationary).
+
+═══════════════════════════════════════════════════════════════════
+  RETRAIN RESULT (already done, for reference)
+═══════════════════════════════════════════════════════════════════
+  2,788 trades × 69 features. Win rate 37.2% baseline.
+  Combined: AUC 0.765, filtered WR 64.6%
+  Buy: AUC 0.774, filtered WR 70.1%
+  Top features: in_range_phase (#1), ts_line_dist_pct,
+                momentum_aligned_1hr, ts_htf_agreement, slot_win_rate
+  NOTE: 8 OB features NOT in top-5 (any model). Their value will be
+        judged by backtest R-impact, not importance rank.
+
+═══════════════════════════════════════════════════════════════════
+  WHAT BACKTEST WILL TEST NEXT
+═══════════════════════════════════════════════════════════════════
+  12 combos: 6 buffers × 2 equity-TP (3%, 4%), 1-month (2026-03).
+  ATR-free, pure flip, 3% risk, equity TP.
+  Compare vs prior baseline (+243.5R full year, price-TP, old model).
+  Key question: do the new OB features + Bug #6 fix improve R?
+
+═══════════════════════════════════════════════════════════════════
+  OUR VERDICT (for cross-check)
+═══════════════════════════════════════════════════════════════════
+  5 passes, 4 bugs fixed, last 2 passes 0 bugs.
+  One PRE-EXISTING item flagged (not blocking): OB shift(-1)
+  lookahead — exists in original validated system, separate fix.
+  Code status: clean, backtest-ready.
+
+  Please verify independently. Areas [A] lookahead and [B] direction
+  consistency are the highest-value review targets.
+═══════════════════════════════════════════════════════════════════

@@ -1,0 +1,101 @@
+# QGAI — FILTERS MASTER COPY (single source of truth)
+
+> **આ master reference છે — system ના બધા entry/exit/risk filters અહીં એક જગ્યાએ.**
+> **RULE (CLAUDE.md): કોઈ filter add/remove/toggle/retune થાય ત્યારે (1) નીચેની table માં current
+> value update કરો, અને (2) §CHANGE LOG માં dated row ઉમેરો (શું બદલ્યું · old→new · કેમ). ક્યારેય skip નહીં.**
+
+**Last updated:** 2026-07-03 · **Config source:** `engine/config.py` (`FilterConfig`) + decision logic in
+`engine/inference.py` / `engine/bridge_main.py` / `engine/backtest_replay.py`.
+
+---
+
+## A. ENTRY filters — block a trade from opening (order applied)
+| # | Filter | Config key | Current | ON/OFF | What it does |
+|---|--------|-----------|---------|--------|--------------|
+| 1 | ML confidence | `min_win_prob` | 0.45 base | 🟢 ON | win_prob < threshold → SKIP. Exact regime thresholds (inference.py:801–816): **Ranging 0.48 · Trending 0.45 · Volatile 0.42 · pre-news 0.57 (overrides regime) · post-news = regime value** |
+| 2 | Time / slot | (real driver) `use_slot_day_filter` | False | 🔴 **OFF (no-op)** | `is_allowed_slot()` returns True always when `use_slot_day_filter=False`. ⚠️ `use_time_filter`/`enable_ny_session`/`enable_morning_session`/window1/2 are **DEAD keys** (referenced nowhere). Session timing is only a MODEL FEATURE (`is_ny_session`, `session_score`), NOT a hard filter. |
+| 3 | H4 Range-phase | `skip_range_phase_entry`, `range_phase_min_prob` | True / 0.0 | 🟢 ON | H4 `in_range_phase`=chop → SKIP (always when 0.0). ⚠️ Added as a workaround for the OLD broken HMM; A/B vs corrected HMM in progress 2026-07-03 |
+| 4 | Counter-trend-fade | `skip_counter_trend_fade` | **False** | 🔴 **OFF** (2026-07-07 Path-A proved harmful) | Was: block trade against dominant TF when its ADX slope falling. Path-A live-parity BT: baseline +350.2R vs CTF-OFF +384.5R = **+34.3R (+9.8%)**, WR +0.4pp, PF +0.20. CTF was cutting 77%-WR counter-aligned edge (0/3 SMMA-aligned cohort). Env override: `QGAI_CTF_FADE=1` to force ON. |
+| 5 | Pullback BLOCK (ET1 v1) | `trend_pullback_entry` | False | 🔴 OFF | veto ML entries that aren't a valid pullback — PARKED (sweep: no edge) |
+| 6 | Pullback GENERATE (ET1 v2) | `trend_pullback_generate` | False | 🔴 OFF | create early pullback entries — PARKED (nil impact under max_open=1) |
+| 6b | **SMMA MTF soft gate** | `smma_mtf_soft` (+ weights/target/max_penalty) | False (wired 2026-07-06, PROVEN HARMFUL 2026-07-07) | 🔴 OFF (permanent — DO NOT flip) | Live-parity FULL BT: **−3.7R vs baseline** (blocked 33 profitable trades +15.3R, 23 subs recovered +11.5R). Fable-5 data check confirmed alignment ANTI-correlates with profit (0/3 aligned=WR 77%, 3/3=WR 60%). Kept as code-path for reference. Env override: `QGAI_SMMA_MTF=1`. |
+| 6c | **ADX STRENGTH soft gate** (Fable-5 REDESIGN) | `adx_strength_soft` (+lo/hi/target/max_penalty) | False (wired 2026-07-07) | 🔴 OFF (default) | Direction-agnostic strength score using H1/H4 ADX LEVEL (15→0, 35+→1) + positive slope. Additive stack with SMMA (cap total_pen ≤ 0.08, required ≤ 0.60). Target=55 max_penalty=+0.04. Overnight parity BT pending. Env: `QGAI_ADX_STRENGTH=1`. |
+| 6d | **Early-entry threshold DISCOUNT** (Fable-5 #1 late-entry fix) | `early_entry_discount` (+K/agree/state_prob/δ) | False (wired 2026-07-07) | 🔴 OFF (default) | Trend-birth window: within K=3 bars of fresh SMMA flip + HTF agreement≥2 + non-Ranging + state_prob≥0.60 → LOWER threshold by δ=0.05. **ADDS trades only, never blocks** — prime-directive safe. Expected +5-15R/year. Overnight parity BT pending. Env: `QGAI_EARLY_DISCOUNT=1`. |
+| 7 | Spread guard | `max_spread_usd`, `spread_wait_sec` | 0.50 / 30s | 🟢 ON (live only) | spread > $0.50 → wait up to 30s then skip. ⚠️ **PARITY GAP (Fable-5 audit 2026-07-03):** LIVE blocks/waits (bridge_core.py:95), but BACKTEST has NO spread gate — it only charges a flat `--spread` (0.13) at fill (backtest_replay.py:665). So live can SKIP an entry the backtest TAKES (matters most near news/rollover). Bounded/small, but a live-only filter missing from backtest. |
+| 8 | Ratchet-line available | (pure ratchet) | — | 🟢 ON | no valid SMMA ratchet line → skip (no ATR fallback) |
+| 9 | Max concurrent | `--max-open` (backtest) / live one-position | 1 | 🟢 ON | only ONE position at a time |
+| 10 | Daily SL halt | `enable_daily_sl`, `daily_loss_limit_pct` | True / 9% | 🟢 ON | after −9% day → halt new entries that day |
+| 11 | Opposite-signal handling | — | — | 🟢 ON | opposite signal while in a trade → managed (not a fresh entry) |
+| 12 | News routing | `is_pre_news`/`is_post_news` | — | 🟢 ON | switch model in news window (routing, not a hard block) |
+| 13 | Day-of-week slot | `use_slot_day_filter` | False | 🔴 OFF | THIS is the actual slot gate (drives `is_allowed_slot`) — OFF → no time/slot filtering at all (same mechanism as #2) |
+| — | Range A/B override | `--no-range-skip` / env `QGAI_SKIP_RANGE` | — | tool | FORCE #3 off to A/B-test whether range trades are net-negative (2026-07-03) |
+
+## B. EXIT rules — close a trade
+| Rule | Config key | Current | ON/OFF | What it does |
+|------|-----------|---------|--------|--------------|
+| Ratchet trail | `enable_ratchet_exit`, `ratchet_buf_pct` | True / 0.15% | 🟢 ON | SMMA line + buffer one-way trailing SL |
+| HTF SL | `ratchet_htf_sl`, `ratchet_htf_tf`, `ratchet_htf_max_risk_pct`, `ratchet_htf_forming` | True / H1 / 2.5% / True | 🟢 ON | wider H1-line stop (anti-whipsaw); forming-bar line |
+| Flip-exit (ONE exit, TF-selected) | `ratchet_flip_exit` (enable) + `ratchet_htf_flip` (which TF) | True + True | 🟢 ON | **Closes on the H1 (1hr) opposite flip ONLY.** `ratchet_flip_exit` turns flip-exit on; `ratchet_htf_flip=True` selects the **H1** flip (set False → M15 flip). NOT two exits — one flip signal. M15 flip is used only as a fallback if the H1 flip is missing. Verified backtest (`backtest_replay.py:481-487`) == live (`bridge_core.py:411`). |
+| Regime-adaptive TP | `ratchet_tp_regime` | True | 🟢 ON | TP cap by HMM state: Ranging 2.0 / Trending 1.0 / Volatile 0.8% |
+| TP cap (fallback) | `ratchet_tp_cap_pct` | 1.0% | 🟢 ON | single TP cap when regime-TP off |
+| Equity-TP | `tp_equity_pct` | 0.0 | 🔴 OFF | close at profit = equity% (price-TP used instead) |
+| Struct-H1 exit | `enable_struct_h1_exit`, `struct_h1_lookback` | False / 6 | 🔴 OFF | close on H1 structure break |
+| Daily TP | `enable_daily_tp`, `daily_profit_target_pct` | False / 8% | 🔴 OFF | close all + stop for day at +8% |
+| Breakeven | `breakeven_buf_pct` | 0.05% | 🟢 ON | move SL to BE after ~1R |
+
+## C. Risk / sizing / guards
+| Item | Config key | Current |
+|------|-----------|---------|
+| Risk per trade | `risk_pct` | 3% |
+| Sizing | `use_fixed_lot` / `fixed_lot` | dynamic compounding (False) / 0.01 fixed for backtests |
+| Min SL distance | `ratchet_sl_min_pct` | 0.18% |
+| Max SL distance | `ratchet_max_risk_pct` / HTF `ratchet_htf_max_risk_pct` | 1.2% / 2.5% |
+| Drawdown brake (backtest) | (M3) | dd>10%→½ size · >20%→¼ · >30%→halt |
+| Manual-trade manager | `manual_manager_enabled` etc. | True (separate 3% pool) |
+| Stuck-trade protect | `stuck_trade_hedge_enabled` etc. | True |
+
+---
+
+## CHANGE LOG (every filter change — newest first)
+| Date | Filter | Change (old → new) | Why | By |
+|------|--------|--------------------|-----|-----|
+| 2026-07-07 | **Counter-trend-fade (#4) DISABLED — LIVE CONFIG CHANGE** | `skip_counter_trend_fade` True → **False** | Path-A live-parity full-year BT: CTF-OFF = 673 tr / +384.5R / WR 62.7% / PF 3.43 / DD 1.1% vs baseline (CTF-ON) = 644 tr / +350.2R / WR 62.3% / PF 3.23 / DD 0.9% = **+34.3R (+9.8%)**. Fable-5 audit confirmed: CTF was pure EA rule with zero ML input, blocking the 0/3-SMMA-aligned 77%-WR counter-aligned cohort (system's actual edge). 29 extra trades taken, mostly winners. Reversible: set True OR env `QGAI_CTF_FADE=1`. Bridge restart needed to load config. | Imtiyaz/Claude/Fable-5 |
+| 2026-07-07 | **Early-entry discount (#6d) + ADX-Strength (#6c) WIRED** | added to config, inference.py, backtest_replay.py. Early = 6-line threshold discount in trend-birth window (no block, adds trades). ADX = Fable-redesigned direction-agnostic strength (H1/H4 ADX level+slope only). Additive stack cap. Env: QGAI_EARLY_DISCOUNT=1 / QGAI_ADX_STRENGTH=1. | SMMA gate proven harmful (−3.7R live-parity). Fable #1 pick for late-entry = threshold DISCOUNT in trend-birth window. ADX redesign per Fable-5 (direction-agnostic magnitude). Overnight parity BT to validate. | Imtiyaz/Claude/Fable-5 |
+| 2026-07-07 | **SMMA MTF soft gate (#6b) PROVEN HARMFUL** | table status → 🔴 permanent OFF (DO NOT flip) | Live-parity FULL BT: SMMA ON = +346.5R vs baseline +350.2R = **−3.7R**. Audit: blocked 33 profitable trades (+15.3R avg +0.463R), only 23 subs recovered (+11.5R). Fable-5 data check: alignment ANTI-correlates with profit (0/3 aligned WR 77% > 3/3 aligned WR 60%). Gate is directly harmful to a pullback/mean-reversion-flavored system. | Imtiyaz/Claude/Fable-5 |
+| 2026-07-06 | **SMMA MTF soft gate (#6b) WIRED** | added to `engine/config.py` (`smma_mtf_soft=False`+weights/target/max_penalty), `inference.py` (`smma_mtf_soft_block()` + `effective_threshold` exposed on result dict), `bridge_main.py` (block before execute-signal), `backtest_replay.py` (parity block + signals CSV columns `smma_score`/`smma_required_threshold`). Env override `QGAI_SMMA_MTF=1`. | Research (Jul 4-5) then quarterly OOS split (Jul 6): SMMA-winner beat Combo in **4/4 non-overlapping quarters** (+27R over Combo, +51R over live baseline). Wire to live path with default OFF so a live-parity backtest can confirm before flipping to True. | Imtiyaz/Claude |
+| 2026-07-03 | Spread guard (#7) parity gap | flagged: live-only, MISSING from backtest | Fable-5 independent audit found backtest doesn't gate on spread (only charges flat --spread at fill) → live can skip an entry backtest takes (near news/rollover). Fix TODO: model per-bar spread + 0.50 skip in backtest, or accept as bounded divergence | Fable-5/Claude |
+| 2026-07-03 | ML thresholds (#1) doc detail | added exact per-regime values (Ranging 0.48/Trending 0.45/Volatile 0.42/pre-news 0.57) | Fable-5 audit confirmed from inference.py:801-816 | Fable-5/Claude |
+| 2026-07-03 | Full filter audit | Fable-5 independently verified all 20 filters — 100% AGREE incl. the 2 corrections (time/slot OFF, flip-exit H1) | user asked to double-check with Fable 5 | Fable-5/Claude |
+| 2026-07-03 | Time/slot (#2) doc fix | was listed 🟢 ON → corrected to 🔴 OFF (no-op) | verify pass: `is_allowed_slot` uses `use_slot_day_filter`(=False)→always True; `use_time_filter`/`enable_ny_session`/`enable_morning_session` are dead keys. Session timing is a model feature, not a filter | Imtiyaz/Claude |
+| 2026-07-03 | Flip-exit (doc fix) | table earlier listed H1-flip and M15-flip as TWO separate ON exits → corrected to ONE flip-exit, TF-selected by `ratchet_htf_flip` (currently H1 only) | Imtiyaz asked to confirm final = only 1hr flip closes; traced code (backtest==live) → confirmed H1-only; doc was misleading | Imtiyaz/Claude |
+| 2026-07-03 | (master copy) | created `FILTERS_MASTER.md` | single source of truth for all filters; keep updated on every change | Imtiyaz/Claude |
+| 2026-07-03 | H4 Range-phase (#3) | A/B DONE → **KEEP ON** (no change) | Imtiyaz asked if the filter (a workaround for the OLD broken HMM) is still needed after HMM v3. Full-year in-sample A/B ($10k/0.01, corrected rel HMM): **range ON = 644 tr / +350.3R / WR 62.3% / PF 3.23** vs **range OFF = 738 tr / +340.0R / WR 59.5% / PF 2.89**. Removing it added 94 trades but LOST 10R + lower WR/PF → filter still nets +10R even with corrected HMM (not redundant/harmful). Caveat: in-sample, ~3% margin; a WFO OOS A/B would confirm. Decision: keep `skip_range_phase_entry=True`. | Imtiyaz/Claude |
+| 2026-07-03 | Pullback BLOCK/GENERATE (#5/#6) | added, both `False` (OFF) | ET1 entry-timing experiment; block=no edge, generate=nil under max_open=1 → parked, live unchanged | Imtiyaz/Claude |
+
+---
+
+## PARITY GAPS — live-only behavior NOT in backtest (FAB-M12, 2026-07-07)
+
+> Fable-5 audit found live-execution behaviors the parity backtest does not model.
+> Until closed, any live-vs-WFO metric (FIX-3 weekly R-gap) is confounded by these.
+
+| # | Gap | Live behavior | Backtest behavior | Status / Fix |
+|---|-----|---------------|-------------------|--------------|
+| 1 | Spread guard | blocks/waits if spread > $0.50 (30s) | flat --spread charged at fill only | Open — bounded; model per-bar spread later |
+| 2 | Opposite-signal reversal | closes losing side on opposite signal, can re-enter | no reversal logic at all | **FAB-S1 partial:** re-entry now filter-gated (`gate_reversal_entries`); close-on-opposite backtest port still TODO |
+| 3 | Manual-trade manager | real orders, separate pool (`bridge_manual.py`) | not modeled | Open — live-only by design. NOTE: the 6.0 default at lines 106/110 vs 3.0 at 255 is **INTENTIONAL** (Imtiyaz): when a manual trade is open by the user, that path caps at 6%. Do NOT "unify" — it is by design. |
+| 4 | Stuck-trade hedge | magic 202698 hedge orders | not modeled | Open — live-only safety |
+| 5 | Forming-H1 line/flip | trails FORMING H1 bar (intra-hour) | COMPLETED H1 bar | **FAB-S5 deferred** — profit tradeoff (Anisa enabled for less give-back); proper fix = forming-replay in backtest |
+| 6 | DD brake | ✅ now live (`dd_brake.py`, opt-in) | `--dd-brake` flag | **FAB-S3 DONE** — parity when both on |
+| 7 | Daily-SL semantics | intra-bar floating-equity halt + force-close | closed-equity, blocks new entries only | **FAB-H7 deferred** — backtest mark-to-market TODO |
+
+**Rule:** capital scaling stays GATED until these are closed OR explicitly excluded from the R-gap metric (FIX-3).
+
+---
+
+## DEAD IDEAS — tested + rejected, DO NOT revisit (keep the reason)
+
+| Idea | Date | Verdict |
+|------|------|---------|
+| **volume-exit** (exit on volume dry-up/spike during hold) | 2026-07-08 | ❌ **DEAD.** Non-monotonic signal, tautological (volume measured incl. exit bar; winner's move makes the volume), gold MT5 tick_volume = broker tick-count not real volume (already pruned as entry feat, imp 0.02). Conditional table proved it: within each ADX-death bucket (0-4 TFs falling), LOW vs HIGH volume give ~same avg R → volume adds NOTHING over the ADX momentum signal. It's a noisier duplicate of ADX-death. Never spend a WFO run on it. |
+| **volume as entry feature** | 2026-06-23 | ❌ pruned (imp 0.02, "SL-hunting noise") — in `_MANUAL_PRUNE`. |

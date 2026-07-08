@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8"><title>QGAI — Live Panel</title>
+<style>
+:root{--bg:#000a12;--panel:#020d18;--bd:#0e2a3d;--blue:#3aa0ff;--green:#22c55e;--red:#ef4444;--gold:#f4c430;--dim:#7a92a6}
+body{background:var(--bg);color:#dbe7f0;font-family:Arial,Segoe UI,sans-serif;margin:0;padding:14px;font-size:13px}
+h1{font-size:15px;margin:0 0 2px;letter-spacing:1px}.sub{color:var(--dim);font-size:11px;margin-bottom:12px}
+.sec{font-size:11px;letter-spacing:2px;color:var(--blue);text-transform:uppercase;border-left:2px solid var(--blue);padding-left:6px;margin:14px 0 6px}
+table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid #08202f;font-size:12px}
+th{background:#04121e;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+th.l,td.l{text-align:left}tr:last-child td{border-bottom:none}
+.pos{color:var(--green);font-weight:700}.neg{color:var(--red);font-weight:700}.mut{color:var(--dim)}
+.BUY{color:var(--green);font-weight:700}.SELL{color:var(--red);font-weight:700}.SKIP{color:var(--dim)}
+.note{color:var(--dim);font-size:10px;margin-top:6px}
+#sigwrap{max-height:340px;overflow:auto}
+</style></head><body>
+<h1>QGAI — Live Panel</h1>
+<div class="sub">Periods + Signal Log · auto-refresh 15s · <span id="upd">loading…</span></div>
+
+<div class="sec">📊 Periods — real account (live_trades.csv)</div>
+<table><thead><tr><th class="l">Period</th><th>Trades</th><th>Win %</th><th>Profit $</th></tr></thead><tbody id="per"></tbody></table>
+<div class="note" id="pernote"></div>
+<div class="note" style="margin-top:10px">Signal Log + paper LEDGER are in the main dashboard (no duplicate here). This panel = the broker-style Periods view only.</div>
+
+<script>
+function csv(t){const L=t.trim().split(/\r?\n/);if(L.length<2)return[];const H=L[0].split(',');return L.slice(1).map(r=>{const c=r.split(',');const o={};H.forEach((h,i)=>o[h.trim()]=(c[i]||'').trim());return o;});}
+function num(x){const v=parseFloat(x);return isNaN(v)?0:v;}
+const wkStart=()=>{const d=new Date();const day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);d.setHours(0,0,0,0);return d;};
+async function load(){
+ try{
+  // ---- Periods from live_trades.csv ----
+  const lt=csv(await (await fetch('logs/live_trades.csv?_='+Date.now())).text());
+  const now=new Date(),today=new Date();today.setHours(0,0,0,0);
+  const wk=wkStart(),mo=new Date(now.getFullYear(),now.getMonth(),1),yr=new Date(now.getFullYear(),0,1);
+  const rows=lt.map(r=>({t:new Date((r.datetime||'').replace(' ','T')),pnl:num(r.pnl),win:num(r.label)>0})).filter(r=>!isNaN(r.t));
+  const agg=(from)=>{const x=rows.filter(r=>r.t>=from);const p=x.reduce((a,b)=>a+b.pnl,0);const w=x.length?(x.filter(r=>r.win).length/x.length*100):0;return[x.length,w,p];};
+  const P={'Today':today,'This Week':wk,'This Month':mo,'This Year':yr};
+  let html='';for(const k in P){const[n,w,p]=agg(P[k]);const cl=p>0?'pos':(p<0?'neg':'mut');
+   html+=`<tr><td class="l">${k}</td><td>${n||'–'}</td><td>${n?w.toFixed(2)+'%':'–'}</td><td class="${cl}">${n?(p>=0?'+':'')+'$'+p.toFixed(0):'–'}</td></tr>`;}
+  document.getElementById('per').innerHTML=html;
+  document.getElementById('pernote').textContent=rows.length?`${rows.length} bot trades logged (real money, dynamic lot).`:'No clean bot trades yet — fills as the system trades live.';
+  document.getElementById('upd').textContent='updated '+new Date().toLocaleTimeString();
+ }catch(e){document.getElementById('upd').textContent='fetch error (is 5_Dashboard.bat / serve.py running?)';}
+}
+load();setInterval(load,15000);
+</script></body></html>

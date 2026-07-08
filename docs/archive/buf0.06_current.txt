@@ -1,0 +1,155 @@
+================================================================
+⚡ QGAI AI REPLAY BACKTEST
+================================================================
+  Hybrid feature sets: Ranging=47 | Trending=46 | Volatile=38
+
+  Loading models...
+  Market state model loaded ← C:\QGAI\data\models\final\hmm_model.pkl
+  ✅ HMM loaded + verified
+  Ensemble model loaded ← C:\QGAI\data\models\final\xgb_model.pkl
+  ✅ XGB ensemble loaded + verified
+  Ensemble model loaded ← C:\QGAI\data\models\final\buy_model.pkl
+  ✅ BUY model loaded + verified
+  Ensemble model loaded ← C:\QGAI\data\models\final\sell_model.pkl
+  ✅ SELL model loaded + verified
+  Directional models loaded: buy_model + sell_model
+  Ensemble model loaded ← C:\QGAI\data\models\final\model_ranging.pkl
+  ✅ ranging model loaded + verified
+  Ensemble model loaded ← C:\QGAI\data\models\final\model_trending.pkl
+  ✅ trending model loaded + verified
+  Ensemble model loaded ← C:\QGAI\data\models\final\model_volatile.pkl
+  ✅ volatile model loaded + verified
+  State models loaded: ['ranging', 'trending', 'volatile'] ✅
+  News models: NOT found — using combined model (run train.py)
+  Online model loaded ← C:\QGAI\data\models\final/online_model.pkl (0 trades)
+  Online model loaded ← C:\QGAI\data\models\final/online_model.pkl ✅
+  BigWinPredictor loaded ← C:\QGAI\data\models\final\big_win_model.pkl (AUC=0.7141)
+  DurationPredictor loaded ← C:\QGAI\data\models\final\duration_model.pkl (AUC=0.7042)
+  Move-size models loaded: 6/6 ✅ | SL models: 4/4 ✅
+  Prediction models loaded: BigWin + Duration ✅
+  Loading data files for live inference...
+  OHLC   : 96,403 rows | avg range: 0.1441% | avg ATR: 0.1444%
+  OHLC   : 96,403 rows | last: 2026-06-12 (1d ago) ✅
+  ADX    : 96,416 rows ✅
+  Building H4 tables...
+  H4 range   : 6,313 candles ✅
+  Trend ratio: 6,313 candles ✅
+  H1 OB table: 965 bull | 928 bear ✅
+  H4 OB table: 213 bull | 224 bear ✅
+  Models active: combined | state(ranging,trending,volatile) | buy | sell | online
+  ✅ Inference engine ready!
+
+  ✅ Capital set: $10,000.00 — trading UNLOCKED
+⚡ RATCHET exit ON | buf 0.06% (fixed) | TP cap 1.5% | flip-exit True
+Bars to replay : 24,450  (2025-06-01 → 2026-06-12)
+Start equity   : $10,000.00 | risk/trade 3.0% | spread $0.20 | max open 1
+⚠️  Remember: only bars AFTER the model's training cutoff are out-of-sample.
+  Daily SL: 9%
+     500/24450 bars | 2025-06-09 10:45:00 | equity $13,660.11 | trades 17 | open 0
+    1000/24450 bars | 2025-06-16 20:45:00 | equity $15,544.88 | trades 41 | open 0
+    1500/24450 bars | 2025-06-24 11:30:00 | equity $15,994.58 | trades 60 | open 0
+    2000/24450 bars | 2025-07-01 21:30:00 | equity $16,965.27 | trades 78 | open 0
+    2500/24450 bars | 2025-07-09 12:45:00 | equity $16,398.43 | trades 95 | open 0
+    3000/24450 bars | 2025-07-16 22:45:00 | equity $16,120.11 | trades 113 | open 1
+    3500/24450 bars | 2025-07-24 09:45:00 | equity $17,038.73 | trades 129 | open 1
+    4000/24450 bars | 2025-07-31 19:45:00 | equity $20,157.84 | trades 139 | open 0
+    4500/24450 bars | 2025-08-08 06:45:00 | equity $22,568.85 | trades 157 | open 0
+    5000/24450 bars | 2025-08-15 16:45:00 | equity $19,628.87 | trades 172 | open 0
+    5500/24450 bars | 2025-08-25 03:45:00 | equity $22,610.67 | trades 178 | open 1
+    6000/24450 bars | 2025-09-01 13:45:00 | equity $24,573.37 | trades 191 | open 0
+    6500/24450 bars | 2025-09-09 03:30:00 | equity $31,240.89 | trades 210 | open 1
+    7000/24450 bars | 2025-09-16 13:30:00 | equity $30,924.90 | trades 231 | open 1
+    7500/24450 bars | 2025-09-23 23:30:00 | equity $32,594.83 | trades 255 | open 1
+    8000/24450 bars | 2025-10-01 10:30:00 | equity $37,217.34 | trades 276 | open 1
+    8500/24450 bars | 2025-10-08 20:30:00 | equity $46,866.41 | trades 300 | open 0
+    9000/24450 bars | 2025-10-16 07:30:00 | equity $55,764.02 | trades 333 | open 0
+    9500/24450 bars | 2025-10-23 17:30:00 | equity $74,919.86 | trades 375 | open 1
+   10000/24450 bars | 2025-10-31 04:30:00 | equity $111,911.97 | trades 410 | open 0
+   10500/24450 bars | 2025-11-07 14:30:00 | equity $136,322.56 | trades 432 | open 0
+   11000/24450 bars | 2025-11-17 01:30:00 | equity $239,349.15 | trades 457 | open 0
+   11500/24450 bars | 2025-11-24 11:30:00 | equity $242,617.84 | trades 486 | open 1
+   12000/24450 bars | 2025-12-02 05:45:00 | equity $243,161.83 | trades 515 | open 0
+   12500/24450 bars | 2025-12-09 15:45:00 | equity $239,875.21 | trades 534 | open 0
+   13000/24450 bars | 2025-12-17 02:45:00 | equity $274,493.84 | trades 558 | open 1
+   13500/24450 bars | 2025-12-24 12:45:00 | equity $349,512.07 | trades 582 | open 0
+   14000/24450 bars | 2026-01-05 03:00:00 | equity $398,432.70 | trades 612 | open 1
+   14500/24450 bars | 2026-01-12 13:00:00 | equity $445,753.71 | trades 641 | open 0
+   15000/24450 bars | 2026-01-20 02:30:00 | equity $322,121.60 | trades 671 | open 0
+   15500/24450 bars | 2026-01-27 12:30:00 | equity $455,069.11 | trades 705 | open 0
+   16000/24450 bars | 2026-02-03 22:30:00 | equity $625,363.50 | trades 742 | open 1
+   16500/24450 bars | 2026-02-11 09:30:00 | equity $574,520.04 | trades 783 | open 1
+   17000/24450 bars | 2026-02-18 21:45:00 | equity $682,854.54 | trades 814 | open 0
+   17500/24450 bars | 2026-02-26 08:45:00 | equity $775,950.49 | trades 841 | open 0
+   18000/24450 bars | 2026-03-05 18:45:00 | equity $860,962.20 | trades 878 | open 1
+   18500/24450 bars | 2026-03-13 05:45:00 | equity $866,190.85 | trades 907 | open 0
+   19000/24450 bars | 2026-03-20 15:45:00 | equity $1,266,703.46 | trades 940 | open 0
+   19500/24450 bars | 2026-03-30 02:45:00 | equity $1,469,956.33 | trades 979 | open 1
+   20000/24450 bars | 2026-04-07 12:45:00 | equity $1,736,474.82 | trades 1025 | open 0
+   20500/24450 bars | 2026-04-14 22:45:00 | equity $1,934,284.26 | trades 1051 | open 1
+   21000/24450 bars | 2026-04-22 09:45:00 | equity $1,980,274.45 | trades 1077 | open 0
+   21500/24450 bars | 2026-04-29 19:45:00 | equity $2,372,213.73 | trades 1100 | open 0
+   22000/24450 bars | 2026-05-07 06:45:00 | equity $2,550,628.77 | trades 1128 | open 0
+   22500/24450 bars | 2026-05-14 16:45:00 | equity $2,466,115.53 | trades 1154 | open 1
+   23000/24450 bars | 2026-05-22 03:45:00 | equity $3,118,357.63 | trades 1176 | open 0
+   23500/24450 bars | 2026-05-29 16:15:00 | equity $3,485,434.77 | trades 1199 | open 0
+   24000/24450 bars | 2026-06-08 03:15:00 | equity $4,000,846.64 | trades 1223 | open 0
+
+================================================================
+⚡ QGAI AI REPLAY BACKTEST — REPORT
+Period         : 2025-06-01 → 2026-06-12
+Modes          : TP=fixed | SL=fixed | trail=fixed | runner=target | pred dirs=BUY,SELL
+Bars replayed  : 24,449 | Signals BUY/SELL: 4832
+================================================================
+Trades         : 1254  (W 547 / L 707)
+Win rate       : 43.6%
+Profit factor  : 1.53
+Avg R          : +0.187  |  Total: +234.9R
+Net return     : +54678.97%  (risk 3.0%/trade)
+Max drawdown   : 30.0%
+Avg win        : +1.13R | Avg loss: -0.54R
+Exit reasons   : {'TRAIL': 720, 'FLIP': 336, 'SL': 114, 'TPCAP': 60, 'TP2': 23, 'BE': 1}
+----------------------------------------------------------------
+BY REGIME (R = movement relative to risk):
+  Ranging     378 trades | WR  45.0% |    +83.0R | avg +0.220R
+  Trending    447 trades | WR  42.3% |    +78.7R | avg +0.176R
+  Volatile    429 trades | WR  43.8% |    +73.2R | avg +0.171R
+BY HOUR (entry):
+  01:00        61 trades | WR  57.4% |    +30.4R
+  02:00        43 trades | WR  37.2% |     +2.2R
+  03:00        73 trades | WR  41.1% |     -4.1R
+  04:00       107 trades | WR  49.5% |    +19.3R
+  05:00        61 trades | WR  45.9% |     +9.3R
+  06:00        24 trades | WR  62.5% |     +7.2R
+  07:00        41 trades | WR  39.0% |     +6.0R
+  08:00        40 trades | WR  52.5% |    +14.4R
+  09:00        58 trades | WR  41.4% |    +12.1R
+  10:00        22 trades | WR  40.9% |     -0.5R
+  11:00        38 trades | WR  42.1% |     +2.7R
+  12:00        20 trades | WR  30.0% |     +6.3R
+  13:00        20 trades | WR  30.0% |     +1.4R
+  14:00        42 trades | WR  31.0% |    +10.7R
+  15:00        89 trades | WR  44.9% |    +15.8R
+  16:00       134 trades | WR  46.3% |    +38.1R
+  17:00       100 trades | WR  44.0% |    +16.8R
+  18:00        82 trades | WR  37.8% |     -4.0R
+  19:00        40 trades | WR  32.5% |     +2.5R
+  20:00        34 trades | WR  35.3% |     +0.4R
+  21:00        60 trades | WR  43.3% |    +14.5R
+  22:00        50 trades | WR  50.0% |    +31.1R
+  23:00        15 trades | WR  40.0% |     +2.4R
+BY MONTH:
+  2025-06      76 trades |    +16.8R | avg +0.221R
+  2025-07      63 trades |     +8.3R | avg +0.131R
+  2025-08      51 trades |     +6.5R | avg +0.127R
+  2025-09      86 trades |    +16.2R | avg +0.188R
+  2025-10     137 trades |    +40.5R | avg +0.296R
+  2025-11      93 trades |    +27.8R | avg +0.299R
+  2025-12     101 trades |    +16.2R | avg +0.160R
+  2026-01     124 trades |    +16.5R | avg +0.133R
+  2026-02     119 trades |    +10.3R | avg +0.086R
+  2026-03     148 trades |    +31.7R | avg +0.214R
+  2026-04     107 trades |    +16.1R | avg +0.150R
+  2026-05      98 trades |    +11.6R | avg +0.118R
+  2026-06      51 trades |    +16.5R | avg +0.323R
+================================================================
+Files: logs/backtest_trades.csv (with f_* feature columns), logs/backtest_signals.csv

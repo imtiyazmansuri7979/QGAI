@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset=utf-8><title>QGAI Performance</title>
+<style>
+body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f4f6f8;color:#1f2933;margin:0;padding:24px}
+h1{font-size:20px;margin:0 0 2px} .sub{color:#6b7280;font-size:13px;margin-bottom:18px}
+.cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px;min-width:120px}
+.card .v{font-size:22px;font-weight:700} .card .k{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
+h2{font-size:14px;margin:22px 0 8px;color:#374151}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;font-size:13px;margin-bottom:6px}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid #eef0f2}
+th{background:#f3f4f6;color:#6b7280;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+th.l,td.l{text-align:left} tr:last-child td{border-bottom:none}
+.pos{color:#0a8f3c;font-weight:600} .neg{color:#c0392b;font-weight:600}
+.note{background:#fff8e6;border:1px solid #f0d98a;border-radius:8px;padding:12px 14px;font-size:12px;color:#7a5c00;margin-top:18px;line-height:1.5}
+</style></head><body>
+<h1>QGAI — System Performance Breakdown</h1>
+<div class=sub>Validated walk-forward OUT-OF-SAMPLE · 2025-09-01 → 2026-06-12 (41 weeks) · real ML model · fixed 0.01 lot (clean R)</div>
+<div class=cards>
+<div class=card><div class=k>Total Profit</div><div class="v pos">+321R</div></div>
+<div class=card><div class=k>Profit Factor</div><div class=v>3.28</div></div>
+<div class=card><div class=k>Win Rate</div><div class=v>55.9%</div></div>
+<div class=card><div class=k>Trades</div><div class=v>725</div></div>
+<div class=card><div class=k>$ @0.01 lot</div><div class="v pos">$+7,451</div></div>
+<div class=card><div class=k>Max DD (3% live)</div><div class=v>~13%</div></div>
+</div>
+<h2>📅 BY MONTH</h2><table><tr><th class=l>Month</th><th>Trades</th><th>Win %</th><th>Profit (R)</th><th>Profit ($ @0.01 lot)</th></tr><tr><td class=l>2025-09</td><td>32</td><td>78%</td><td class=pos>+35.3R</td><td class=pos>$+513</td></tr><tr><td class=l>2025-10</td><td>117</td><td>59%</td><td class=pos>+47.6R</td><td class=pos>$+1,146</td></tr><tr><td class=l>2025-11</td><td>66</td><td>58%</td><td class=pos>+31.0R</td><td class=pos>$+528</td></tr><tr><td class=l>2025-12</td><td>75</td><td>51%</td><td class=pos>+31.4R</td><td class=pos>$+627</td></tr><tr><td class=l>2026-01</td><td>79</td><td>56%</td><td class=pos>+37.9R</td><td class=pos>$+1,126</td></tr><tr><td class=l>2026-02</td><td>85</td><td>40%</td><td class=pos>+22.4R</td><td class=pos>$+303</td></tr><tr><td class=l>2026-03</td><td>90</td><td>60%</td><td class=pos>+46.9R</td><td class=pos>$+1,385</td></tr><tr><td class=l>2026-04</td><td>64</td><td>59%</td><td class=pos>+25.6R</td><td class=pos>$+600</td></tr><tr><td class=l>2026-05</td><td>74</td><td>53%</td><td class=pos>+26.9R</td><td class=pos>$+723</td></tr><tr><td class=l>2026-06</td><td>43</td><td>60%</td><td class=pos>+16.3R</td><td class=pos>$+500</td></tr></table>
+<h2>📆 BY DAY OF WEEK</h2><table><tr><th class=l>Day</th><th>Trades</th><th>Win %</th><th>Profit (R)</th><th>Profit ($ @0.01 lot)</th></tr><tr><td class=l>Monday</td><td>243</td><td>53%</td><td class=pos>+101.0R</td><td class=pos>$+2,222</td></tr><tr><td class=l>Tuesday</td><td>128</td><td>55%</td><td class=pos>+56.3R</td><td class=pos>$+1,217</td></tr><tr><td class=l>Wednesday</td><td>118</td><td>60%</td><td class=pos>+55.5R</td><td class=pos>$+1,434</td></tr><tr><td class=l>Thursday</td><td>112</td><td>56%</td><td class=pos>+52.5R</td><td class=pos>$+1,204</td></tr><tr><td class=l>Friday</td><td>124</td><td>56%</td><td class=pos>+56.1R</td><td class=pos>$+1,373</td></tr></table>
+<h2>⏰ BY HOUR (entry, broker time)</h2><table><tr><th class=l>Hour</th><th>Trades</th><th>Win %</th><th>Profit (R)</th><th>Profit ($ @0.01 lot)</th></tr><tr><td class=l>01:00</td><td>46</td><td>65%</td><td class=pos>+36.7R</td><td class=pos>$+841</td></tr><tr><td class=l>02:00</td><td>23</td><td>61%</td><td class=pos>+12.0R</td><td class=pos>$+391</td></tr><tr><td class=l>03:00</td><td>34</td><td>44%</td><td class=neg>-0.1R</td><td class=neg>$+44</td></tr><tr><td class=l>04:00</td><td>61</td><td>75%</td><td class=pos>+36.9R</td><td class=pos>$+766</td></tr><tr><td class=l>05:00</td><td>18</td><td>61%</td><td class=pos>+3.7R</td><td class=pos>$+47</td></tr><tr><td class=l>06:00</td><td>8</td><td>38%</td><td class=neg>-1.1R</td><td class=neg>$-10</td></tr><tr><td class=l>07:00</td><td>27</td><td>48%</td><td class=pos>+12.6R</td><td class=pos>$+293</td></tr><tr><td class=l>08:00</td><td>46</td><td>61%</td><td class=pos>+38.6R</td><td class=pos>$+715</td></tr><tr><td class=l>09:00</td><td>23</td><td>52%</td><td class=pos>+7.4R</td><td class=pos>$+143</td></tr><tr><td class=l>10:00</td><td>21</td><td>48%</td><td class=pos>+10.8R</td><td class=pos>$+250</td></tr><tr><td class=l>11:00</td><td>16</td><td>44%</td><td class=pos>+0.4R</td><td class=pos>$+61</td></tr><tr><td class=l>12:00</td><td>19</td><td>37%</td><td class=pos>+2.6R</td><td class=pos>$+43</td></tr><tr><td class=l>13:00</td><td>10</td><td>60%</td><td class=pos>+5.9R</td><td class=pos>$+120</td></tr><tr><td class=l>14:00</td><td>36</td><td>58%</td><td class=pos>+20.1R</td><td class=pos>$+434</td></tr><tr><td class=l>15:00</td><td>31</td><td>61%</td><td class=pos>+16.7R</td><td class=pos>$+438</td></tr><tr><td class=l>16:00</td><td>95</td><td>63%</td><td class=pos>+56.0R</td><td class=pos>$+1,321</td></tr><tr><td class=l>17:00</td><td>53</td><td>53%</td><td class=pos>+14.5R</td><td class=pos>$+405</td></tr><tr><td class=l>18:00</td><td>41</td><td>39%</td><td class=pos>+7.4R</td><td class=pos>$+118</td></tr><tr><td class=l>19:00</td><td>29</td><td>38%</td><td class=pos>+2.9R</td><td class=pos>$+81</td></tr><tr><td class=l>20:00</td><td>37</td><td>54%</td><td class=pos>+14.1R</td><td class=pos>$+370</td></tr><tr><td class=l>21:00</td><td>17</td><td>76%</td><td class=pos>+14.4R</td><td class=pos>$+294</td></tr><tr><td class=l>22:00</td><td>25</td><td>48%</td><td class=pos>+6.7R</td><td class=pos>$+220</td></tr><tr><td class=l>23:00</td><td>9</td><td>33%</td><td class=pos>+2.1R</td><td class=pos>$+66</td></tr></table>
+<div class=note><b>⚠️ Read honestly:</b> these are <b>validated walk-forward backtest</b> numbers (weekly retrain on
+past data, traded the next unseen week) at a fixed 0.01 lot — NOT your live account. Your live account so far
+has only ~15 trades (system ran intermittently + manual trades/deposits). The "$ @0.01 lot" scales linearly
+with your real lot size. R = profit ÷ risk-per-trade. The OOS result is genuinely strong (PF 3.28), but it is
+mildly optimistic (model trained on the same exit it's tested on) — the real proof is a DEMO forward-test on
+unseen future data. Returns under 3% dynamic compounding look huge but are compounding fantasy; judge by
+Profit Factor, Win% and drawdown (~13% at 3%, optimistic).</div>
+</body></html>

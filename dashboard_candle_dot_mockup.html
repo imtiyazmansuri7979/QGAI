@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QGAI Candle Dot Marker Mockup</title>
+  <style>
+    :root{--bg:#05070a;--panel:#0b1118;--border:#172638;--dim:#8291a5;--red:#ef4444;--green:#22c55e;--gold:#fbbf24}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(circle at 60% 20%,#22110a 0,#07080b 45%,#020305 100%);color:#edf5ff;font-family:"Segoe UI",Arial,sans-serif;padding:22px}
+    h1{font-size:22px;margin:0 0 4px}.sub{color:var(--dim);font-size:13px;margin-bottom:18px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:1200px}
+    .card{background:linear-gradient(180deg,#111820,#080d13);border:1px solid var(--border);border-radius:8px;padding:12px;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+    .name{font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between}.tag{font-size:12px;color:var(--dim);font-weight:600}
+    .bar{position:relative;height:70px;background:#020305;border:1px solid #07131f;border-radius:6px;overflow:hidden}
+    .bar:before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:100% 18px,42px 100%;opacity:.45}
+    .colors{position:absolute;inset:12px 12px;display:grid;grid-template-columns:repeat(24,1fr);gap:3px}
+    .seg{background:var(--c);opacity:.72;border-radius:2px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}.seg.on{opacity:1;filter:saturate(1.35) brightness(1.12);box-shadow:0 0 8px color-mix(in srgb,var(--c),transparent 45%),inset 0 0 0 1px rgba(255,255,255,.18)}
+    .pos{position:absolute;left:62%;top:50%;transform:translate(-50%,-50%);z-index:4}
+    .spark{width:16px;height:16px;border-radius:50%;background:#fff8dc;box-shadow:0 0 8px #fff,0 0 20px #f59e0b,0 0 36px rgba(249,115,22,.9)}
+    .wick{width:3px;height:58px;background:#fff4cf;box-shadow:0 0 8px #fff,0 0 18px #f97316;position:absolute;left:62%;top:6px;transform:translateX(-50%);z-index:4;border-radius:99px}
+    .candle{width:12px;height:32px;background:#fff6d8;border-radius:2px;box-shadow:0 0 8px #fff,0 0 24px #f97316}.candle:before{content:"";position:absolute;left:50%;top:-16px;width:2px;height:64px;background:#fff0b8;transform:translateX(-50%);box-shadow:0 0 10px #f97316}
+    .beam{position:absolute;left:62%;top:0;bottom:0;width:2px;background:#fff4cf;transform:translateX(-50%);z-index:4;box-shadow:0 0 10px #fff,0 0 28px #f59e0b}.beam:after{content:"";position:absolute;left:50%;top:50%;width:16px;height:16px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);box-shadow:0 0 16px #fff,0 0 34px #f97316}
+    .halo{width:20px;height:20px;border-radius:50%;border:2px solid #fff8dc;background:rgba(255,255,255,.92);box-shadow:0 0 12px #fff,0 0 26px #f97316,0 0 44px rgba(251,191,36,.75)}
+    .tagbubble{background:#fff8dc;color:#251104;border:1px solid #fbbf24;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:900;box-shadow:0 0 16px rgba(251,191,36,.85)}
+    .labels{display:flex;justify-content:space-between;color:var(--dim);font-size:12px;margin-top:6px}
+    @media(max-width:800px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <h1>Candle-Inspired Current Marker Options</h1>
+  <div class="sub">Based on glowing candlestick / orange market-light style.</div>
+  <div class="grid" id="grid"></div>
+  <script>
+    const colors=['#ef4444','#f43f5e','#ec4899','#d946ef','#a855f7','#8b5cf6','#facc15','#eab308','#fbbf24','#f59e0b','#f97316','#fb923c','#06b6d4','#22d3ee','#0ea5e9','#38bdf8','#3b82f6','#6366f1','#d9f99d','#c6f51e','#a3e635','#84cc16','#22c55e','#16a34a'];
+    const options=[
+      ['1. Spark Dot','small glow','<span class="pos spark"></span>'],
+      ['2. Candle Wick','market style','<span class="wick"></span>'],
+      ['3. Mini Candle','best theme','<span class="pos candle"></span>'],
+      ['4. Beam + Dot','very clear','<span class="beam"></span>'],
+      ['5. Golden Halo','premium dot','<span class="pos halo"></span>'],
+      ['6. R Bubble Glow','info marker','<span class="pos tagbubble">+0.82R</span>']
+    ];
+    function bar(marker){
+      const segs=colors.map((c,i)=>`<span class="seg ${i<=15?'on':''}" style="--c:${c}"></span>`).join('');
+      return `<div class="bar"><div class="colors">${segs}</div>${marker}</div><div class="labels"><span style="color:var(--red)">vSL</span><span>Current</span><span style="color:var(--green)">TP</span></div>`;
+    }
+    document.getElementById('grid').innerHTML=options.map(o=>`<section class="card"><div class="name"><span>${o[0]}</span><span class="tag">${o[1]}</span></div>${bar(o[2])}</section>`).join('');
+  </script>
+</body>
+</html>

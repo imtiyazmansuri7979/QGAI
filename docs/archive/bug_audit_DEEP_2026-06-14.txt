@@ -1,0 +1,74 @@
+================================================================
+QGAI v2 — DEEP BUG AUDIT (2026-06-14, 2nd pass)
+Scope: logic / edge-case / state / risk-gap bugs (not just syntax)
+================================================================
+
+SUMMARY: No crash-bugs or money-miscalculation bugs found.
+Core strategy logic (ratchet, lot sizing, daily guards) VERIFIED SOUND.
+BUT — 2 real RISK GAPS found (missing protective guards). See below.
+
+================================================================
+✅ VERIFIED CORRECT (deep logic check)
+================================================================
+
+1. RATCHET LINE LOGIC (trend_signal.compute_trend)   ✅ NO LOOKAHEAD
+   Uses MA[i-1] (prior bar) vs close[i] (current). One-way ratchet:
+   buy_line only rises, sell_line only falls. Mathematically correct,
+   no future data leak. This is the heart of the strategy — it's sound.
+
+2. RATCHET STATE CACHE (bridge_ratchet)              ✅ CORRECT
+   Drops the forming bar (iloc[:-1]), caches per closed bar_time.
+   No partial-bar contamination.
+
+3. TIMEZONE / DAY ROLLOVER                           ✅ CONSISTENT
+   MT5 epochs encode broker wall-clock as UTC. Day rollover and
+   check_closed both use the SAME broker-day model
+   (broker_day_start_ts). Internally coherent — no off-by-one-day.
+
+4. LOT SIZING, ORDER SEND, PARTIAL CLOSE             ✅ (confirmed pass 1)
+
+5. DAILY SL / TP / TRADE2-EQUITY guards              ✅ (confirmed pass 1)
+
+================================================================
+⚠️ RISK GAP #1 — NO SPREAD GUARD before entry   [MEDIUM]
+================================================================
+execute() never checks (ask - bid) before opening. On news spikes
+or rollover, gold spread can blow out to $0.50-2.00. A trade opened
+into a wide spread starts deep in the red.
+  - Mitigation already present: deviation=20 ($0.20) limits SLIPPAGE
+    on the fill, but NOT the bid/ask spread cost itself.
+  - SUGGESTED FIX: at top of execute(), skip if
+    (tick.ask - tick.bid) > MAX_SPREAD_USD (e.g. $0.50).
+  - Impact: occasional bad entries in fast markets. Not a crash.
+
+================================================================
+⚠️ RISK GAP #2 — NO market-open / weekend guard   [LOW-MEDIUM]
+================================================================
+No explicit check that the symbol is currently tradable
+(symbol_info.trade_mode == FULL) before execute().
+  - Natural protection: loop only fires on a NEW bar, and MT5 only
+    produces new M15 bars when the market is live → weekend is mostly
+    self-guarded.
+  - Residual risk: broker maintenance windows / illiquid rollover
+    minute could still pass a stale-ish bar.
+  - SUGGESTED FIX: skip execute() if
+    get_sym_info().trade_mode != mt5.SYMBOL_TRADE_MODE_FULL.
+
+================================================================
+🟢 MINOR — stale-data warning is lenient (inference:254)
+================================================================
+Warns only at >30 days old, and only PRINTS (doesn't block).
+Low priority because the new-bar gate already prevents trading on a
+frozen feed. Could tighten to e.g. 3 days + hard block, optional.
+
+================================================================
+VERDICT
+================================================================
+System has NO bugs that miscalculate money or crash the live loop.
+The 2 gaps are MISSING GUARDS, not broken code — the system trades
+correctly, it just lacks two defensive checks that would help in
+abnormal market conditions (wide spread / non-tradable symbol).
+
+Both are quick, safe additions if you want them. Neither is urgent
+for normal-market forward-testing at fixed 0.01 lot.
+================================================================

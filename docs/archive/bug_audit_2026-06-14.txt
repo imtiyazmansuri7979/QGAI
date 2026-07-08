@@ -1,0 +1,67 @@
+================================================================
+QGAI v2 — CRITICAL BUG AUDIT (2026-06-14)
+Scope: full codebase, critical/money-path bugs only
+================================================================
+
+RESULT: ✅ NO NEW CRITICAL BUGS FOUND
+All 31 modules compile cleanly. No undefined names (NameError sources).
+Live money-paths (lot sizing, order send, daily guards) verified correct.
+
+================================================================
+CRITICAL PATHS CHECKED — ALL OK
+================================================================
+
+1. LOT SIZING (bridge_risk.calc_lot)            ✅ CORRECT
+   raw = (balance × RISK_PCT/100) / sl_pts
+   Verified: with point=0.01, units resolve correctly to
+   $-risk-based lot. Has fixed-lot bypass + min/max/step clamp.
+
+2. ORDER SEND + RETRY (bridge_core ~199)         ✅ ROBUST
+   3-tier filling fallback: IOC → FOK → RETURN.
+   None-checks + retcode==10030 handling + DONE confirm.
+
+3. PARTIAL CLOSE volume (bridge_core ~260)       ✅ CAREFUL
+   vol_step floor-snapping (not naive round), float-drift
+   guards (round 10dp), remaining < vol_min skip. Correct.
+
+4. DAILY SL guard (bridge_session)               ✅ WORKS
+   - intrabar (2s): realized + floating loss combined,
+     force-closes all when >= daily_limit
+   - blocks execute() at bridge_core:75
+
+5. DAILY TARGET guard (check_daily_tp_intrabar)  ✅ WIRED
+   Called bridge_core:324, sets daily_tp_hit,
+   blocks execute() at bridge_core:78.
+
+6. TRADE2 EQUITY SL (bridge_session:338)         ✅ FIXED (#4)
+   Old inverted guard (trades_today != 1) never fired;
+   now gated on trade2_open_equity set + trades>=2. Correct.
+
+7. TP CAP 3% truncation (bridge_core:147)        ✅ SAFE
+   tp_p = int(price × 3% / pt): at $4200 = 12600 pts = $126.00,
+   truncation loses <$0.01. Max-risk gate [8.0, 1.2%] fine.
+
+8. SCHEDULER entry point (scheduler:217)         ✅ FIXED (#3)
+   Launches bridge_main.py (not nonexistent mt5_bridge.py).
+
+9. DIVISION-BY-ZERO (live math)                  ✅ SAFE
+   All /sl_dist, /pt, /trade2_open_equity guarded by
+   'if x else 0' or upstream None/<2 checks. pt=si.point>0.
+
+10. DASHBOARD NameError (memory-flagged)         ✅ RESOLVED
+    Compiles clean, no undefined names anywhere (pyflakes).
+
+================================================================
+NON-CRITICAL (cosmetic — safe to ignore)
+================================================================
+- A few `except Exception: pass` in dashboard/data display paths
+  (bridge_dashboard:114,525; bridge_data:190; inference:396,546).
+  Non-money paths — low priority.
+- ~20 unused local variables / f-strings without placeholders.
+  Zero runtime impact.
+
+================================================================
+VERDICT: System is clean for live trading. The earlier bug-fix
+campaign (#3, #4, #9, #16, #18) already closed the real issues.
+No new critical bug introduced by recent changes (TP cap, flags).
+================================================================

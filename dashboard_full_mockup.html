@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QGAI — FULL Dashboard Mockup (layouts & colours)</title>
+<style>
+body[data-theme="dark"]{--bg:#05070d;--panel:#0b1220;--panel2:#0e1626;--border:#15324a;--text:#cfeaff;--dim:#5b7fa0;--green:#00ff88;--red:#ff3366;--yellow:#ffd400;--accent:#00e5ff;--gold:#ffd700}
+body[data-theme="light"]{--bg:#eef2f8;--panel:#fff;--panel2:#f4f7fc;--border:#d6dfec;--text:#17202e;--dim:#7787a0;--green:#00a860;--red:#e01e5a;--yellow:#b98600;--accent:#2f6fed;--gold:#b78900}
+body[data-theme="blue"]{--bg:#08172e;--panel:#0f2549;--panel2:#123061;--border:#20416e;--text:#dce9ff;--dim:#7793bd;--green:#2ec88a;--red:#ff5c7a;--yellow:#ffcc33;--accent:#4f9dff;--gold:#ffd24d}
+body[data-theme="contrast"]{--bg:#000;--panel:#0a0a0a;--panel2:#121212;--border:#333;--text:#fff;--dim:#8a8a8a;--green:#00ff5f;--red:#ff2a2a;--yellow:#ffe000;--accent:#fff;--gold:#ffe000}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;transition:background .3s,color .3s}
+.wrap{max-width:1240px;margin:0 auto;padding:12px}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:10px}
+.ctrl b{font-size:.7rem;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.btn{cursor:pointer;border:1px solid var(--border);background:var(--panel2);color:var(--text);font:inherit;font-size:.78rem;padding:5px 11px;border-radius:7px}
+.btn:hover{border-color:var(--accent)} .btn.on{background:var(--accent);color:#00121f;border-color:var(--accent);font-weight:700}
+body[data-theme="contrast"] .btn.on{color:#000}
+.hdr{display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:9px 16px;background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;font-size:.78rem}
+.hdr .k{color:var(--dim);letter-spacing:1px}.hdr .v{color:var(--accent);font-weight:700}
+.hdr .rg{font-weight:900;letter-spacing:2px;color:var(--yellow)}.hdr .day{margin-left:auto;font-weight:900;letter-spacing:3px;color:var(--gold)}
+.hdr .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);margin-right:5px}
+
+.grid{display:grid;gap:10px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:12px}
+.ch{font-size:.7rem;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:9px;font-weight:700}
+.lbl{font-size:.63rem;letter-spacing:1px;color:var(--dim);text-transform:uppercase}
+.rowb{display:flex;justify-content:space-between;align-items:center;margin:5px 0;font-size:.8rem}
+.rowb b{font-weight:700}
+
+/* signal */
+.sig-big{font-weight:900;font-size:3rem;line-height:.9;letter-spacing:2px;transition:color .25s,text-shadow .25s}
+.sig-big.BUY{color:var(--green)}.sig-big.SELL{color:var(--red)}.sig-big.SKIP{color:var(--yellow)}
+.win{font-weight:800;font-size:1.8rem;color:var(--gold);line-height:1}
+.sub{font-size:.68rem;color:var(--dim);letter-spacing:1px;margin-top:3px}
+.ticker{height:18px;border-radius:6px;position:relative;margin:9px 0 3px;background-image:repeating-linear-gradient(90deg,transparent 0 calc(4.16% - 3px),var(--bg) calc(4.16% - 3px) 4.16%),linear-gradient(90deg,#ff1744,#ff9800,#ffe000,#9cff00,#00ff66)}
+.ticker .mk{position:absolute;top:-3px;width:2px;height:24px;background:var(--text)}
+.prow{display:flex;align-items:center;gap:9px;margin:6px 0}.prow .pk{width:70px;font-size:.7rem;color:var(--dim)}
+.ptrack{flex:1;height:11px;background:var(--panel2);border-radius:6px;overflow:hidden;border:1px solid var(--border)}.pfill{height:100%;border-radius:6px}.prow .pv{width:48px;text-align:right;font-weight:700;font-size:.76rem}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:9px}
+.stat{background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:7px;text-align:center}.stat .sv{font-weight:800;font-size:1rem;color:var(--accent)}
+
+.tag{font-weight:800;letter-spacing:1px}.tag.BUY{color:var(--green)}.tag.SELL{color:var(--red)}.tag.SKIP{color:var(--yellow)}
+.log .r{display:flex;justify-content:space-between;padding:4px 7px;border-radius:5px;margin-bottom:2px;background:var(--panel2);font-size:.73rem}
+.matrix{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.mx{display:flex;justify-content:space-between;background:var(--panel2);border-radius:5px;padding:4px 7px;font-size:.72rem}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.66rem;font-weight:700}
+.ok{color:var(--green)}.warn{color:var(--yellow)}.bad{color:var(--red)}
+.spark{display:flex;align-items:flex-end;gap:2px;height:44px}
+.spark span{flex:1;border-radius:2px 2px 0 0;min-height:3px}
+.tradebar{height:16px;border-radius:8px;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green));position:relative;margin:8px 0}
+.tradebar .p{position:absolute;top:-3px;width:3px;height:22px;background:var(--text)}
+.big2{font-size:1.5rem;font-weight:800}
+
+/* LAYOUTS */
+body[data-layout="A"] .grid{grid-template-columns:repeat(3,1fr)}
+body[data-layout="A"] #c-sig{grid-column:span 1}
+body[data-layout="B"] .grid{grid-template-columns:repeat(2,1fr)}
+body[data-layout="B"] #c-sig{grid-column:1/-1}
+body[data-layout="B"] #c-sig .sig-big{font-size:4.6rem}
+body[data-layout="B"] #c-sig .sig-lead{justify-content:center;gap:40px}
+body[data-layout="C"] .grid{grid-template-columns:repeat(2,1fr)}
+body[data-layout="C"] .card{padding:9px;font-size:.92em}
+body[data-layout="C"] #c-sig .sig-big{font-size:2.3rem}
+@media(max-width:820px){.grid{grid-template-columns:1fr!important}#c-sig{grid-column:auto!important}}
+.sig-lead{display:flex;align-items:center;gap:20px}
+.title{font-size:1.05rem;font-weight:900;letter-spacing:2px;color:var(--gold)}
+.note{font-size:.7rem;color:var(--dim);margin-top:10px}
+</style></head>
+<body data-theme="dark" data-layout="A">
+<div class="wrap">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+    <div class="title">⚡ QGAI — FULL DASHBOARD MOCKUP</div>
+    <button class="btn" style="margin-left:auto" onclick="cycleSig()">▶ Demo signal change</button>
+  </div>
+  <div class="ctrl">
+    <b>Layout</b>
+    <button class="btn on" data-l="A" onclick="setL('A',this)">A · Command 3-col</button>
+    <button class="btn" data-l="B" onclick="setL('B',this)">B · Hero focus</button>
+    <button class="btn" data-l="C" onclick="setL('C',this)">C · Compact 2-col</button>
+    <b style="margin-left:12px">Colour</b>
+    <button class="btn on" data-t="dark" onclick="setT('dark',this)">Dark neon</button>
+    <button class="btn" data-t="light" onclick="setT('light',this)">Light</button>
+    <button class="btn" data-t="blue" onclick="setT('blue',this)">Blue</button>
+    <button class="btn" data-t="contrast" onclick="setT('contrast',this)">Contrast</button>
+  </div>
+
+  <div class="hdr">
+    <span><span class="live"></span><b>LIVE</b></span>
+    <span class="rg" id="hRg">VOLATILE</span>
+    <span><span class="k">AUC</span> <span class="v">0.6807</span></span>
+    <span><span class="k">TP</span> <span class="v">0.8%</span></span>
+    <span><span class="k">SL</span> <span class="v">RATCHET</span></span>
+    <span><span class="k">COMBOS</span> <span class="v">OFF</span></span>
+    <span><span class="k">Equity</span> <span class="v">$1.10M</span></span>
+    <span class="day">THU 03:45</span>
+  </div>
+
+  <div class="grid">
+    <!-- 1 SIGNAL -->
+    <div class="card" id="c-sig">
+      <div class="ch">🎯 Signal</div>
+      <div class="sig-lead">
+        <div><div class="sig-big SKIP" id="sigText">SKIP</div><div class="sub" id="sigSub">VOLATILE / RATCHET</div></div>
+        <div style="text-align:right;margin-left:auto"><div class="lbl">Win prob</div><div class="win" id="winPct">41.06%</div></div>
+      </div>
+      <div class="ticker"><div class="mk" id="mk" style="left:41%"></div></div>
+      <div class="prow"><span class="pk">Win</span><div class="ptrack"><div class="pfill" style="width:41%;background:var(--yellow)"></div></div><span class="pv" style="color:var(--yellow)">41.1%</span></div>
+      <div class="prow"><span class="pk">State</span><div class="ptrack"><div class="pfill" style="width:49%;background:var(--yellow)"></div></div><span class="pv" style="color:var(--yellow)">49.1%</span></div>
+      <div class="prow"><span class="pk">Direction</span><div class="ptrack"><div class="pfill" style="width:37%;background:var(--red)"></div></div><span class="pv" style="color:var(--red)">37.3%</span></div>
+      <div class="stats"><div class="stat"><div class="lbl">EV</div><div class="sv">—</div></div><div class="stat"><div class="lbl">Grade</div><div class="sv" style="color:var(--dim)">—</div></div><div class="stat"><div class="lbl">Next</div><div class="sv" style="color:var(--gold)">03:20</div></div></div>
+    </div>
+
+    <!-- 2 OPEN TRADES -->
+    <div class="card"><div class="ch">⚡ Open Trades</div>
+      <div class="rowb"><span class="tag BUY">BUY</span><b>4031.42</b><span class="sub">15.58 lot</span></div>
+      <div class="tradebar"><div class="p" style="left:58%"></div></div>
+      <div class="rowb"><span class="sub">SL 4016.4</span><span class="sub">now 4045.5</span><span class="sub">TP 4112.0</span></div>
+      <div class="rowb"><span class="lbl">Unrealised</span><b class="ok">+$5,240 · +0.9R</b></div>
+      <div class="rowb"><span class="lbl">Exit mode</span><b>Ratchet · flip</b></div>
+    </div>
+
+    <!-- 3 RISK & SESSION -->
+    <div class="card"><div class="ch">▸ Risk & Session</div>
+      <div class="rowb"><span class="lbl">Risk / trade</span><b>3.0%</b></div>
+      <div class="rowb"><span class="lbl">Daily SL left</span><b class="ok">$90,000</b></div>
+      <div class="rowb"><span class="lbl">Daily TP</span><b>8.0% (off)</b></div>
+      <div class="rowb"><span class="lbl">Trades today</span><b>0 / 1 max</b></div>
+      <div class="rowb"><span class="lbl">Session</span><b class="v" style="color:var(--accent)">NY · open</b></div>
+    </div>
+
+    <!-- 4 MARKET STRUCTURE -->
+    <div class="card"><div class="ch">📊 Market Structure</div>
+      <div class="matrix">
+        <div class="mx"><span>Trend</span><b class="ok">Bullish</b></div>
+        <div class="mx"><span>Volatility</span><b class="warn">Normal</b></div>
+        <div class="mx"><span>Phase</span><b>Volatile</b></div>
+        <div class="mx"><span>Imbalance</span><b class="ok">Bullish</b></div>
+        <div class="mx"><span>OB zone</span><b class="ok">Near ✓</b></div>
+        <div class="mx"><span>Impulse</span><b class="ok">Up</b></div>
+      </div>
+    </div>
+
+    <!-- 5 WHY THIS SIGNAL -->
+    <div class="card"><div class="ch">🧠 Why This Signal?</div>
+      <div class="matrix">
+        <div class="mx"><span>Model</span><b>66.6%</b></div>
+        <div class="mx"><span>Market</span><b class="ok">100%</b></div>
+        <div class="mx"><span>Volatility</span><b class="warn">78.6%</b></div>
+        <div class="mx"><span>Slot WR</span><b>40.6%</b></div>
+        <div class="mx"><span>H1 ADX</span><b>44.8</b></div>
+        <div class="mx"><span>H4 ADX</span><b class="bad">5.1</b></div>
+      </div>
+    </div>
+
+    <!-- 6 MARKET INTELLIGENCE -->
+    <div class="card"><div class="ch">🛰 Market Intelligence</div>
+      <div class="rowb"><span class="lbl">Pred move (p50)</span><b>1.19 ATR · 0.24%</b></div>
+      <div class="rowb"><span class="lbl">Pred move (p75)</span><b>3.30 ATR · 0.66%</b></div>
+      <div class="rowb"><span class="lbl">Pred MAE (p50)</span><b class="warn">1.87 ATR</b></div>
+      <div class="rowb"><span class="lbl">Corr ratio</span><b>0.33</b></div>
+      <div class="rowb"><span class="lbl">Post big-move</span><b class="ok">Yes ✓</b></div>
+    </div>
+
+    <!-- 7 SIGNAL HISTORY -->
+    <div class="card"><div class="ch">📈 Signal History (win%)</div>
+      <div class="spark" id="spark"></div>
+      <div class="sub" style="margin-top:6px">last 24 bars · dotted = SKIP</div>
+    </div>
+
+    <!-- 8 SIGNAL LOG -->
+    <div class="card"><div class="ch">📋 Signal Log</div>
+      <div class="log" id="logBox"></div>
+    </div>
+
+    <!-- 9 CLOSED TRADES -->
+    <div class="card"><div class="ch">📕 Closed Trades (today)</div>
+      <div class="log">
+        <div class="r"><span>17:19</span><span class="tag BUY">BUY</span><span class="ok">+96,911 · WIN</span></div>
+        <div class="r"><span>04:00</span><span class="tag SELL">SELL</span><span class="ok">+1,344 · WIN</span></div>
+        <div class="r"><span>22:45</span><span class="tag BUY">BUY</span><span class="bad">-228 · LOSS</span></div>
+      </div>
+      <div class="rowb" style="margin-top:6px"><span class="lbl">Today</span><b class="ok">3 · WR 100% · +3.23R</b></div>
+    </div>
+
+    <!-- 10 NEWS FILTER -->
+    <div class="card"><div class="ch">📰 News Filter</div>
+      <div class="rowb"><span class="lbl">Status</span><b class="ok">Clear</b></div>
+      <div class="rowb"><span class="lbl">Threshold</span><b>42.0% (Volatile)</b></div>
+      <div class="rowb"><span class="lbl">Next event</span><b>EIA · 18:30</b></div>
+    </div>
+
+    <!-- 11 SYSTEM HEALTH -->
+    <div class="card"><div class="ch">💚 System Health</div>
+      <div class="matrix">
+        <div class="mx"><span>OHLC live</span><b class="ok">OK</b></div>
+        <div class="mx"><span>ADX live</span><b class="ok">OK</b></div>
+        <div class="mx"><span>XGB model</span><b class="ok">OK</b></div>
+        <div class="mx"><span>HMM model</span><b class="ok">OK</b></div>
+        <div class="mx"><span>Buy/Sell</span><b class="ok">OK</b></div>
+        <div class="mx"><span>Retrain</span><b class="ok">0d</b></div>
+      </div>
+    </div>
+
+    <!-- 12 MODEL STATS -->
+    <div class="card"><div class="ch">🧮 Model Stats</div>
+      <div class="rowb"><span class="lbl">Combined AUC</span><b>0.648</b></div>
+      <div class="rowb"><span class="lbl">BUY / SELL AUC</span><b>0.685 / 0.736</b></div>
+      <div class="rowb"><span class="lbl">Features</span><b>42</b></div>
+      <div class="rowb"><span class="lbl">Training trades</span><b>1,561</b></div>
+      <div class="rowb"><span class="lbl">Last retrain</span><b>2026-07-01</b></div>
+    </div>
+
+    <!-- 13 PROTECTION -->
+    <div class="card"><div class="ch">🛡 Protection</div>
+      <div class="rowb"><span class="lbl">Daily SL</span><b>9.0%</b></div>
+      <div class="rowb"><span class="lbl">Max open</span><b>1</b></div>
+      <div class="rowb"><span class="lbl">Spread guard</span><b>$0.50 · wait 30s</b></div>
+      <div class="rowb"><span class="lbl">Ratchet</span><b class="ok">ON · buf 0.15%</b></div>
+    </div>
+
+    <!-- 14 ACCOUNTS -->
+    <div class="card"><div class="ch">🏦 Accounts (3)</div>
+      <div class="rowb"><span>VantageDemo</span><b>$1.10M</b></div>
+      <div class="rowb"><span>VantageCentLive</span><b>$1,708</b></div>
+      <div class="rowb"><span>OneFunded</span><b class="ok">$11,770</b></div>
+      <div class="rowb" style="margin-top:5px"><span class="lbl">Total equity</span><b class="big2">$1.11M</b></div>
+    </div>
+  </div>
+
+  <div class="note">FULL dashboard mockup — all 14 modules. Toggle <b>Layout</b> (A 3-col / B hero / C compact) and <b>Colour</b> (4 themes). "Demo signal change" cycles BUY→SELL→SKIP to preview the SIGNAL colour. Sample data only.</div>
+</div>
+<script>
+function setL(l,b){document.body.setAttribute('data-layout',l);document.querySelectorAll('[data-l]').forEach(x=>x.classList.toggle('on',x===b));}
+function setT(t,b){document.body.setAttribute('data-theme',t);document.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x===b));}
+var LOG=[["17:30","BUY",72.4],["17:45","SELL",69.4],["18:00","BUY",67.6],["18:15","SELL",50.1],["19:15","BUY",55.7],["19:45","SELL",66.6]];
+document.getElementById('logBox').innerHTML=LOG.map(r=>'<div class="r"><span>'+r[0]+'</span><span class="tag '+r[1]+'">'+r[1]+'</span><span>'+r[2].toFixed(1)+'%</span></div>').join('');
+var SP=[26,27,25,38,44,60,57,56,45,40,63,30,59,64,64,72,69,67,50,50,55,62,66,41];
+document.getElementById('spark').innerHTML=SP.map(v=>{var c=v>=55?'var(--green)':v>=45?'var(--yellow)':'var(--red)';return '<span style="height:'+v+'%;background:'+c+'"></span>';}).join('');
+var demo=[["SKIP",41.06,"VOLATILE / RATCHET"],["BUY",64.8,"VOLATILE · long 🚀"],["SELL",66.6,"VOLATILE · short"]],di=0;
+function cycleSig(){di=(di+1)%3;var d=demo[di];var t=document.getElementById('sigText');t.textContent=d[0];t.className='sig-big '+d[0];document.getElementById('winPct').textContent=d[1].toFixed(2)+'%';document.getElementById('sigSub').textContent=d[2];document.getElementById('mk').style.left=d[1]+'%';}
+</script>
+</body></html>

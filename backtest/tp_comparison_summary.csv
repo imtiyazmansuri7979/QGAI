@@ -1,0 +1,14 @@
+TP,Trades,Win_Rate_%,Profit_Factor,Avg_R,Total_R,Max_DD_%,Rng_TotR,Trn_TotR,Vol_TotR,File
+3.00,542,55.9,2.81,0.481,260.6,1.5,107.4,90.6,62.7,results\backtests\tp_3\backtest_report.txt
+2.00,566,56.0,2.76,0.461,260.7,1.7,108.8,86.2,65.7,results\backtests\tp_2\backtest_report.txt
+1.20,630,56.2,2.62,0.409,257.9,2.0,94.9,94.7,68.3,results\backtests\tp_1.2\backtest_report.txt
+1.30,618,55.8,2.60,0.415,256.2,2.0,100.0,88.2,68.0,results\backtests\tp_1.3\backtest_report.txt
+1.40,602,56.1,2.60,0.415,250.1,1.9,101.1,84.1,64.9,results\backtests\tp_1.4\backtest_report.txt
+1.50,595,55.6,2.59,0.425,252.7,1.9,103.6,85.6,63.4,results\backtests\tp_1.5\backtest_report.txt
+1.00,672,55.5,2.52,0.384,257.7,1.7,87.2,104.4,66.1,results\backtests\tp_1\backtest_report.txt
+1.10,648,55.6,2.51,0.402,260.5,1.9,93.1,99.5,67.9,results\backtests\tp_1.1\backtest_report.txt
+0.90,702,54.4,2.32,0.353,247.9,1.7,83.8,93.8,70.3,results\backtests\tp_0.9\backtest_report.txt
+0.80,726,55.0,2.20,0.319,231.6,1.8,77.9,82.5,71.2,results\backtests\tp_0.8\backtest_report.txt
+0.70,782,55.0,2.12,0.292,228.7,1.8,81.0,80.8,66.9,results\backtests\tp_0.7\backtest_report.txt
+0.60,845,56.4,2.10,0.271,228.8,1.6,75.9,84.7,68.3,results\backtests\tp_0.6\backtest_report.txt
+0.50,932,59.0,2.06,0.238,222.1,1.7,63.3,87.3,71.5,results\backtests\tp_0.5\backtest_report.txt

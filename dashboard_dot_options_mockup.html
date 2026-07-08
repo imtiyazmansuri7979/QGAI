@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QGAI Dot Marker Options</title>
+  <style>
+    :root{
+      --bg:#05070a;--panel:#0b1118;--panel2:#080d13;--border:#172638;
+      --dim:#8291a5;--green:#22c55e;--red:#ef4444;--gold:#fbbf24;
+      --font:"Segoe UI",Arial,sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:#05070a;color:#edf5ff;font-family:var(--font);padding:22px}
+    h1{font-size:22px;margin:0 0 4px}
+    .sub{color:var(--dim);font-size:13px;margin-bottom:18px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:1200px}
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px}
+    .name{font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px}
+    .tag{font-size:12px;color:var(--dim);font-weight:600}
+    .bar{position:relative;height:54px;background:#020305;border:1px solid #07131f;border-radius:6px;overflow:hidden}
+    .colors{position:absolute;inset:7px 10px;display:grid;grid-template-columns:repeat(24,1fr);gap:3px}
+    .seg{background:var(--c);opacity:.78;border-radius:2px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+    .seg.on{opacity:1;filter:saturate(1.35) brightness(1.1);box-shadow:0 0 8px color-mix(in srgb,var(--c),transparent 45%),inset 0 0 0 1px rgba(255,255,255,.18)}
+    .dot{position:absolute;left:62%;top:50%;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:50%;background:#fff;z-index:5}
+    .ring{border:3px solid var(--green);box-shadow:0 0 16px rgba(34,197,94,.8)}
+    .line{position:absolute;left:62%;top:0;bottom:0;width:2px;background:rgba(255,255,255,.85);z-index:4;box-shadow:0 0 10px rgba(255,255,255,.45)}
+    .triangle{position:absolute;left:62%;top:2px;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:0;border-bottom:12px solid #fff;z-index:6;filter:drop-shadow(0 0 8px rgba(255,255,255,.7))}
+    .bubble{position:absolute;left:62%;top:4px;transform:translateX(-50%);background:#fff;color:#07111d;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:900;z-index:6;box-shadow:0 0 12px rgba(255,255,255,.45)}
+    .cross .dot{box-shadow:0 0 14px rgba(255,255,255,.75);border:2px solid var(--green)}
+    .pulse{animation:pulse 1.15s infinite}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.75)}50%{box-shadow:0 0 0 8px rgba(255,255,255,0)}}
+    .labels{display:flex;justify-content:space-between;color:var(--dim);font-size:12px;margin-top:6px}
+    @media(max-width:800px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <h1>White Marker Options</h1>
+  <div class="sub">vSL left, TP right. Same 24-color bar, different current-price marker styles.</div>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const colors = [
+      '#ef4444','#f43f5e','#ec4899','#d946ef','#a855f7','#8b5cf6',
+      '#facc15','#eab308','#fbbf24','#f59e0b','#f97316','#fb923c',
+      '#06b6d4','#22d3ee','#0ea5e9','#38bdf8','#3b82f6','#6366f1',
+      '#d9f99d','#c6f51e','#a3e635','#84cc16','#22c55e','#16a34a'
+    ];
+    const options = [
+      ['1. White Dot','simple','<span class="dot"></span>'],
+      ['2. Neon Ring','modern','<span class="dot ring"></span>'],
+      ['3. Vertical Cursor','clear position','<span class="line"></span>'],
+      ['4. Triangle Pointer','chart style','<span class="triangle"></span>'],
+      ['5. Price/R Bubble','most info','<span class="bubble">+0.82R</span>'],
+      ['6. Pulsing Dot','live feel','<span class="dot ring pulse"></span>'],
+      ['7. Crosshair','recommended','<span class="line"></span><span class="dot ring"></span>'],
+      ['8. Bubble + Line','premium','<span class="line"></span><span class="bubble">4037.20</span>']
+    ];
+    function barHtml(marker){
+      const segs = colors.map((c,i)=>`<span class="seg ${i<=15?'on':''}" style="--c:${c}"></span>`).join('');
+      return `<div class="bar"><div class="colors">${segs}</div>${marker}</div>
+        <div class="labels"><span style="color:var(--red)">vSL</span><span>Entry</span><span style="color:var(--green)">TP</span></div>`;
+    }
+    document.getElementById('grid').innerHTML = options.map(o=>`
+      <section class="card ${o[0].includes('Crosshair')?'cross':''}">
+        <div class="name"><span>${o[0]}</span><span class="tag">${o[1]}</span></div>
+        ${barHtml(o[2])}
+      </section>`).join('');
+  </script>
+</body>
+</html>

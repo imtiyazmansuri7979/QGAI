@@ -1,0 +1,12 @@
+timestamp,event,currency,impact,actual,forecast,previous
+2026-06-02 19:30:00,JOLTS Job Openings,USD,3,7.618M,6.860M,7.192M
+2026-06-06 12:30:00,Nonfarm Payrolls,USD,3,,, 
+2026-06-06 12:30:00,Unemployment Rate,USD,3,,,
+2026-06-11 12:30:00,CPI m/m,USD,3,,,
+2026-06-11 12:30:00,Core CPI m/m,USD,3,,,
+2026-06-18 12:30:00,Retail Sales m/m,USD,3,,,
+2026-06-18 12:30:00,Core Retail Sales m/m,USD,3,,,
+2026-06-25 12:30:00,GDP q/q (Advance),USD,3,,,
+2026-06-26 14:00:00,Consumer Confidence,USD,3,,,
+2026-06-27 12:30:00,PCE Price Index m/m,USD,3,,,
+2026-06-27 12:30:00,Core PCE Price Index m/m,USD,3,,,

@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>QGAI Signal Panel Mockups</title>
+<style>
+  :root{
+    --bg:#020a10;--panel:#06131b;--line:#123247;--txt:#d8f6ff;--mut:#5f8aa2;
+    --lime:#76ff03;--red:#ff1744;--yellow:#ffff00;--cyan:#00d5ff;--pink:#ff2fc3;--orange:#ff9800;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:13px "Segoe UI",Arial,sans-serif;padding:18px}
+  h1{margin:0 0 14px;font-size:20px;color:var(--cyan)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:16px}
+  .mock{background:linear-gradient(180deg,#06131b,#031018);border:1px solid var(--line);border-radius:8px;padding:12px;min-height:245px;box-shadow:0 0 22px rgba(0,213,255,.08)}
+  .title{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+  .tag{color:#001;background:var(--lime);padding:3px 8px;border-radius:4px;font-weight:800}
+  .row{display:flex;align-items:center;gap:10px}
+  .signal{font-weight:900;line-height:.9;letter-spacing:.03em}
+  .skip{color:#1d5d91}.buy{color:var(--lime)}.sell{color:var(--red)}
+  .prob{color:var(--yellow);font-weight:800}
+  .bars{display:grid;gap:9px;flex:1}
+  .barrow{display:grid;grid-template-columns:70px 1fr 48px;align-items:center;gap:8px}
+  .label{color:#5ca6ca}
+  .track{height:22px;background:#020305;border:1px solid #07131f;border-radius:5px;overflow:hidden;box-shadow:inset 0 0 10px #001}
+  .fill{height:100%;border-radius:4px;background-image:
+    repeating-linear-gradient(90deg,transparent 0 calc(4.166% - 3px),rgba(2,3,5,.95) calc(4.166% - 3px) 4.166%),
+    linear-gradient(90deg,var(--red) 0%,var(--orange) 36%,var(--yellow) 58%,var(--lime) 100%);
+    box-shadow:0 0 14px rgba(255,255,0,.18),inset 0 0 0 1px rgba(255,255,255,.18);
+    filter:saturate(1.55) brightness(1.12);position:relative}
+  .fill:after{content:'';position:absolute;right:-2px;top:-3px;width:4px;height:calc(100% + 6px);background:#fff8dc;border-radius:3px;box-shadow:0 0 10px #fff8dc,0 0 22px var(--yellow)}
+  .fill.win{width:25.5%}
+  .fill.state{width:23.1%}
+  .fill.dir{width:30.3%}
+  .cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+  .card{border:1px solid var(--line);border-radius:6px;padding:8px;min-height:50px;background:#04111a}
+  .card b{display:block;color:#5ca6ca;font-size:11px;margin-bottom:5px}
+  .bigcenter{text-align:center}
+  .gauge{height:32px;background:#020305;border:1px solid #07131f;border-radius:6px;overflow:hidden;box-shadow:inset 0 0 10px #001}
+  .gauge span{display:block;height:100%;width:25.5%;background-image:
+    repeating-linear-gradient(90deg,transparent 0 calc(4.166% - 3px),rgba(2,3,5,.95) calc(4.166% - 3px) 4.166%),
+    linear-gradient(90deg,var(--red) 0%,var(--orange) 36%,var(--yellow) 58%,var(--lime) 100%);
+    box-shadow:0 0 14px rgba(255,255,0,.18),inset 0 0 0 1px rgba(255,255,255,.18);
+    filter:saturate(1.55) brightness(1.12);position:relative}
+  .gauge span:after{content:'';position:absolute;right:-2px;top:-4px;width:5px;height:calc(100% + 8px);background:#fff8dc;border-radius:4px;box-shadow:0 0 12px #fff8dc,0 0 26px var(--yellow)}
+  .thin .track{height:10px;border-radius:99px}
+  .thin .gauge{height:14px;border-radius:99px}
+  .thin .fill:after{top:-3px;height:calc(100% + 6px);width:3px}
+  .thin .gauge span:after{top:-3px;height:calc(100% + 6px);width:3px}
+  .scale{display:flex;justify-content:space-between;color:var(--mut);font-size:10px;margin-top:4px;padding:0 2px}
+  .side{display:grid;grid-template-columns:180px 1fr;gap:16px}
+  .mini{font-size:11px;color:var(--mut)}
+  .headline{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .reason{margin-top:10px;color:#79b8d6;border-top:1px solid #0d2c40;padding-top:8px;font-size:12px}
+</style>
+</head>
+<body>
+<h1>Signal Panel Mockups - pick one option</h1>
+<div class="grid">
+  <section class="mock">
+    <div class="title"><span>Selected A - Blocky Ticker Bar</span><span class="tag">Blocky</span></div>
+    <div class="bigcenter">
+      <div class="mini">CURRENT SIGNAL</div>
+      <div class="signal skip" style="font-size:76px">SKIP</div>
+      <div class="prob" style="font-size:30px">25.5%</div>
+    </div>
+    <div class="gauge" style="margin:12px 0 0"><span></span></div>
+    <div class="scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+    <div class="bars" style="margin-top:4px">
+      <div class="barrow"><span class="label">Win</span><div class="track"><div class="fill win"></div></div><b class="prob">25.5%</b></div>
+      <div class="barrow"><span class="label">State</span><div class="track"><div class="fill state"></div></div><b style="color:var(--pink)">23.1%</b></div>
+      <div class="barrow"><span class="label">Direction</span><div class="track"><div class="fill dir"></div></div><b style="color:var(--orange)">30.3%</b></div>
+    </div>
+    <div class="cards" style="margin-top:18px">
+      <div class="card"><b>EV</b>--</div>
+      <div class="card"><b>GRADE</b>--</div>
+      <div class="card"><b>NEXT BAR</b><span class="prob">09:21</span><br>M15</div>
+    </div>
+  </section>
+
+  <section class="mock thin">
+    <div class="title"><span>Selected B - Thin Compact Ticker</span><span class="tag">Thin</span></div>
+    <div class="bigcenter">
+      <div class="mini">CURRENT SIGNAL</div>
+      <div class="signal skip" style="font-size:76px">SKIP</div>
+      <div class="prob" style="font-size:30px">25.5%</div>
+    </div>
+    <div class="gauge" style="margin:12px 0 0"><span></span></div>
+    <div class="scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+    <div class="bars" style="margin-top:10px">
+      <div class="barrow"><span class="label">Win</span><div class="track"><div class="fill win"></div></div><b class="prob">25.5%</b></div>
+      <div class="barrow"><span class="label">State</span><div class="track"><div class="fill state"></div></div><b style="color:var(--pink)">23.1%</b></div>
+      <div class="barrow"><span class="label">Direction</span><div class="track"><div class="fill dir"></div></div><b style="color:var(--orange)">30.3%</b></div>
+    </div>
+    <div class="cards" style="margin-top:18px">
+      <div class="card"><b>EV</b>--</div>
+      <div class="card"><b>GRADE</b>--</div>
+      <div class="card"><b>NEXT BAR</b><span class="prob">09:21</span><br>M15</div>
+    </div>
+  </section>
+
+  <section class="mock">
+    <div class="title"><span>Option 1 - Big Signal Left</span><span class="tag">Clean</span></div>
+    <div class="row">
+      <div style="width:145px">
+        <div class="mini">SIGNAL</div>
+        <div class="signal skip" style="font-size:52px">SKIP</div>
+        <div class="prob" style="font-size:24px">25.5%</div>
+      </div>
+      <div class="bars">
+        <div class="barrow"><span class="label">Win Prob</span><div class="track"><div class="fill win"></div></div><b class="prob">25.5%</b></div>
+        <div class="barrow"><span class="label">State</span><div class="track"><div class="fill state"></div></div><b style="color:var(--pink)">23.1%</b></div>
+        <div class="barrow"><span class="label">Dir</span><div class="track"><div class="fill dir"></div></div><b style="color:var(--orange)">30.3%</b></div>
+      </div>
+    </div>
+    <div class="cards"><div class="card"><b>EV</b>--</div><div class="card"><b>GRADE</b>--</div><div class="card"><b>NEXT BAR</b><span class="prob">09:21</span><br>M15</div></div>
+  </section>
+
+  <section class="mock">
+    <div class="title"><span>Option 2 - Center Hero</span><span class="tag">Big</span></div>
+    <div class="bigcenter">
+      <div class="mini">CURRENT SIGNAL</div>
+      <div class="signal skip" style="font-size:76px">SKIP</div>
+      <div class="prob" style="font-size:30px">25.5%</div>
+    </div>
+    <div class="bars" style="margin-top:14px">
+      <div class="barrow"><span class="label">Win</span><div class="track"><div class="fill win"></div></div><b class="prob">25.5%</b></div>
+      <div class="barrow"><span class="label">State</span><div class="track"><div class="fill state"></div></div><b style="color:var(--pink)">23.1%</b></div>
+      <div class="barrow"><span class="label">Direction</span><div class="track"><div class="fill dir"></div></div><b style="color:var(--orange)">30.3%</b></div>
+    </div>
+  </section>
+
+  <section class="mock">
+    <div class="title"><span>Option 3 - Trading Desk</span><span class="tag">Dense</span></div>
+    <div class="headline">
+      <div>
+        <div class="mini">SIGNAL</div>
+        <div class="signal skip" style="font-size:60px">SKIP</div>
+      </div>
+      <div style="text-align:right">
+        <div class="mini">WIN PROB</div>
+        <div class="prob" style="font-size:34px">25.5%</div>
+        <div class="mini">TRENDING / RATCHET</div>
+      </div>
+    </div>
+    <div class="gauge" style="margin:10px 0 14px"><span></span></div>
+    <div class="cards"><div class="card"><b>STATE</b><span style="color:var(--pink)">23.1%</span></div><div class="card"><b>DIR</b><span style="color:var(--orange)">30.3%</span></div><div class="card"><b>NEXT</b><span class="prob">09:21</span></div></div>
+    <div class="reason">prob 25.5% &lt; threshold 45% - no trade</div>
+  </section>
+
+  <section class="mock">
+    <div class="title"><span>Option 4 - Compact Big Bar</span><span class="tag">Simple</span></div>
+    <div class="side">
+      <div>
+        <div class="mini">SIGNAL</div>
+        <div class="signal skip" style="font-size:64px">SKIP</div>
+        <div class="prob" style="font-size:26px">25.5%</div>
+      </div>
+      <div>
+        <div class="mini">PROBABILITY</div>
+        <div class="gauge" style="height:24px;margin:8px 0 12px"><span></span></div>
+        <div class="cards" style="grid-template-columns:1fr 1fr;margin-top:0">
+          <div class="card"><b>STATE</b><span style="color:var(--pink)">23.1%</span></div>
+          <div class="card"><b>DIR</b><span style="color:var(--orange)">30.3%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="cards"><div class="card"><b>EV</b>--</div><div class="card"><b>GRADE</b>--</div><div class="card"><b>NEXT BAR</b><span class="prob">09:21</span></div></div>
+  </section>
+</div>
+</body>
+</html>

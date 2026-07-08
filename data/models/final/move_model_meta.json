@@ -1,0 +1,25 @@
+{
+  "horizon_bars": 12,
+  "quantiles": [
+    0.25,
+    0.5,
+    0.75
+  ],
+  "trained_range": [
+    "2025-01-01",
+    "2026-03-01"
+  ],
+  "trained_at": "2026-06-12T10:42:45.869589",
+  "results": {
+    "BUY": {
+      "verdict": "PASS",
+      "spearman": 0.342,
+      "pinball_improve_pct": 7.4
+    },
+    "SELL": {
+      "verdict": "FAIL",
+      "spearman": 0.252,
+      "pinball_improve_pct": 2.9
+    }
+  }
+}

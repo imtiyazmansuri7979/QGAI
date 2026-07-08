@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset=utf-8><title>QGAI Performance</title><style>
+body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f4f6f8;color:#1f2933;margin:0;padding:24px;max-width:760px}
+h1{font-size:20px;margin:0 0 2px}.sub{color:#6b7280;font-size:13px;margin-bottom:8px}
+.hdr{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#475569;margin:18px 2px 6px;border-bottom:2px solid #cbd5e1;padding-bottom:4px}
+.box{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:4px 16px 12px;margin-bottom:14px}
+.box h2{font-size:14px;margin:12px 4px 2px}.bt h2{color:#1d4ed8}.ls h2{color:#7c3aed}.re h2{color:#0a8f3c}
+.tag{font-size:11px;color:#6b7280;margin:0 4px 8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid #eef0f2}
+th{background:#f3f4f6;color:#6b7280;font-size:11px;text-transform:uppercase}
+th.l,td.l{text-align:left}tr:last-child td{border-bottom:none}
+.pos{color:#0a8f3c;font-weight:600}.neg{color:#c0392b;font-weight:600}.mut{color:#9aa3ad}
+.note{background:#fff8e6;border:1px solid #f0d98a;border-radius:8px;padding:11px 14px;font-size:12px;color:#7a5c00;line-height:1.5;margin-top:6px}
+</style></head><body>
+<h1>QGAI — Performance (0.01 lot)</h1>
+<div class=sub>BUY / SELL / SKIP separate · all at 0.01 lot · as of 2026-06-27</div>
+
+<div class=hdr>① SYSTEM = SIGNAL PROVIDER &nbsp;(its own track record, whether or not the account traded)</div>
+<div class="box bt"><h2>📊 Backtest (validated, simulated)</h2><div class=tag>2025-09-01 → 2026-06-12 · walk-forward OOS · NOT real money</div><table><tr><th class=l>Signal</th><th>Trades</th><th>Win%</th><th>Profit $</th><th>Avg $/tr</th></tr><tr><td class=l>BUY</td><td>362</td><td>57%</td><td class=pos>$+3,348</td><td>$+9.2</td></tr><tr><td class=l>SELL</td><td>363</td><td>54%</td><td class=pos>$+4,103</td><td>$+11.3</td></tr><tr style="font-weight:700;background:#f8fafc"><td class=l>TOTAL</td><td>725</td><td>56%</td><td class=pos>$+7,451</td><td>$+10.3</td></tr><tr><td class=l>SKIP</td><td>16035</td><td class=mut>—</td><td class=mut>no trade</td><td class=mut>—</td></tr></table></div>
+<div class="box ls"><h2>📡 Live signals emitted (paper)</h2><div class=tag>real-time signals the system gave, forward-simulated · NOT real money</div><table><tr><th class=l>Signal</th><th>Trades</th><th>Win%</th><th>Profit $</th><th>Avg $/tr</th></tr><tr><td class=l>BUY</td><td>437</td><td>53%</td><td class=pos>$+3,809</td><td>$+8.7</td></tr><tr><td class=l>SELL</td><td>289</td><td>44%</td><td class=pos>$+1,408</td><td>$+4.9</td></tr><tr style="font-weight:700;background:#f8fafc"><td class=l>TOTAL</td><td>726</td><td>49%</td><td class=pos>$+5,217</td><td>$+7.2</td></tr><tr><td class=l>SKIP</td><td>2997</td><td class=mut>—</td><td class=mut>no trade</td><td class=mut>—</td></tr></table></div>
+
+<div class=hdr>② REAL ACCOUNT = SIGNAL RECEIVER &nbsp;(what was actually executed — kept SEPARATE)</div>
+<div class="box re"><h2>💹 Real executed trades</h2><div class=tag>actual fills on the account, normalized to 0.01 lot · REAL money</div><table><tr><th class=l>Signal</th><th>Trades</th><th>Win%</th><th>Profit $</th><th>Avg $/tr</th></tr><tr><td class=l>BUY</td><td>20</td><td>10%</td><td class=neg>$-303</td><td>$-15.1</td></tr><tr><td class=l>SELL</td><td>13</td><td>23%</td><td class=neg>$-83</td><td>$-6.4</td></tr><tr style="font-weight:700;background:#f8fafc"><td class=l>TOTAL</td><td>33</td><td>15%</td><td class=neg>$-386</td><td>$-11.7</td></tr></table></div>
+
+<div class=note><b>Provider vs receiver:</b> the system EMITTED 726 live signals (+$5,217 @0.01 if all taken),
+but the account only EXECUTED 33 of them ($-386). A signal provider's performance is its own;
+the receiver may or may not act on each signal — so box ② ≠ box ①. To make them match, the bot must run live and
+take every signal (DEMO first, P3'). live_trades.csv is also partly corrupted (L10). $ at 0.01 lot — scale by your lot.</div>
+</body></html>

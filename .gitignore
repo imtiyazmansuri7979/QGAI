@@ -1,0 +1,96 @@
+# QGAI root gitignore
+
+# Credentials / account-specific config
+.env
+*.env
+*.key
+*.pem
+*.pfx
+*.p12
+engine/config_mt5.py
+engine/config_mt5.py.bak*
+**/*credential*
+**/*secret*
+
+# Python/runtime caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+tmp_matplotlib_cache/
+catboost_info/
+
+# Logs and live runtime output
+*.log
+*retrain_log*.txt
+engine/logs/
+fundamental_engine/logs/
+fundamental_engine/audit/audit_outputs/
+logs/
+*.tmp
+*.bak
+*.bak_*
+*.corrupt_bak
+*.disabled
+.~lock.*
+0.60
+engine/+*R
+engine/RESTART
+engine/SKIP
+engine/_sync_test.txt
+engine/already
+engine/build
+engine/cd
+engine/del
+engine/full
+engine/git
+engine/paper-trade
+engine/run
+engine/the
+engine/then
+engine/trail
+
+# Large data and generated research output
+data/historical/
+data/live/
+data/merged/
+data/fundamental/
+data/_pre_reload_backup/
+Economi calandar data/
+backtest/results/
+backtest/logs/
+engine_backup_*/
+bug_review/
+
+# Keep final deployed model artifacts for new-PC setup.
+# If this repo becomes public, move these to a private release/artifact instead.
+data/models/*
+!data/models/final/
+!data/models/final/**
+
+# Generated archives and binary reports
+*.zip
+*.7z
+*.rar
+*.db
+*.sqlite
+*.sqlite3
+*.xlsx
+*.xlsm
+*.docx
+*.pdf
+
+# Local editor/tool state
+.vscode/
+.claude/
+.agents/
+engine/.git_nested_backup*/
+
+# Misc generated sweep folders
+atr_results/
+grid_results/
+sweep_results/
+sweep_year/
+tpcap_results/
+wfo_results/

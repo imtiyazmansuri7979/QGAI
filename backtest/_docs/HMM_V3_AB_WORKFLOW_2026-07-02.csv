@@ -1,0 +1,30 @@
+﻿== A/B COMPARISON ==
+Metric,"A = spec [ADX, |DI_diff|, band]","B = rel [ADX, di_eff, band_rel] (RECOMMENDED)"
+Volatile cluster volatility,"0.217% (= Ranging 0.203% - FAIL, not high)",1.65x trailing mean (Ranging 0.79x - PASS)
+Flat 2026-07-02 08:00-13:15 window,16 Trending / 6 Ranging / 0 Volatile,18 Ranging / 4 Trending / 0 Volatile
+Proxy chop (wide+unclear) -> Volatile,1% (78% goes Trending),80%
+Proxy quiet -> Volatile,48% (over-trades quiet mkts),0%
+Train vs full distribution (R/T/V %),34.8/21.7/43.5 -> 30.4/33.0/36.6 (DRIFT),42.8/36.1/21.1 -> 42.4/36.6/21.0 (STABLE)
+WFO gate,adopt only if total R >= +483.1R,adopt only if total R >= +483.1R
+
+== RUN STEPS (PC) ==
+#,Step,Details
+1,Run_HMM_AB_WFO.bat,"C:\QGAI\backtest\ - regen adx_merged (parity check) + freeze C:\QGAI_wfo_spec + C:\QGAI_wfo_rel + launch BOTH WFO windows (~1.5-2.5h each, resume-safe, live untouched). Slow PC: run child bats one by one."
+2,Wait for both windows,Summaries: backtest\results\wfo_hmm_spec\_WFO_SUMMARY.txt and wfo_hmm_rel\_WFO_SUMMARY.txt
+3,Tell Claude 'AB WFO done',Claude compares both vs baseline +483.1R (wfo_live_match_015) - PROFIT-FIRST
+4,Run_HMM_v3_Deploy.bat,"ONLY if winner >= +483.1R. Default variant=rel; EDIT QGAI_HMM_VARIANT line to spec if A won. Backup -> _backup_pre_hmm_v3, regen, train.py, verify_hmm_window.py"
+5,Check verify output,Must print ALL CHECKS PASSED (stability + flat window not Volatile)
+6,Restart bridge,DEMO FIRST - watch dashboard states before real money
+7,Revert (if needed),copy _backup_pre_hmm_v3 back into data\models\final + revert engine code + restart
+
+== ROOT CAUSE + FIX ==
+Item,Detail
+Problem,"Flat 2026-07-02 08:00-13:15 (net +0.047%, range 0.66%) read Volatile every bar -> threshold 0.42 (lowest) -> over-trading in chop"
+v1 fail,raw +DI/-DI: GMM clustered by DIRECTION (up/down/flat)
+v2 fail,"di_sum non-discriminating (40.2/42.4/42.8) -> 65% Volatile, unstable. PLUS predict paths never passed PlusDI/MinusDI keys -> silently 0"
+Root cause 1,Raw band % non-stationary: gold vol drifted 2022->2026. Flat window = p88-92 globally but p21-53 vs last 30 days
+Root cause 2,Smoothed ADX/|DI_diff| stay high through post-trend chop (Volatile vs Trending ADX 38.3 vs 38.2)
+Fix (rel variant),di_eff = 100*|+DI - -DI|/(+DI + -DI) = instantaneous DX (lag-free clarity). band_rel = band_width_pct / trailing 30d mean (drift-free; NOT ATR)
+Hardening,hmm pkl stores its own feature list (env-proof predict); adx_row from model.features everywhere; self_learning positional bug fixed
+New files,"engine\verify_hmm_window.py + 4 bats (AB WFO, A spec, B rel, v3 Deploy)"
+

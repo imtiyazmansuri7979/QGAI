@@ -1,0 +1,17 @@
+﻿== FIXES 1-2-3 ==
+Fix,Problem,Tool,Detail
+1,HTF intra-bar lookahead,"engine/regen_adx_asof.py (READY, validated err=0.0 vs brute force) + Run_Fix1_AsOf_Regen.bat",As-of rebuild: EWM over completed bars + one Wilder step with partial forming bar = exact live-updater semantics. Apply AFTER A/B WFO; retrain; rerun WFO = new HONEST baseline. Patch mt5_data_updater same convention atomically. Expect numbers to DROP - that is correct.
+2a,10 dead features + failed SELL move-model,feature list edit + retrain (after WFO),Prune zero-importance features; retire/regate SELL move-model (rho=0.25 FAIL)
+2b,Broken probability calibration,rolling-OOS recalibration; threshold sweep WFO 0.35/0.42/0.50,Do NOT raise thresholds blindly - the <50% bucket earned +113.7R. Profit-first sweep on leak-free data.
+2c,TRAIL exit destroys value,run_wfo.py --sweep-trails (existing tool) on as-of data,"Evidence: TRAIL peaks +0.94R avg, exits -0.15R (1.09R giveback); 39 trades reaching +0.5R gave back 1.36R each. Adopt best total-R mode of 6."
+3,Live != backtest (June: 12% entry overlap; TRAIL 49% vs 11%),engine/reconcile_shadow.py (READY) - weekly run,Attack order: Fix1 -> HMM v3 deploy -> trail parity -> fill audit. Scaling gate: 4-8 weeks overlap high + weekly R gap within +/-20%. Until then: reduced risk 1-1.5% + hard lot cap (15.58 lots seen live) - final call Imtiyaz/Divyesh.
+
+== MASTER SEQUENCE ==
+#,Action,Gate
+1,A/B HMM WFO finishes (running),winner >= +483.1R (same-data comparison)
+2,Run_Fix1_AsOf_Regen.bat apply,drift report sane
+3,Retrain + rerun WFO (winner) on as-of data,new HONEST baseline recorded
+4,Feature prune + updater as-of patch + retrain,WFO not worse than step 3
+5,--sweep-trails WFO,best total-R trail mode adopted
+6,Deploy DEMO + bridge restart,verify_hmm_window PASS
+7,Weekly reconcile_shadow.py,4-8 wk within +/-20% -> scale

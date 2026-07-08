@@ -1,0 +1,19 @@
+﻿== PERFORMANCE LAYERS ==
+Layer,WR,PF,AvgR,Total,Trades
+In-sample full-year (live_buffer_015),65.7%,4.27,+0.718,+428.5R,597
+WFO OOS 53wk (wfo_live_match_015),68.2%,4.43,+0.742,+483.1R,651
+Shadow 19mo (deduped),50.1%,-,+0.377,+284.6R,754
+Shadow June 2026 only,29.4%,<1,-0.02,-1.9R,109
+Real live 2.5wk,27.8%,-,-,+$137k (top-3 wins +$158.7k; other 15 = -$21.5k),18
+
+== VERDICT ==
+Item,Value
+Leakage risk,38/100
+Overall readiness,41/100
+Final verdict,D - Experimental (borderline C-)
+Biggest weakness,Backtest world-model vs live: June 2026 shadow 29.4% WR / -1.9R vs WFO +48.1R / 66.7% same month
+Most dangerous assumption,Exit fills as modeled + decision-time features = stored features (disproven: intra-bar HTF leak)
+Failure mode,High-vol low-efficiency chop with regime stuck Volatile (thr 0.42); news gap on oversized lots (15.58 seen)
+Expected failure DD,25-40% at 3% risk
+Risk reduction,Fix HTF closed-bar convention + re-WFO; reconcile June; risk 1-1.5% + lot cap; prune 10 dead features; rework TRAIL; deploy HMM v3 after A/B gate
+

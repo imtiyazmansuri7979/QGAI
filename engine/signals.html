@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>QGAI — Signal Log</title>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--txt:#c9d1d9;--mut:#8b949e;--buy:#26a69a;--sell:#ef5350;--skip:#5c6370;--border:#21262d;}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--border);flex-wrap:wrap}
+  header b{font-size:16px}
+  .pill{background:#21262d;border-radius:6px;padding:3px 9px;color:var(--mut);font-size:12px}
+  button{background:#21262d;color:var(--txt);border:1px solid #30363d;border-radius:6px;padding:5px 12px;cursor:pointer}
+  button:hover{background:#30363d} button.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+  a{color:#58a6ff;font-size:12px;margin-left:auto}
+  .wrap{padding:0 8px 40px} table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  th,td{padding:6px 10px;text-align:right;border-bottom:1px solid #1b212b;white-space:nowrap}
+  th{position:sticky;top:0;background:var(--panel);color:var(--mut);font-weight:600;text-align:right;cursor:default}
+  td.l,th.l{text-align:left}
+  .BUY{color:var(--buy);font-weight:700} .SELL{color:var(--sell);font-weight:700} .SKIP{color:var(--skip)}
+  .tag{padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700}
+  .tag.BUY{background:rgba(38,166,154,.15);color:var(--buy)} .tag.SELL{background:rgba(239,83,80,.15);color:var(--sell)} .tag.SKIP{background:#21262d;color:var(--skip)}
+  .rp{color:#d29922} #err{padding:14px;color:#ffb4b4}
+</style></head>
+<body>
+<header>
+  <b>QGAI</b><span class="pill">Signal Log</span>
+  <span class="pill" id="cnt">—</span>
+  <button id="bAll" class="on" onclick="setF('all')">All</button>
+  <button id="bTrade" onclick="setF('trade')">BUY/SELL only</button>
+  <button onclick="load()">↻ Reload</button>
+  <a href="/dashboard.html">← Dashboard</a>
+</header>
+<div class="wrap"><div id="err"></div>
+<table id="tbl"><thead><tr>
+  <th class="l">Time</th><th>Signal</th><th>Price</th><th>Win&nbsp;%</th><th>Regime</th><th>Range?</th><th class="l">Reason</th>
+</tr></thead><tbody id="rows"></tbody></table></div>
+<script>
+let DATA=[], FILT='all';
+function setF(f){FILT=f;document.getElementById('bAll').className=f==='all'?'on':'';document.getElementById('bTrade').className=f==='trade'?'on':'';render();}
+function render(){
+  let d=DATA;
+  if(FILT==='trade') d=d.filter(r=>r.signal==='BUY'||r.signal==='SELL');
+  d=d.slice(-300).reverse();   // newest first, last 300
+  const tb=document.getElementById('rows'); tb.innerHTML='';
+  for(const r of d){
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="l">${r.time}</td>`
+      +`<td><span class="tag ${r.signal}">${r.signal}</span></td>`
+      +`<td>${r.price?Number(r.price).toFixed(2):'—'}</td>`
+      +`<td>${r.wp?(Number(r.wp)*100).toFixed(2):'—'}</td>`
+      +`<td>${r.regime||'—'}</td>`
+      +`<td>${r.range==='1'?'<span class="rp" title="H4 tight range (move <0.5%) — range-phase filter flag">H4 RANGE</span>':'—'}</td>`
+      +`<td class="l">${r.reason||''}</td>`;
+    tb.appendChild(tr);
+  }
+  document.getElementById('cnt').textContent=d.length+' shown / '+DATA.length+' total';
+}
+async function load(){
+  try{
+    document.getElementById('err').textContent='';
+    const r=await fetch('/logs/signals_all.csv?_='+Date.now());
+    if(!r.ok) throw new Error('signals_all.csv not found ('+r.status+')');
+    const txt=await r.text(); const lines=txt.trim().split('\n'); const h=lines[0].split(',');
+    const ix=n=>h.indexOf(n);
+    const iT=ix('bar_time'),iS=ix('signal'),iW=ix('win_prob'),iH=ix('hmm_state'),iP=ix('price'),iR=ix('in_range_phase'),iRe=ix('reason');
+    DATA=lines.slice(1).map(l=>{const c=l.split(',');return{time:c[iT],signal:(c[iS]||'').trim(),wp:c[iW],regime:c[iH],price:c[iP],range:(c[iR]||'').trim(),reason:c[iRe]||''};}).filter(r=>r.time);
+    render();
+  }catch(e){document.getElementById('err').textContent='⚠ '+e.message;}
+}
+load(); setInterval(load,15000);
+</script>
+</body></html>

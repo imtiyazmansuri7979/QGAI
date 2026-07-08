@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QGAI — Compact Trading Cockpit (one screen)</title>
+<style>
+body[data-theme="dark"]{--bg:#05070d;--panel:#0b1220;--panel2:#0e1626;--border:#15324a;--text:#cfeaff;--dim:#5b7fa0;--green:#00ff88;--red:#ff3366;--yellow:#ffd400;--accent:#00e5ff;--gold:#ffd700}
+body[data-theme="light"]{--bg:#eef2f8;--panel:#fff;--panel2:#f4f7fc;--border:#d6dfec;--text:#17202e;--dim:#7787a0;--green:#00a860;--red:#e01e5a;--yellow:#b98600;--accent:#2f6fed;--gold:#b78900}
+body[data-theme="blue"]{--bg:#08172e;--panel:#0f2549;--panel2:#123061;--border:#20416e;--text:#dce9ff;--dim:#7793bd;--green:#2ec88a;--red:#ff5c7a;--yellow:#ffcc33;--accent:#4f9dff;--gold:#ffd24d}
+body[data-theme="contrast"]{--bg:#000;--panel:#0a0a0a;--panel2:#121212;--border:#333;--text:#fff;--dim:#8a8a8a;--green:#00ff5f;--red:#ff2a2a;--yellow:#ffe000;--accent:#fff;--gold:#ffe000}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;overflow:hidden;transition:background .3s,color .3s}
+.app{height:100vh;display:grid;grid-template-rows:auto 1fr auto;gap:7px;padding:8px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:9px 11px;overflow:hidden}
+.ch{font-size:.6rem;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.lbl{font-size:.58rem;letter-spacing:.5px;color:var(--dim);text-transform:uppercase}
+.rowb{display:flex;justify-content:space-between;align-items:center;margin:3px 0;font-size:.78rem}.rowb b{font-weight:700}
+
+/* header */
+.hdr{display:flex;flex-wrap:wrap;gap:13px;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:7px 13px;font-size:.75rem}
+.hdr .rg{font-weight:900;letter-spacing:2px;color:var(--yellow)}.hdr .k{color:var(--dim)}.hdr .v{color:var(--accent);font-weight:700}
+.hdr .live{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);display:inline-block;margin-right:5px}
+.hdr .day{margin-left:auto;font-weight:900;letter-spacing:2px;color:var(--gold)}
+.seg{display:flex;gap:4px}.seg .btn{cursor:pointer;border:1px solid var(--border);background:var(--panel2);color:var(--text);font:inherit;font-size:.66rem;padding:3px 8px;border-radius:6px}
+.seg .btn.on{background:var(--accent);color:#00121f;font-weight:700;border-color:var(--accent)}
+body[data-theme="contrast"] .seg .btn.on{color:#000}
+
+/* main grid: signal | trade+risk | accounts+market */
+.main{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:7px;min-height:0}
+.col{display:grid;gap:7px;min-height:0}
+.col.c1{grid-template-rows:1fr}
+.col.c2{grid-template-rows:1.1fr .9fr}
+.col.c3{grid-template-rows:1fr 1fr}
+
+/* signal */
+.sig-big{font-weight:900;font-size:clamp(2.6rem,6vw,4.4rem);line-height:.86;letter-spacing:2px;transition:color .25s,text-shadow .25s}
+.sig-big.BUY{color:var(--green)}.sig-big.SELL{color:var(--red)}.sig-big.SKIP{color:var(--yellow)}
+.win{font-weight:800;font-size:clamp(1.6rem,3vw,2.4rem);color:var(--gold);line-height:1}
+.sub{font-size:.64rem;color:var(--dim);letter-spacing:1px;margin-top:2px}
+.sig-lead{display:flex;align-items:center;gap:14px}
+.ticker{height:16px;border-radius:6px;position:relative;margin:9px 0 4px;background-image:repeating-linear-gradient(90deg,transparent 0 calc(4.16% - 3px),var(--bg) calc(4.16% - 3px) 4.16%),linear-gradient(90deg,#ff1744,#ff9800,#ffe000,#9cff00,#00ff66)}
+.ticker .mk{position:absolute;top:-3px;width:2px;height:22px;background:var(--text)}
+.prow{display:flex;align-items:center;gap:8px;margin:5px 0}.prow .pk{width:64px;font-size:.66rem;color:var(--dim)}
+.ptrack{flex:1;height:10px;background:var(--panel2);border-radius:6px;overflow:hidden;border:1px solid var(--border)}.pfill{height:100%;border-radius:6px}.prow .pv{width:46px;text-align:right;font-weight:700;font-size:.72rem}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.stat{background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:6px;text-align:center}.stat .sv{font-weight:800;font-size:.95rem;color:var(--accent)}
+
+/* trade */
+.tradebar{height:15px;border-radius:8px;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green));position:relative;margin:7px 0}.tradebar .p{position:absolute;top:-3px;width:3px;height:21px;background:var(--text)}
+.big{font-size:1.35rem;font-weight:800}
+.tag{font-weight:800;letter-spacing:1px}.tag.BUY{color:var(--green)}.tag.SELL{color:var(--red)}.tag.SKIP{color:var(--yellow)}
+.ok{color:var(--green)}.warn{color:var(--yellow)}.bad{color:var(--red)}
+
+/* bottom strip: log + chips */
+.strip{display:grid;grid-template-columns:2fr 1fr;gap:7px}
+.log{display:flex;gap:6px;overflow:hidden}
+.log .r{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:5px 7px;font-size:.68rem;text-align:center}
+.chips{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.chip{background:var(--panel2);border:1px solid var(--border);border-radius:14px;padding:3px 9px;font-size:.66rem}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.mx{display:flex;justify-content:space-between;background:var(--panel2);border-radius:5px;padding:3px 7px;font-size:.68rem}
+</style></head>
+<body data-theme="dark">
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <span><span class="live"></span><b>LIVE</b></span>
+    <span class="rg" id="hRg">VOLATILE</span>
+    <span><span class="k">AUC</span> <span class="v">0.68</span></span>
+    <span><span class="k">TP</span> <span class="v">0.8%</span> · <span class="k">SL</span> <span class="v">RATCHET</span></span>
+    <span><span class="k">Equity</span> <span class="v">$1.11M</span></span>
+    <span class="seg" style="margin-left:auto">
+      <button class="btn on" data-t="dark" onclick="setT('dark',this)">Dark</button>
+      <button class="btn" data-t="light" onclick="setT('light',this)">Light</button>
+      <button class="btn" data-t="blue" onclick="setT('blue',this)">Blue</button>
+      <button class="btn" data-t="contrast" onclick="setT('contrast',this)">Contrast</button>
+    </span>
+    <button class="btn" style="border:1px solid var(--border);background:var(--panel2);color:var(--text);border-radius:6px;padding:3px 9px;font-size:.66rem;cursor:pointer" onclick="cycleSig()">▶ Demo</button>
+    <span class="day" id="clock">THU 03:45</span>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- COL1: SIGNAL (biggest) -->
+    <div class="col c1">
+      <div class="card" style="display:flex;flex-direction:column;justify-content:center">
+        <div class="ch">🎯 Signal</div>
+        <div class="sig-lead">
+          <div><div class="sig-big SKIP" id="sigText">SKIP</div><div class="sub" id="sigSub">VOLATILE / RATCHET</div></div>
+          <div style="text-align:right;margin-left:auto"><div class="lbl">Win prob</div><div class="win" id="winPct">41.06%</div></div>
+        </div>
+        <div class="ticker"><div class="mk" id="mk" style="left:41%"></div></div>
+        <div class="prow"><span class="pk">Win</span><div class="ptrack"><div class="pfill" style="width:41%;background:var(--yellow)"></div></div><span class="pv" style="color:var(--yellow)">41.1%</span></div>
+        <div class="prow"><span class="pk">State</span><div class="ptrack"><div class="pfill" style="width:49%;background:var(--yellow)"></div></div><span class="pv" style="color:var(--yellow)">49.1%</span></div>
+        <div class="prow"><span class="pk">Direction</span><div class="ptrack"><div class="pfill" style="width:37%;background:var(--red)"></div></div><span class="pv" style="color:var(--red)">37.3%</span></div>
+        <div class="stats"><div class="stat"><div class="lbl">EV</div><div class="sv">—</div></div><div class="stat"><div class="lbl">Grade</div><div class="sv" style="color:var(--dim)">—</div></div><div class="stat"><div class="lbl">Next bar</div><div class="sv" style="color:var(--gold)">03:20</div></div></div>
+      </div>
+    </div>
+
+    <!-- COL2: OPEN TRADE + RISK -->
+    <div class="col c2">
+      <div class="card">
+        <div class="ch">⚡ Open Trade</div>
+        <div class="rowb"><span class="tag BUY">BUY</span><b>4031.42</b><span class="sub">15.58 lot</span></div>
+        <div class="tradebar"><div class="p" style="left:58%"></div></div>
+        <div class="rowb"><span class="sub">SL 4016</span><span class="sub">now 4045</span><span class="sub">TP 4112</span></div>
+        <div class="rowb"><span class="lbl">Unrealised</span><b class="big ok">+0.9R</b></div>
+        <div class="rowb"><span class="lbl">= $</span><b class="ok">+$5,240</b></div>
+      </div>
+      <div class="card">
+        <div class="ch">▸ Risk & Day</div>
+        <div class="rowb"><span class="lbl">Risk / trade</span><b>3.0%</b></div>
+        <div class="rowb"><span class="lbl">Daily SL left</span><b class="ok">$90,000</b></div>
+        <div class="rowb"><span class="lbl">Trades today</span><b>0 / 1</b></div>
+        <div class="rowb"><span class="lbl">Today PnL</span><b class="ok">+3.23R</b></div>
+      </div>
+    </div>
+
+    <!-- COL3: ACCOUNTS + MARKET -->
+    <div class="col c3">
+      <div class="card">
+        <div class="ch">🏦 Accounts (3)</div>
+        <div class="rowb"><span>Demo</span><b>$1.10M</b></div>
+        <div class="rowb"><span>CentLive</span><b>$1,708</b></div>
+        <div class="rowb"><span>OneFunded</span><b class="ok">$11,770</b></div>
+        <div class="rowb" style="border-top:1px solid var(--border);padding-top:5px;margin-top:5px"><span class="lbl">Total</span><b class="big">$1.11M</b></div>
+      </div>
+      <div class="card">
+        <div class="ch">📊 Market</div>
+        <div class="mini">
+          <div class="mx"><span>Trend</span><b class="ok">Bull</b></div>
+          <div class="mx"><span>Vol</span><b class="warn">Norm</b></div>
+          <div class="mx"><span>Session</span><b class="v" style="color:var(--accent)">NY</b></div>
+          <div class="mx"><span>OB</span><b class="ok">Near</b></div>
+          <div class="mx"><span>H1 ADX</span><b>44.8</b></div>
+          <div class="mx"><span>Spread</span><b>$0.31</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM STRIP: log + status chips -->
+  <div class="strip">
+    <div class="card">
+      <div class="ch">📋 Recent signals</div>
+      <div class="log" id="logBox"></div>
+    </div>
+    <div class="card">
+      <div class="ch">Status</div>
+      <div class="chips">
+        <span class="chip"><span class="dot" style="background:var(--green)"></span>Health OK</span>
+        <span class="chip"><span class="dot" style="background:var(--green)"></span>News Clear</span>
+        <span class="chip">Ratchet ON · 0.15%</span>
+        <span class="chip">Max open 1</span>
+        <span class="chip">Retrain 0d</span>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function setT(t,b){document.body.setAttribute('data-theme',t);document.querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x===b));}
+var LOG=[["17:30","BUY",72.4],["17:45","SELL",69.4],["18:00","BUY",67.6],["19:15","BUY",55.7],["19:45","SELL",66.6]];
+document.getElementById('logBox').innerHTML=LOG.map(r=>'<div class="r">'+r[0]+'<br><span class="tag '+r[1]+'">'+r[1]+'</span> '+r[2].toFixed(0)+'%</div>').join('');
+var demo=[["SKIP",41.06,"VOLATILE / RATCHET"],["BUY",64.8,"VOLATILE · long 🚀"],["SELL",66.6,"VOLATILE · short"]],di=0;
+function cycleSig(){di=(di+1)%3;var d=demo[di];var t=document.getElementById('sigText');t.textContent=d[0];t.className='sig-big '+d[0];document.getElementById('winPct').textContent=d[1].toFixed(2)+'%';document.getElementById('sigSub').textContent=d[2];document.getElementById('mk').style.left=d[1]+'%';}
+</script>
+</body></html>
