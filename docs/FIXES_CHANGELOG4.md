@@ -8,6 +8,23 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-09 — Dashboard Audit (Ideal vs Current vs Fix) → `docs/DASHBOARD_AUDIT_2026-07-09.md`
+Requested standalone audit (Fable-style prompt). Rating **RISKY**. Top risks: (1) leaky feature
+`corr_imp_ratio` (Step-2 = Critical, future H4 candles) shown on board as `corr_ratio`; (2) backtest
+sizing ≠ live — **confirmed** fixed_lot 0.01 in `step4_monthly_set1_36/backtest_summary_st-htf.csv`
+(66 trades, max_dd 0.9%), so $/DD not live-equivalent; (3) WFO "too good" — full run = **53 weeks /
+768 trades / +444.7R, pos=51 neg=1** (part2 52/0, hmm 52/0) = leakage signature, while leaky features
+still in the set; (4) "STRENGTH" panel implies the ADX6 gate that is OFF + old formula cancelled ADX/slope;
+(5) no provenance (git-commit/config-hash/data-range) on any output. **F-10 (new):** the clean-set control
+(Set-2, 34-feat = current minus the 2 leaky feats) — the one test that would prove edge-vs-leakage — was
+started but left unfinished (`step4_set2_clean_34/` has only 1 train log) → finish it first. Also:
+`BY_REGIME` per-regime R exists in the backtest CSV but is not surfaced on any board.
+*(Self-correction: an earlier draft cited "~4 trades/wk / max_dd 0.3%" — that was a truncated early-weeks
+slice; the numbers above are the full-run reality.)* Full findings + KPI/mismatch/integrity tables +
+roadmap in the linked doc. No code changed.
+
+---
+
 ## 2026-07-09 — SIGNAL box mirrors the LOG + entry price atop BUY/SELL bars (Imtiyaz req)
 Imtiyaz flag: SIGNAL LOG's newest row = SELL, but the big SIGNAL box showed SKIP (box's
 State/Direction matched the current SKIP bar → backend freeze/bootstrap not active in the running
