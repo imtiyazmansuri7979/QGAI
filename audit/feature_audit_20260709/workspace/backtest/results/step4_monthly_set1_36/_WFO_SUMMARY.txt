@@ -1,0 +1,15 @@
+Weeks tested : 8
+Total R      : +271.0R
+Total trades : 497.0
+Positive weeks: 8 | Negative: 0
+Avg R/week   : +33.88R
+
+Week-by-week:
+  2025-11-01  R= +29.5  cum=  +29.5  trades=40.0
+  2025-12-01  R= +30.8  cum=  +60.3  trades=47.0
+  2026-01-01  R= +36.2  cum=  +96.5  trades=66.0
+  2026-02-01  R= +39.5  cum= +136.0  trades=75.0
+  2026-03-01  R= +36.4  cum= +172.4  trades=99.0
+  2026-04-01  R= +34.1  cum= +206.5  trades=52.0
+  2026-05-01  R= +27.2  cum= +233.7  trades=48.0
+  2026-06-01  R= +37.3  cum= +271.0  trades=70.0

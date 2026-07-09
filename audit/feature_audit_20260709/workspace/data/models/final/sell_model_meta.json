@@ -1,7 +1,7 @@
 {
   "direction": "SELL",
-  "auc": 0.6745,
-  "timestamp": "20260709_1001",
+  "auc": 0.683,
+  "timestamp": "20260709_1109",
   "n_trades": 1182,
   "win_rate": 0.3359,
   "features": [

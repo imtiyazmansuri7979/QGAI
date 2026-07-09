@@ -1172,7 +1172,15 @@ FEATURE_COLS = [
     # atr20_pct / atr14_pct REMOVED 2026-06-19 — ATR is a LAGGING indicator, dropped
     # as a model feature (retrain required). Still COMPUTED in compute_features for
     # ADX/DI math, the dropna guard, and info-only ATR-zone logging.
-    "volume",                # raw tick volume
+    "volume",                # (PRUNED via _MANUAL_PRUNE) normalized tick-vol ratio — NOT used
+    # 2026-07-09 (Imtiyaz): add RAW tick volume as its OWN feature — NO ratio / z-score /
+    # normalization / formula. f["tick_volume"] = the closed bar's raw MT5 tick count
+    # (computed in compute_features ~line 625; else-branch fallback ~line 694 → 0.0). Let the
+    # model itself decide whether volume is useful — no hand-crafted transform. The normalized
+    # "volume" ratio above stays PRUNED (_MANUAL_PRUNE) on purpose; we want ONLY the raw count.
+    # ⚠️ NEEDS A RETRAIN (Start/3_Train_Models.bat): the live .pkl has no tick_volume column yet,
+    # so the bot will FEATURE-MISMATCH until retrained. REVERT: delete this "tick_volume" line.
+    "tick_volume",           # RAW tick volume (count) — no normalization
     # ── PRICE MOMENTUM (data-proven) ─────────────────────────
     # Backtest: BUY when 4hr dropped → WR=31%, BUY when 4hr rose → WR=52%
     "move_1hr",              # Gold price change last 1hr ($) ← data #1 edge +27.7pp

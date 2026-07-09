@@ -35,6 +35,14 @@ except Exception:
 _LAST_TRADE_SIG = None
 _LTS_LOADED = False
 
+# 2026-07-09 (Imtiyaz — Option A): the SIGNAL box (AI DECISION) must ALWAYS reflect the CURRENT
+# bar so it NEVER contradicts the SIGNAL LOG (box=SELL / log=SKIP was the bug). With this False the
+# whole decision block (ai_summary, votes, prob, signal_confirmed) is derived from the CURRENT bar's
+# raw signal — SKIP shows SKIP. Set True to restore the old "freeze last BUY/SELL in the box"
+# behaviour. The per-bar signal is logged every bar regardless; the last-signal cache is still kept
+# on disk (used elsewhere), only the DISPLAY return is switched here.
+_FREEZE_LAST_SIGNAL = False
+
 
 def _lts_path():
     try:
@@ -107,7 +115,11 @@ def _remember_last_trade_signal(sig):
                 _lts_path().write_text(json.dumps(sig, default=str), encoding="utf-8")
             except Exception:
                 pass
-        return _LAST_TRADE_SIG if _LAST_TRADE_SIG else sig
+        # Option A (default): box always shows the CURRENT bar → return the raw sig, matching the
+        # SIGNAL LOG. Freeze-mode (flag True) returns the last remembered BUY/SELL instead.
+        if _FREEZE_LAST_SIGNAL:
+            return _LAST_TRADE_SIG if _LAST_TRADE_SIG else sig
+        return sig
     except Exception:
         return sig
 

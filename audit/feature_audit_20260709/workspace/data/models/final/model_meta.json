@@ -1,7 +1,7 @@
 {
-  "auc": 0.7046,
-  "timestamp": "20260709_0957",
-  "n_trades": 2050,
+  "auc": 0.6734,
+  "timestamp": "20260709_1105",
+  "n_trades": 2743,
   "features": [
     "15_min_slot",
     "slot_win_rate",
@@ -40,5 +40,5 @@
     "ts_htf_agreement",
     "hmm_state"
   ],
-  "win_rate": 0.3746
+  "win_rate": 0.3766
 }

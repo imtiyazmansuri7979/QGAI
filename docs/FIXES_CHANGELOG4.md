@@ -8,6 +8,53 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-09 — Add RAW tick volume as a model feature (Imtiyaz)
+Request: give the model **raw tick volume** — no formula, ratio, z-score or normalization — and let the
+model itself decide if it's useful. **State before:** `f["tick_volume"]` (the closed bar's raw MT5 tick
+count) was already COMPUTED in `features.py` (~line 625, else-fallback ~694) but was **not** in
+`FEATURE_COLS`, so no model ever saw it. The only volume-derived feature, `"volume"` (a 20-bar normalized
+ratio, capped 5.0), has been **pruned** since 2026-06-23 via `_MANUAL_PRUNE` → the live model currently has
+**zero** volume input.
+**Change (`features.py`, one line + comment):** added **`"tick_volume"`** to `FEATURE_COLS` (FACTOR 4 block,
+~line 1183). It is NOT in `_ZERO_IMP`/`_MANUAL_PRUNE`, so it survives the prune. The normalized `"volume"`
+stays pruned on purpose — we want ONLY the raw count. `inference.py` imports `FEATURE_COLS` from `features.py`
+(line 209) → **train==serve** automatically once retrained. `py_compile` OK; `tick_volume` present in both
+the populated branch (625) and the zero-fallback (694) so `df_feat[FEATURE_COLS]` can't KeyError.
+**⚠️ NOT LIVE YET — NEEDS A RETRAIN.** The current live `.pkl` has no `tick_volume` column, so the bot would
+feature-mismatch until `Start/3_Train_Models.bat` is rerun. Per rules: test-run first, deep bug-check, and
+**WFO-gate (≥ current baseline R) before adopting live** — raw volume may add noise; the model deciding it's
+useless (importance ≈ 0) is a valid outcome. REVERT: delete the `"tick_volume"` line.
+
+## 2026-07-09 — Option A: SIGNAL box ALWAYS = current bar (backend freeze OFF) (Imtiyaz)
+The struck-through/mirror-removal fixes below stopped the box from *inventing* a SELL, but the box could
+still lag: `_remember_last_trade_signal()` **froze** the last BUY/SELL and the WHOLE decision block
+(ai_summary, votes, prob, `signal_confirmed`) is derived from that frozen `sig` (see `bridge_dashboard.py`
+line ~595 comment) → box showed the old 08:15 SELL while the log's newest 08:30 bar was SKIP. Two contexts
+disagreed again.
+**Fix (`bridge_dashboard.py`, backend — needs a bridge RESTART, no filter/trading logic touched):** added a
+reversible module constant **`_FREEZE_LAST_SIGNAL = False`** (line ~35). `_remember_last_trade_signal()` now
+returns the **raw current-bar signal** (freeze-mode gated behind the flag). The last-signal cache is still
+kept on disk (used elsewhere); only the DISPLAY return switched. Because the entire block derives from `sig`,
+ai_summary/votes/prob/`signal_confirmed` all become current-bar → **box === SIGNAL LOG newest row, SKIP shows
+SKIP.** `_sig_cached` self-resolves to False (sig == raw). Set the flag `True` to restore the old freeze.
+No frontend change needed (the mirror-fallback was already removed). **Action: restart the bridge to apply.**
+
+## 2026-07-09 — PERMANENT fix: SIGNAL box vs SIGNAL LOG never contradict (Imtiyaz, recurring flag)
+**Root cause (traced in live log):** the SIGNAL LOG shows the RAW model signal (`signal` column), the SIGNAL
+box shows the ACTIONABLE decision after gates. On 08:15 the model call was SELL (win_prob 51.73% > thr 48%)
+but `trade_action=BLOCK_RANGE` (Ranging range-filter) → no trade → box correctly = SKIP. Log showed a bare
+"SELL" with no block marker → looked like a contradiction. **Not a bug — a display gap.** (See new working
+rule "SIGNAL ≠ REAL TRADE" in CLAUDE.md + memory.)
+**Two frontend fixes (`dashboard.html` only — no trading/filter logic, no bridge restart, Ctrl+F5):**
+1. **Removed the SIGNAL-box "mirror the log's last BUY/SELL" fallback** (added earlier same day). It wrongly
+   copied a range-BLOCKED SELL into the box, making a SKIP look like a live SELL — the exact confusion. Box
+   now always shows the true gated decision from `d.last_signal`. `_feCached` pinned false.
+2. **SIGNAL LOG: blocked directional signals now render struck-through + 🚫** when `trade_action != EXECUTED`
+   (BLOCK_*/HOLD_IN_TRADE/MONITOR/EXEC_FAILED/OPPOSITE_HANDLED). The `trade_action` badge already existed;
+   this makes the raw-but-not-traded signal unmistakable (a blocked SELL can't be misread as a live SELL).
+Result: box = actionable decision, LOG = raw signal (struck-through + tag when not traded), OPEN TRADES = the
+only real positions — three distinct layers, clearly labelled. JS syntax verified (vm.Script, 2 blocks OK).
+
 ## 2026-07-09 — Dashboard Audit (Ideal vs Current vs Fix) → `docs/DASHBOARD_AUDIT_2026-07-09.md`
 Requested standalone audit (Fable-style prompt). Rating **RISKY**. Top risks: (1) leaky feature
 `corr_imp_ratio` (Step-2 = Critical, future H4 candles) shown on board as `corr_ratio`; (2) backtest

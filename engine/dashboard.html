@@ -425,7 +425,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 #equity_sparkline{display:block;width:100%;height:28px;margin-top:4px}
 
 /* ── IMPROVEMENT 3: SIGNAL HISTORY CHART ── */
-#sig_history_chart{display:block;width:100%;height:60px;margin-bottom:2px}
+#sig_history_chart{display:block;width:100%;height:58px;margin-bottom:2px}
 #signal_history_panel{margin-top:0}
 #signal_history_panel .tcard-hdr span{display:none!important}
 .g2-bot > .tcard:first-child:not(#feedback_panel){display:none}
@@ -720,9 +720,15 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
       var _ta=(r.ta||'').trim();
       var taCol=_ta==='EXECUTED'?'var(--green)':_ta==='EXEC_FAILED'?'var(--red)':_ta==='HOLD_IN_TRADE'?'var(--cyan)':_ta==='MONITOR'?'var(--blue)':_ta==='OPPOSITE_HANDLED'?'var(--purple)':(_ta.indexOf('BLOCK_')===0?'var(--orange)':'var(--dim)');
       var taBadge=(_ta && _ta!=='NO_TRADE')?'<span title="What MT5 (receiver) did with this signal — separate from the pure engine signal (provider). BLOCK_*/HOLD_IN_TRADE/EXEC_FAILED = signal fired but no new trade opened." style="font-size:0.58rem;font-weight:700;color:'+taCol+';border:1px solid '+taCol+';border-radius:3px;padding:0 4px;margin-left:4px">'+_ta+'</span>':'';
+      // 2026-07-09 (Imtiyaz): a directional signal that did NOT open a new trade (BLOCK_*/HOLD_IN_TRADE/
+      // MONITOR/EXEC_FAILED/OPPOSITE_HANDLED — anything except EXECUTED) is the RAW model call, NOT a live
+      // trade. Render it struck-through + 🚫 so a blocked SELL can never be misread as a live SELL. This is
+      // exactly why the SIGNAL box (gated decision) can show SKIP while the LOG shows this raw signal.
+      var _noTrade=(r.sig==='BUY'||r.sig==='SELL') && _ta && _ta!=='EXECUTED';
+      var _sigDisp=_noTrade?('🚫<span style="text-decoration:line-through;opacity:.75">'+r.sig+'</span>'):r.sig;
       return '<div class="replay-row"'+rsnTip+' style="background:'+bg+';border-left:2px solid '+sc+'">'+
         '<span title="'+(r.bt||'')+'" style="color:var(--dim);min-width:118px;font-size:0.68rem;font-family:var(--orb);white-space:nowrap">'+_dt+'</span>'+
-        '<span style="color:'+sc+';font-weight:700;min-width:42px">'+r.sig+'</span>'+
+        '<span style="color:'+sc+';font-weight:700;min-width:42px">'+_sigDisp+'</span>'+
         '<span style="color:var(--cyan);min-width:58px;font-family:var(--orb);font-size:0.72rem">'+(r.price?Number(r.price).toFixed(2):'--')+'</span>'+
         '<span style="color:'+wc+';min-width:44px;font-family:var(--orb)">'+wp+'%</span>'+
         '<span title="AI HMM regime — current market state (which model is used)" class="hmm-state hmm-'+(r.regime||'')+'" style="font-size:0.66rem;padding:1px 5px;margin-left:2px">'+(r.regime||'--')+'</span>'+taBadge+rp+bw+lt+oc+rsnTxt+eqt+
@@ -1369,10 +1375,11 @@ function drawSigChart(history){
   if(!history||history.length===0) return;
   const items = history.slice(-20);
   const w = c.width, h = c.height;
-  const LBL = 13;                             // top zone reserved for the horizontal price labels
-  const bh = h - LBL - 2;                     // bar drawing area (below the label zone)
+  const bh = h - 2;                           // bars use the FULL height — labels overlap ON the bars (no reserved zone)
   const bw = Math.max(3, (w / items.length) - 2);
   const _wide = bw >= 15;                      // only label when bars are wide enough to read
+  // helper: pull HH:MM out of whatever bar_time format the backend sends
+  const _hhmm = (bt)=>{ const m = String(bt||'').match(/(\d{1,2}:\d{2})/); return m?m[1]:''; };
   items.forEach((s,i)=>{
     const x = (i/(items.length))*(w) + 1;
     const prob = parseFloat(s.win_prob||0)*100;
@@ -1385,17 +1392,27 @@ function drawSigChart(history){
     ctx.arc(x+bw/2, h-barH-2, 2, 0, Math.PI*2);
     ctx.fillStyle = prob>=52?'#00d4ff':'#ff8800';
     ctx.fill();
-    // entry price atop each BUY/SELL bar — horizontal, bold, black-outlined for contrast (2026-07-09)
+    // entry price + time atop each BUY/SELL bar — bigger, bold, black-outlined; may overlap the bar (2026-07-09)
     if((isBuy||isSell) && s.price){
       const pr = parseFloat(s.price);
       if(pr>0){
+        const cx = x+bw/2;
         const txt = _wide ? pr.toFixed(2) : pr.toFixed(0);
-        ctx.font = 'bold 9px system-ui,Segoe UI,sans-serif';
+        const tm  = _hhmm(s.bar_time);
         ctx.textAlign='center'; ctx.textBaseline='top';
-        ctx.lineWidth=2.5; ctx.strokeStyle='rgba(0,0,0,0.85)';
-        ctx.strokeText(txt, x+bw/2, 1);        // dark halo so it reads on any bar/background
+        ctx.lineWidth=3; ctx.strokeStyle='rgba(0,0,0,0.9)';   // dark halo → reads on any bar/background
+        // line 1: price (big, colored)
+        ctx.font = 'bold 13px system-ui,Segoe UI,sans-serif';
+        ctx.strokeText(txt, cx, 1);
         ctx.fillStyle = isBuy?'#00ff88':'#ff5577';
-        ctx.fillText(txt, x+bw/2, 1);
+        ctx.fillText(txt, cx, 1);
+        // line 2: time HH:MM (slightly smaller, light)
+        if(tm){
+          ctx.font = 'bold 11px system-ui,Segoe UI,sans-serif';
+          ctx.strokeText(tm, cx, 16);
+          ctx.fillStyle = '#cfe6ff';
+          ctx.fillText(tm, cx, 16);
+        }
       }
     }
   });
@@ -1602,32 +1619,13 @@ async function load(){
       return;
     }
     let sig = d.last_signal || {};
-    // MIRROR THE LOG (2026-07-09, Imtiyaz): the SIGNAL box must never disagree with the SIGNAL LOG.
-    // If the backend's live signal isn't an actionable BUY/SELL (a SKIP bar) AND its freeze/bootstrap
-    // hasn't kicked in yet, fall back to the most recent BUY/SELL from window._liveSigData — the SAME
-    // signals_all.csv the SIGNAL LOG is drawn from → box can never disagree with the log. No bridge
-    // restart needed. EV/GRADE recomputed from win_prob (ev_r = wp*1.5 - (1-wp); grade by wp).
-    let _feCached = false;
-    if(!(sig.signal==='BUY'||sig.signal==='SELL') && Array.isArray(window._liveSigData) && window._liveSigData.length){
-      let _last=null;
-      for(const r of window._liveSigData){
-        if((r.sig==='BUY'||r.sig==='SELL') && (!_last || r.bt>_last.bt)) _last=r;
-      }
-      if(_last){
-        const _wp=parseFloat(_last.wp)||0;
-        sig={signal:_last.sig, bar_time:_last.bt, price:parseFloat(_last.price)||0,
-             win_prob:_wp, hmm_state:_last.regime||'',
-             state_prob:parseFloat(_last.sp)||0, dir_prob:parseFloat(_last.dp)||0};
-        if(d.ev_r===null||d.ev_r===undefined){
-          const _ev=Math.round((_wp*1.5-(1-_wp))*1000)/1000;
-          d.ev_r=_ev; d.ev_label=_ev>=0.3?'Excellent':_ev>=0?'OK':'Poor';
-          d.risk_grade=_wp>=0.55?'A':_wp>=0.50?'B':_wp>=0.45?'C':'D';
-          d.risk_grade_label=({A:'Excellent',B:'Good',C:'Fair',D:'Weak'})[d.risk_grade];
-        }
-        _feCached=true;
-      }
-    }
-    const _isConf = (d.signal_confirmed === true) || _feCached;
+    // 2026-07-09 (Imtiyaz): the SIGNAL box shows the ACTIONABLE DECISION (BUY/SELL/SKIP after all gates),
+    // NOT the raw model signal. The old "mirror the log's last BUY/SELL" fallback was REMOVED — it wrongly
+    // copied a range-BLOCKED SELL into the box, making a SKIP decision look like a live SELL. The box and
+    // the SIGNAL LOG are DIFFERENT things on purpose: LOG = raw signal (+ trade_action tag), box = the real
+    // gated decision. So a blocked-SELL bar correctly reads SKIP here and "SELL 🚫BLOCK_RANGE" in the log.
+    const _feCached = false;
+    const _isConf = (d.signal_confirmed === true);
     try { renderAISummary(d.ai_summary || {}, _isConf); } catch(e){}
     try { renderMarketIntel(d.market_intel || {}); } catch(e){}
 
