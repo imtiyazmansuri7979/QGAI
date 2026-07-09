@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>QGAI — Virtual Trade Ledger</title>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--txt:#c9d1d9;--mut:#8b949e;--buy:#26a69a;--sell:#ef5350;--win:#00ff88;--loss:#ef5350;--gold:#f0b90b;--border:#21262d;--purple:#bf00ff;}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);font:13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--border);flex-wrap:wrap}
+  header b{font-size:16px}
+  .pill{background:#21262d;border-radius:6px;padding:3px 9px;color:var(--mut);font-size:12px}
+  .pill b{color:var(--txt);font-size:12px}
+  button{background:#21262d;color:var(--txt);border:1px solid #30363d;border-radius:6px;padding:5px 11px;cursor:pointer;font-size:12px}
+  button:hover{background:#30363d} button.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+  a{color:#58a6ff;font-size:12px;margin-left:auto}
+  .stats{display:flex;gap:8px;flex-wrap:wrap;padding:8px 16px;background:#0f141b;border-bottom:1px solid var(--border)}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:6px 12px;min-width:96px}
+  .stat .k{font-size:11px;color:var(--mut)} .stat .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+  .wrap{padding:0 8px 40px} table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  th,td{padding:5px 9px;text-align:right;border-bottom:1px solid #1b212b;white-space:nowrap}
+  th{position:sticky;top:0;background:var(--panel);color:var(--mut);font-weight:600;cursor:default}
+  td.l,th.l{text-align:left}
+  .BUY{color:var(--buy);font-weight:700} .SELL{color:var(--sell);font-weight:700}
+  .tag{padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700}
+  .WIN{color:var(--win);border:1px solid var(--win)} .LOSS{color:var(--loss);border:1px solid var(--loss)}
+  .real{font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid var(--gold);color:var(--gold)}
+  .virt{font-size:10px;padding:1px 5px;border-radius:4px;border:1px dashed var(--mut);color:var(--mut)}
+  .pos{color:var(--win)} .neg{color:var(--loss)} #err{padding:14px;color:#ffb4b4}
+</style></head>
+<body>
+<header>
+  <b>QGAI</b><span class="pill">Virtual Trade Ledger</span>
+  <span class="pill" id="cnt">—</span>
+  <button id="fAll" class="on" onclick="setF('all')">All</button>
+  <button id="fReal" onclick="setF('real')">Real only</button>
+  <button id="fVirt" onclick="setF('virt')">Virtual only</button>
+  <button id="fWin" onclick="setF('win')">Wins</button>
+  <button id="fLoss" onclick="setF('loss')">Losses</button>
+  <button onclick="load()">↻ Reload</button>
+  <a href="/dashboard.html">← Dashboard</a>
+</header>
+<div class="stats" id="stats"></div>
+<div class="wrap"><div id="err"></div>
+<table id="tbl"><thead><tr>
+  <th class="l">Entry time</th><th>Dir</th><th>Entry</th><th>Exit</th><th class="l">Why exit</th>
+  <th>R</th><th>$ P&amp;L</th><th>%</th><th>Result</th><th>Type</th><th class="l">Regime</th>
+</tr></thead><tbody id="rows"></tbody></table></div>
+<script>
+let DATA=[], FILT='all';
+function setF(f){FILT=f;['all','real','virt','win','loss'].forEach(function(x){
+  var b=document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1));if(b)b.className=(f===x?'on':'');});render();}
+function num(x){var n=Number(x);return isNaN(n)?0:n;}
+function render(){
+  let d=DATA.slice();
+  if(FILT==='real') d=d.filter(function(r){return r.real==='1';});
+  else if(FILT==='virt') d=d.filter(function(r){return r.real!=='1';});
+  else if(FILT==='win') d=d.filter(function(r){return num(r.R)>0;});
+  else if(FILT==='loss') d=d.filter(function(r){return num(r.R)<=0;});
+  // summary on the FULL set (not filtered) so stats are stable
+  var wins=DATA.filter(function(r){return num(r.R)>0;}).length;
+  var totR=DATA.reduce(function(a,r){return a+num(r.R);},0);
+  var totP=DATA.reduce(function(a,r){return a+num(r.pnl);},0);
+  var wr=DATA.length?100*wins/DATA.length:0;
+  document.getElementById('stats').innerHTML=
+    stat('Trades',DATA.length)+stat('Win rate',wr.toFixed(2)+'%')+
+    stat('Total R',(totR>=0?'+':'')+totR.toFixed(1),totR>=0?'pos':'neg')+
+    stat('Total P&L','$'+Math.round(totP).toLocaleString(),totP>=0?'pos':'neg')+
+    stat('Real',DATA.filter(function(r){return r.real==='1';}).length)+
+    stat('Virtual',DATA.filter(function(r){return r.real!=='1';}).length);
+  d=d.slice(-400).reverse();
+  var tb=document.getElementById('rows'); tb.innerHTML='';
+  for(var i=0;i<d.length;i++){var r=d[i];var R=num(r.R);var win=R>0;
+    var pn=num(r.pnl), pp=num(r.pnlpct);
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td class="l">'+(r.entry||'')+'</td>'
+      +'<td class="'+r.dir+'">'+r.dir+'</td>'
+      +'<td>'+(r.ep?num(r.ep).toFixed(2):'—')+'</td>'
+      +'<td>'+(r.xp?num(r.xp).toFixed(2):'—')+'</td>'
+      +'<td class="l" style="color:var(--mut)">'+(r.xr||'')+'</td>'
+      +'<td class="'+(win?'pos':'neg')+'">'+(R>=0?'+':'')+R.toFixed(2)+'</td>'
+      +'<td class="'+(pn>=0?'pos':'neg')+'">'+(pn>=0?'+':'')+'$'+Math.round(pn).toLocaleString()+'</td>'
+      +'<td class="'+(pp>=0?'pos':'neg')+'">'+(pp>=0?'+':'')+pp.toFixed(2)+'%</td>'
+      +'<td><span class="tag '+(win?'WIN':'LOSS')+'">'+(win?'WIN':'LOSS')+'</span></td>'
+      +'<td><span class="'+(r.real==='1'?'real':'virt')+'">'+(r.real==='1'?'REAL':'VIRT')+'</span></td>'
+      +'<td class="l" style="color:var(--mut)">'+(r.regime||'')+'</td>';
+    tb.appendChild(tr);
+  }
+  document.getElementById('cnt').textContent=d.length+' shown / '+DATA.length+' total';
+}
+function stat(k,v,cls){return '<div class="stat"><div class="k">'+k+'</div><div class="v '+(cls||'')+'">'+v+'</div></div>';}
+async function load(){
+  try{
+    document.getElementById('err').textContent='';
+    const r=await fetch('/logs/shadow_trades.csv?_='+Date.now());
+    if(!r.ok) throw new Error('shadow_trades.csv not found ('+r.status+') — run 6_Shadow_Ledger.bat once');
+    const txt=await r.text(); const lines=txt.trim().split('\n'); const h=lines[0].split(',');
+    const ix=function(n){return h.indexOf(n);};
+    const iE=ix('entry_time'),iEp=ix('entry_price'),iD=ix('direction'),iH=ix('hmm_state'),
+          iXt=ix('exit_time'),iXp=ix('exit_price'),iXr=ix('exit_reason'),iR=ix('R'),
+          iP=ix('pnl_usd'),iPp=ix('pnl_pct'),iRe=ix('real_executed');
+    DATA=lines.slice(1).map(function(l){var c=l.split(',');return{
+      entry:c[iE],ep:c[iEp],dir:(c[iD]||'').trim(),regime:c[iH],xt:c[iXt],xp:c[iXp],
+      xr:(c[iXr]||'').trim(),R:c[iR],pnl:c[iP],pnlpct:c[iPp],real:(c[iRe]||'').trim()};})
+      .filter(function(r){return r.entry;});
+    render();
+  }catch(e){document.getElementById('err').textContent='⚠ '+e.message;}
+}
+load(); setInterval(load,15000);
+</script>
+</body></html>

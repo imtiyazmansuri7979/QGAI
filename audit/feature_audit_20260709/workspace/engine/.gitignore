@@ -1,0 +1,29 @@
+# === CREDENTIALS — never commit ===
+config_mt5.py
+
+# === Large data files ===
+../data/historical/
+../data/live/
+../data/merged/
+../data/models/
+../data/*.csv
+../data/*.xlsx
+../data/_pre_reload_backup/
+
+# === Runtime output ===
+logs/
+__pycache__/
+*.pyc
+*.pkl
+*.db
+catboost_info/
+atr_results/
+grid_results/
+sweep_results/
+sweep_year/
+tpcap_results/
+wfo_results/
+
+# === Temp files ===
+*.zip
+*.log

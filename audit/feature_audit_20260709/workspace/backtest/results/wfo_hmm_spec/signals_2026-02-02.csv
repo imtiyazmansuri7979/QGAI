@@ -1,0 +1,553 @@
+bar_time,signal,win_prob,state_prob,dir_prob,hmm_state,atr20_pct,blocked_by,in_range_phase,H1_ADX,H4_ADX,H1_DI_diff,H4_DI_diff,h1_adx_slope,h4_adx_slope,reason
+2026-02-02 01:00:00,SELL,0.483,0.3404,0.7037,Trending,,,0,72.49,57.22,-38.16,-36.07,3.753629,0.475473,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=36.62%
+2026-02-02 01:15:00,SELL,0.483,0.3404,0.7037,Trending,,,0,72.49,57.22,-38.16,-36.07,4.229196,0.705817,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=36.62%
+2026-02-02 01:30:00,SELL,0.4743,0.3404,0.6364,Trending,,,0,72.49,57.22,-38.16,-36.07,4.539301,0.743338,prob=47.43% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=36.62%
+2026-02-02 01:45:00,SELL,0.483,0.3404,0.7037,Trending,,,0,72.49,57.22,-38.16,-36.07,2.757334,0.775103,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=36.62%
+2026-02-02 02:00:00,SELL,0.4732,0.3333,0.6364,Trending,,,0,72.26,57.22,-30.55,-36.07,3.088199,0.740731,prob=47.32% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=39.34%
+2026-02-02 02:15:00,SELL,0.483,0.3404,0.7037,Trending,,,0,72.26,57.22,-30.55,-36.07,3.986122,0.824895,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=39.34%
+2026-02-02 02:30:00,SELL,0.4762,0.3404,0.6505,Trending,,,0,72.26,57.22,-30.55,-36.07,4.376542,0.84043,prob=47.62% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=39.34%
+2026-02-02 02:45:00,SELL,0.4743,0.3404,0.6364,Trending,,,0,72.26,57.22,-30.55,-36.07,2.803009,0.845319,prob=47.43% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=39.34%
+2026-02-02 03:00:00,SELL,0.4627,0.3333,0.7037,Trending,,,0,73.21,57.22,-39.46,-36.07,3.128232,0.890883,prob=46.27% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=34.57%
+2026-02-02 03:15:00,SELL,0.4658,0.2857,0.6364,Trending,,,0,73.21,57.22,-39.46,-36.07,4.551704,1.108639,prob=46.58% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=34.57%
+2026-02-02 03:30:00,SELL,0.4658,0.2857,0.6364,Trending,,,0,73.21,57.22,-39.46,-36.07,5.067822,1.198702,prob=46.58% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=34.57%
+2026-02-02 03:45:00,SELL,0.4658,0.2857,0.6364,Trending,,,0,73.21,57.22,-39.46,-36.07,3.529943,1.030265,prob=46.58% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=34.57%
+2026-02-02 04:00:00,SELL,0.483,0.3404,0.7037,Trending,,,0,74.04,60.05,-36.37,-35.7,3.462826,0.982668,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-02 04:15:00,SELL,0.483,0.3404,0.7037,Trending,,,0,74.04,60.05,-36.37,-35.7,4.943477,0.716524,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-02 04:30:00,SELL,0.483,0.3404,0.7037,Trending,,,0,74.04,60.05,-36.37,-35.7,5.429041,0.655412,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-02 04:45:00,SELL,0.483,0.3404,0.7037,Trending,,,0,74.04,60.05,-36.37,-35.7,4.062408,0.530769,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-02 05:00:00,SELL,0.4537,0.1538,0.7037,Trending,,,0,75.18,60.05,-39.86,-35.7,3.77352,0.778295,prob=45.37% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-02 05:15:00,SELL,0.4819,0.3333,0.7037,Trending,,,0,75.18,60.05,-39.86,-35.7,4.570026,0.979535,prob=48.19% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-02 05:30:00,SELL,0.4744,0.2857,0.7037,Trending,,,0,75.18,60.05,-39.86,-35.7,4.991019,1.006757,prob=47.44% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-02 05:45:00,SELL,0.4744,0.2857,0.7037,Trending,,,0,75.18,60.05,-39.86,-35.7,4.329369,1.048571,prob=47.44% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-02 06:00:00,SKIP,0.3524,0.1538,0.6364,Trending,,,0,76.32,60.05,-38.0,-35.7,3.794584,1.019871,prob 35.24% < threshold 45.00% (Trending)
+2026-02-02 06:15:00,SKIP,0.4451,0.1538,0.6364,Trending,,,0,76.32,60.05,-38.0,-35.7,4.450145,1.091808,prob 44.51% < threshold 45.00% (Trending)
+2026-02-02 06:30:00,SKIP,0.2469,0.1333,0.3721,Trending,,,0,76.32,60.05,-38.0,-35.7,4.780538,1.105338,prob 24.69% < threshold 45.00% (Trending)
+2026-02-02 06:45:00,SKIP,0.2469,0.1333,0.3721,Trending,,,0,76.32,60.05,-38.0,-35.7,4.641921,1.11281,prob 24.69% < threshold 45.00% (Trending)
+2026-02-02 07:00:00,SKIP,0.2986,0.2857,0.7037,Trending,,,0,77.8,60.05,-41.03,-35.7,4.165177,1.15267,prob 29.86% < threshold 45.00% (Trending)
+2026-02-02 07:15:00,SELL,0.4744,0.2857,0.7037,Trending,,,0,77.8,60.05,-41.03,-35.7,4.019954,1.02945,prob=47.44% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-02 07:30:00,SELL,0.6119,0.3404,0.7037,Trending,,,0,77.8,60.05,-41.03,-35.7,4.088677,1.11308,prob=61.19% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-02 07:45:00,SELL,0.4819,0.3333,0.7037,Trending,,,0,77.8,60.05,-41.03,-35.7,4.620572,1.018309,prob=48.19% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-02 08:00:00,SELL,0.4744,0.2857,0.7037,Trending,,,0,79.41,62.88,-43.52,-34.45,4.30778,1.210235,prob=47.44% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=38.89%
+2026-02-02 08:15:00,SELL,0.483,0.3404,0.7037,Trending,,,0,79.41,62.88,-43.52,-34.45,4.034689,0.96711,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=38.89%
+2026-02-02 08:30:00,SELL,0.4819,0.3333,0.7037,Trending,,,0,79.41,62.88,-43.52,-34.45,4.025743,1.089799,prob=48.19% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=38.89%
+2026-02-02 08:45:00,SELL,0.4819,0.3333,0.7037,Trending,,,0,79.41,62.88,-43.52,-34.45,4.929174,1.074243,prob=48.19% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=38.89%
+2026-02-02 09:00:00,SKIP,0.3075,0.2601,0.6364,Trending,,,0,78.39,62.88,-33.42,-34.45,4.601907,1.252963,prob 30.75% < threshold 45.00% (Trending)
+2026-02-02 09:15:00,SELL,0.4744,0.2857,0.7037,Trending,,,0,78.39,62.88,-33.42,-34.45,4.651034,1.415327,prob=47.44% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=36.36%
+2026-02-02 09:30:00,SKIP,0.4451,0.1538,0.6364,Trending,,,0,78.39,62.88,-33.42,-34.45,4.427674,1.429946,prob 44.51% < threshold 45.00% (Trending)
+2026-02-02 09:45:00,SKIP,0.4451,0.1538,0.6364,Trending,,,0,78.39,62.88,-33.42,-34.45,4.836092,1.455577,prob 44.51% < threshold 45.00% (Trending)
+2026-02-02 10:00:00,SKIP,0.2507,0.1538,0.3721,Trending,,,0,75.85,62.88,-27.09,-34.45,3.986789,1.433245,prob 25.07% < threshold 45.00% (Trending)
+2026-02-02 10:15:00,SKIP,0.2507,0.1538,0.3721,Trending,,,0,75.85,62.88,-27.09,-34.45,3.815514,1.488493,prob 25.07% < threshold 45.00% (Trending)
+2026-02-02 10:30:00,SKIP,0.2507,0.1538,0.3721,Trending,,,0,75.85,62.88,-27.09,-34.45,3.476231,1.499592,prob 25.07% < threshold 45.00% (Trending)
+2026-02-02 10:45:00,SKIP,0.2507,0.1538,0.3721,Trending,,,0,75.85,62.88,-27.09,-34.45,3.704255,1.510062,prob 25.07% < threshold 45.00% (Trending)
+2026-02-02 11:00:00,SKIP,0.2507,0.1538,0.3721,Trending,,,0,70.0,62.88,-15.3,-34.45,2.850505,1.543173,prob 25.07% < threshold 45.00% (Trending)
+2026-02-02 11:15:00,SKIP,0.3367,0.2857,0.3721,Trending,,,0,70.0,62.88,-15.3,-34.45,2.616867,1.510364,prob 33.67% < threshold 45.00% (Trending)
+2026-02-02 11:30:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,70.0,62.88,-15.3,-34.45,2.030577,1.60218,prob 43.82% < threshold 45.00% (Trending)
+2026-02-02 11:45:00,SKIP,0.3455,0.3333,0.3721,Trending,,,0,70.0,62.88,-15.3,-34.45,1.611848,1.461988,prob 34.55% < threshold 45.00% (Trending)
+2026-02-02 12:00:00,SKIP,0.247,0.3333,0.3721,Trending,,range,1,64.81,62.58,-13.73,-26.27,0.416792,1.402021,prob 24.70% < threshold 45.00% (Trending)
+2026-02-02 12:15:00,SKIP,0.1599,0.2857,0.1569,Trending,,range,1,64.81,62.58,-13.73,-26.27,0.059142,1.179457,prob 15.99% < threshold 45.00% (Trending)
+2026-02-02 12:30:00,SKIP,0.1939,0.3333,0.3721,Trending,,range,1,64.81,62.58,-13.73,-26.27,-0.347273,1.097509,prob 19.39% < threshold 45.00% (Trending)
+2026-02-02 12:45:00,SKIP,0.1952,0.3404,0.3721,Trending,,range,1,64.81,62.58,-13.73,-26.27,-0.965353,0.997511,prob 19.52% < threshold 45.00% (Trending)
+2026-02-02 13:00:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,58.3,62.58,-7.29,-26.27,-2.04171,1.120162,prob 28.53% < threshold 45.00% (Trending)
+2026-02-02 13:15:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,58.3,62.58,-7.29,-26.27,-2.721497,1.107778,prob 28.53% < threshold 45.00% (Trending)
+2026-02-02 13:30:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,58.3,62.58,-7.29,-26.27,-2.974375,0.860983,prob 28.53% < threshold 45.00% (Trending)
+2026-02-02 13:45:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,58.3,62.58,-7.29,-26.27,-3.808175,0.709919,prob 28.53% < threshold 45.00% (Trending)
+2026-02-02 14:00:00,BUY,0.4691,0.5,0.3721,Trending,,range,1,51.31,62.58,-2.68,-26.27,-4.248663,0.684814,prob=46.91% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=54.05%
+2026-02-02 14:15:00,BUY,0.4691,0.5,0.3721,Trending,,range,1,51.31,62.58,-2.68,-26.27,-4.57818,0.719744,prob=46.91% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=54.05%
+2026-02-02 14:30:00,BUY,0.4859,0.5909,0.3721,Trending,,range,1,51.31,62.58,-2.68,-26.27,-4.684082,0.631061,prob=48.59% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=54.05%
+2026-02-02 14:45:00,SKIP,0.3148,0.5,0.3721,Trending,,range,1,51.31,62.58,-2.68,-26.27,-5.729973,0.5663,prob 31.48% < threshold 45.00% (Trending)
+2026-02-02 15:00:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,47.56,62.58,-10.96,-26.27,-6.246672,0.302012,prob 28.53% < threshold 45.00% (Trending)
+2026-02-02 15:15:00,SKIP,0.1782,0.3333,0.2414,Trending,,range,1,47.56,62.58,-10.96,-26.27,-6.308534,0.149337,prob 17.82% < threshold 45.00% (Trending)
+2026-02-02 15:30:00,SKIP,0.2356,0.3333,0.2745,Trending,,range,1,47.56,62.58,-10.96,-26.27,-5.863983,0.447474,prob 23.56% < threshold 45.00% (Trending)
+2026-02-02 15:45:00,SKIP,0.2356,0.3333,0.2745,Trending,,range,1,47.56,62.58,-10.96,-26.27,-6.073872,0.433189,prob 23.56% < threshold 45.00% (Trending)
+2026-02-02 16:00:00,SELL,0.4819,0.3333,0.7037,Trending,,,0,44.31,62.79,-9.49,-26.8,-6.468709,0.527254,prob=48.19% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-02 16:15:00,SELL,0.4819,0.3333,0.7037,Trending,,,0,44.31,62.79,-9.49,-26.8,-6.527313,0.336416,prob=48.19% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-02 16:30:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,44.31,62.79,-9.49,-26.8,-6.146008,0.264157,prob 42.94% < threshold 45.00% (Trending)
+2026-02-02 16:45:00,SKIP,0.4194,0.2857,0.2745,Trending,,,0,44.31,62.79,-9.49,-26.8,-6.087381,0.153976,prob 41.94% < threshold 45.00% (Trending)
+2026-02-02 17:00:00,SELL,0.4732,0.3333,0.6364,Trending,,,0,43.27,62.79,-15.35,-26.8,-6.637971,0.261455,prob=47.32% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-02 17:15:00,SELL,0.4819,0.3333,0.7037,Trending,,,0,43.27,62.79,-15.35,-26.8,-6.526317,0.383673,prob=48.19% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-02 17:30:00,SELL,0.483,0.3404,0.7037,Trending,,,0,43.27,62.79,-15.35,-26.8,-6.754197,0.284951,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-02 17:45:00,SELL,0.5207,0.3404,0.7037,Trending,,,0,43.27,62.79,-15.35,-26.8,-5.249182,0.336591,prob=52.07% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-02 18:00:00,SELL,0.4658,0.2857,0.6364,Trending,,,0,42.87,62.79,-15.73,-26.8,-5.766373,0.316833,prob=46.58% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=34.00%
+2026-02-02 18:15:00,SKIP,0.4483,0.2857,0.5,Trending,,,0,42.87,62.79,-15.73,-26.8,-5.577818,0.341629,prob 44.83% < threshold 45.00% (Trending)
+2026-02-02 18:30:00,SELL,0.4658,0.2857,0.6364,Trending,,,0,42.87,62.79,-15.73,-26.8,-6.366852,0.363521,prob=46.58% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=34.00%
+2026-02-02 18:45:00,SKIP,0.3267,0.2857,0.2745,Trending,,,0,42.87,62.79,-15.73,-26.8,-3.89513,0.379148,prob 32.67% < threshold 45.00% (Trending)
+2026-02-02 19:00:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,42.2,62.79,-13.96,-26.8,-4.386878,0.301465,prob 42.94% < threshold 45.00% (Trending)
+2026-02-02 19:15:00,SELL,0.4732,0.3333,0.6364,Trending,,,0,42.2,62.79,-13.96,-26.8,-4.26797,0.237435,prob=47.32% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=37.04%
+2026-02-02 19:30:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,42.2,62.79,-13.96,-26.8,-5.774717,0.61047,prob 43.82% < threshold 45.00% (Trending)
+2026-02-02 19:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,42.2,62.79,-13.96,-26.8,-3.199241,0.607801,prob 43.95% < threshold 45.00% (Trending)
+2026-02-02 20:00:00,SKIP,0.2356,0.3333,0.2745,Trending,,range,1,42.69,62.97,-17.97,-25.12,-3.661809,0.695135,prob 23.56% < threshold 45.00% (Trending)
+2026-02-02 20:15:00,SKIP,0.1674,0.3333,0.1569,Trending,,range,1,42.69,62.97,-17.97,-25.12,-3.332281,0.519438,prob 16.74% < threshold 45.00% (Trending)
+2026-02-02 20:30:00,SKIP,0.1599,0.2857,0.1569,Trending,,range,1,42.69,62.97,-17.97,-25.12,-5.389522,0.452507,prob 15.99% < threshold 45.00% (Trending)
+2026-02-02 20:45:00,SKIP,0.2131,0.2857,0.1569,Trending,,range,1,42.69,62.97,-17.97,-25.12,-2.361177,0.357557,prob 21.31% < threshold 45.00% (Trending)
+2026-02-02 21:00:00,SKIP,0.1599,0.2857,0.1569,Trending,,range,1,40.56,62.97,-10.72,-25.12,-2.753609,0.483187,prob 15.99% < threshold 45.00% (Trending)
+2026-02-02 21:15:00,SKIP,0.1599,0.2857,0.1569,Trending,,range,1,40.56,62.97,-10.72,-25.12,-2.358363,0.589853,prob 15.99% < threshold 45.00% (Trending)
+2026-02-02 21:30:00,SKIP,0.185,0.2857,0.3721,Trending,,range,1,40.56,62.97,-10.72,-25.12,-4.330181,0.500237,prob 18.50% < threshold 45.00% (Trending)
+2026-02-02 21:45:00,SKIP,0.2624,0.3333,0.3721,Trending,,range,1,40.56,62.97,-10.72,-25.12,-1.988723,0.481036,prob 26.24% < threshold 45.00% (Trending)
+2026-02-02 22:00:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,38.72,62.97,-9.9,-25.12,-2.949692,0.362291,prob 28.53% < threshold 45.00% (Trending)
+2026-02-02 22:15:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,38.72,62.97,-9.9,-25.12,-2.673545,0.317227,prob 28.53% < threshold 45.00% (Trending)
+2026-02-02 22:30:00,SKIP,0.247,0.3333,0.3721,Trending,,range,1,38.72,62.97,-9.9,-25.12,-4.504979,0.337555,prob 24.70% < threshold 45.00% (Trending)
+2026-02-02 22:45:00,SKIP,0.1782,0.3333,0.2414,Trending,,range,1,38.72,62.97,-9.9,-25.12,-2.208465,0.352066,prob 17.82% < threshold 45.00% (Trending)
+2026-02-02 23:00:00,SKIP,0.1662,0.2857,0.3721,Trending,,range,1,37.28,62.97,-9.81,-25.12,-3.2495,0.279932,prob 16.62% < threshold 45.00% (Trending)
+2026-02-02 23:15:00,SKIP,0.1939,0.3333,0.3721,Trending,,range,1,37.28,62.97,-9.81,-25.12,-2.966214,0.220475,prob 19.39% < threshold 45.00% (Trending)
+2026-02-02 23:30:00,SKIP,0.1599,0.2857,0.1569,Trending,,range,1,37.28,62.97,-9.81,-25.12,-4.595234,0.566865,prob 15.99% < threshold 45.00% (Trending)
+2026-02-02 23:45:00,SKIP,0.1204,0.1538,0.1569,Trending,,range,1,37.28,62.97,-9.81,-25.12,-2.264676,0.564387,prob 12.04% < threshold 45.00% (Trending)
+2026-02-03 01:00:00,SKIP,0.3201,0.3404,0.1569,Trending,,,0,33.92,58.33,5.11,-12.27,-3.411473,0.645483,prob 32.01% < threshold 45.00% (Trending)
+2026-02-03 01:15:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,33.92,58.33,5.11,-12.27,-3.858218,0.482336,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 01:30:00,SKIP,0.4117,0.3333,0.1569,Trending,,,0,33.92,58.33,5.11,-12.27,-5.935564,0.420185,prob 41.17% < threshold 45.00% (Trending)
+2026-02-03 01:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,33.92,58.33,5.11,-12.27,-3.943476,0.32129,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 02:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,33.15,58.33,13.07,-12.27,-5.301013,0.147952,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 02:15:00,BUY,0.4523,0.3404,0.5,Trending,,ctf_fade,0,33.15,58.33,13.07,-12.27,-5.934736,-0.145849,prob=45.23% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=39.34%
+2026-02-03 02:30:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,33.15,58.33,13.07,-12.27,-7.983081,-0.616588,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 02:45:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,33.15,58.33,13.07,-12.27,-6.317557,-0.653724,prob 43.82% < threshold 45.00% (Trending)
+2026-02-03 03:00:00,BUY,0.4523,0.3404,0.5,Trending,,ctf_fade,0,33.34,58.33,15.23,-12.27,-7.168072,-0.783436,prob=45.23% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=34.57%
+2026-02-03 03:15:00,BUY,0.4652,0.3404,0.6296,Trending,,ctf_fade,0,33.34,58.33,15.23,-12.27,-7.662917,-0.863973,prob=46.52% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=34.57%
+2026-02-03 03:30:00,BUY,0.4523,0.3404,0.5,Trending,,ctf_fade,0,33.34,58.33,15.23,-12.27,-8.969367,-1.067522,prob=45.23% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=34.57%
+2026-02-03 03:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,33.34,58.33,15.23,-12.27,-8.627629,-1.061493,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 04:00:00,SKIP,0.185,0.2857,0.3721,Trending,,range,1,32.11,54.31,9.84,-11.42,-9.240199,-1.095138,prob 18.50% < threshold 45.00% (Trending)
+2026-02-03 04:15:00,SKIP,0.1707,0.2857,0.2414,Trending,,range,1,32.11,54.31,9.84,-11.42,-9.496275,-1.042836,prob 17.07% < threshold 45.00% (Trending)
+2026-02-03 04:30:00,SKIP,0.2032,0.1538,0.2414,Trending,,range,1,32.11,54.31,9.84,-11.42,-9.955571,-0.753227,prob 20.32% < threshold 45.00% (Trending)
+2026-02-03 04:45:00,SKIP,0.1622,0.2857,0.1429,Trending,,range,1,32.11,54.31,9.84,-11.42,-10.718983,-0.769703,prob 16.22% < threshold 45.00% (Trending)
+2026-02-03 05:00:00,SKIP,0.164,0.2429,0.2414,Trending,,range,1,31.05,54.31,8.89,-11.42,-10.939865,-0.738696,prob 16.40% < threshold 45.00% (Trending)
+2026-02-03 05:15:00,SKIP,0.1606,0.1538,0.3721,Trending,,range,1,31.05,54.31,8.89,-11.42,-10.195562,-0.816585,prob 16.06% < threshold 45.00% (Trending)
+2026-02-03 05:30:00,SKIP,0.21,0.1333,0.3721,Trending,,range,1,31.05,54.31,8.89,-11.42,-10.017909,-0.520526,prob 21.00% < threshold 45.00% (Trending)
+2026-02-03 05:45:00,SKIP,0.2292,0.1538,0.3721,Trending,,range,1,31.05,54.31,8.89,-11.42,-11.068329,-0.627293,prob 22.92% < threshold 45.00% (Trending)
+2026-02-03 06:00:00,SKIP,0.2138,0.1538,0.3721,Trending,,range,1,30.69,54.31,10.59,-11.42,-11.013914,-0.636715,prob 21.38% < threshold 45.00% (Trending)
+2026-02-03 06:15:00,SKIP,0.1606,0.1538,0.3721,Trending,,range,1,30.69,54.31,10.59,-11.42,-10.03005,-0.70054,prob 16.06% < threshold 45.00% (Trending)
+2026-02-03 06:30:00,SKIP,0.2382,0.2857,0.3721,Trending,,range,1,30.69,54.31,10.59,-11.42,-8.865139,-0.808797,prob 23.82% < threshold 45.00% (Trending)
+2026-02-03 06:45:00,SKIP,0.1172,0.1333,0.1569,Trending,,range,1,30.69,54.31,10.59,-11.42,-10.576013,-0.836057,prob 11.72% < threshold 45.00% (Trending)
+2026-02-03 07:00:00,SKIP,0.1939,0.3333,0.3721,Trending,,range,1,31.17,54.31,13.08,-11.42,-10.494788,-0.959643,prob 19.39% < threshold 45.00% (Trending)
+2026-02-03 07:15:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,31.17,54.31,13.08,-11.42,-9.413113,-1.039021,prob 28.53% < threshold 45.00% (Trending)
+2026-02-03 07:30:00,SKIP,0.1939,0.3333,0.3721,Trending,,range,1,31.17,54.31,13.08,-11.42,-7.886763,-0.993283,prob 19.39% < threshold 45.00% (Trending)
+2026-02-03 07:45:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,31.17,54.31,13.08,-11.42,-10.031294,-0.985672,prob 28.53% < threshold 45.00% (Trending)
+2026-02-03 08:00:00,BUY,0.6447,0.5909,0.5,Trending,,ctf_fade,0,33.6,47.74,20.91,-2.26,-9.932647,-1.016913,prob=64.47% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=38.89%
+2026-02-03 08:15:00,BUY,0.4859,0.5909,0.3721,Trending,,ctf_fade,0,33.6,47.74,20.91,-2.26,-8.631043,-0.968348,prob=48.59% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=38.89%
+2026-02-03 08:30:00,BUY,0.4859,0.5909,0.3721,Trending,,ctf_fade,0,33.6,47.74,20.91,-2.26,-6.486631,-0.859383,prob=48.59% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=38.89%
+2026-02-03 08:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,33.6,47.74,20.91,-2.26,-9.215432,-1.025755,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 09:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,36.83,47.74,26.01,-2.26,-9.034446,-1.008405,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 09:15:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,36.83,47.74,26.01,-2.26,-7.738634,-1.090131,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 09:30:00,BUY,0.4772,0.3404,0.3721,Trending,,ctf_fade,0,36.83,47.74,26.01,-2.26,-4.65535,-0.908595,prob=47.72% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=36.36%
+2026-02-03 09:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,36.83,47.74,26.01,-2.26,-8.08182,-1.291188,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 10:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,40.04,47.74,26.57,-2.26,-7.689598,-1.285067,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 10:15:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,40.04,47.74,26.57,-2.26,-6.083939,-1.351665,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 10:30:00,BUY,0.4691,0.5,0.3721,Trending,,ctf_fade,0,40.04,47.74,26.57,-2.26,-2.905984,-1.491799,prob=46.91% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=30.23%
+2026-02-03 10:45:00,SKIP,0.2853,0.3404,0.3721,Trending,,,0,40.04,47.74,26.57,-2.26,-6.615042,-1.58357,prob 28.53% < threshold 45.00% (Trending)
+2026-02-03 11:00:00,SKIP,0.2853,0.3404,0.3721,Trending,,,0,41.38,47.74,21.4,-2.26,-6.059062,-1.70691,prob 28.53% < threshold 45.00% (Trending)
+2026-02-03 11:15:00,SKIP,0.4114,0.3404,0.2745,Trending,,,0,41.38,47.74,21.4,-2.26,-4.351593,-1.800994,prob 41.14% < threshold 45.00% (Trending)
+2026-02-03 11:30:00,SKIP,0.2853,0.3404,0.3721,Trending,,,0,41.38,47.74,21.4,-2.26,-1.651668,-1.7635,prob 28.53% < threshold 45.00% (Trending)
+2026-02-03 11:45:00,SKIP,0.284,0.3333,0.3721,Trending,,,0,41.38,47.74,21.4,-2.26,-5.242335,-1.802183,prob 28.40% < threshold 45.00% (Trending)
+2026-02-03 12:00:00,SKIP,0.2483,0.3404,0.3721,Trending,,range,1,42.68,42.02,20.87,-2.03,-4.542657,-1.881811,prob 24.83% < threshold 45.00% (Trending)
+2026-02-03 12:15:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,42.68,42.02,20.87,-2.03,-3.15063,-1.71882,prob 28.53% < threshold 45.00% (Trending)
+2026-02-03 12:30:00,SKIP,0.2479,0.5909,0.0554,Trending,,range,1,42.68,42.02,20.87,-2.03,-1.021715,-1.410223,prob 24.79% < threshold 45.00% (Trending)
+2026-02-03 12:45:00,SKIP,0.2694,0.3404,0.2414,Trending,,range,1,42.68,42.02,20.87,-2.03,-4.388615,-1.40837,prob 26.94% < threshold 45.00% (Trending)
+2026-02-03 13:00:00,SKIP,0.2694,0.3404,0.2414,Trending,,range,1,41.76,42.02,14.88,-2.03,-3.714435,-1.402698,prob 26.94% < threshold 45.00% (Trending)
+2026-02-03 13:15:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,41.76,42.02,14.88,-2.03,-2.661411,-1.491372,prob 28.53% < threshold 45.00% (Trending)
+2026-02-03 13:30:00,SKIP,0.2694,0.3404,0.2414,Trending,,range,1,41.76,42.02,14.88,-2.03,-0.773324,-1.280353,prob 26.94% < threshold 45.00% (Trending)
+2026-02-03 13:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,41.76,42.02,14.88,-2.03,-4.722068,-1.342937,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 14:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,41.79,42.02,17.32,-2.03,-3.810375,-1.33464,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 14:15:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,41.79,42.02,17.32,-2.03,-2.535707,-1.397851,prob 28.53% < threshold 45.00% (Trending)
+2026-02-03 14:30:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,41.79,42.02,17.32,-2.03,-0.836527,-1.450326,prob 28.53% < threshold 45.00% (Trending)
+2026-02-03 14:45:00,SKIP,0.3317,0.5909,0.3721,Trending,,range,1,41.79,42.02,17.32,-2.03,-5.042483,-1.470458,prob 33.17% < threshold 45.00% (Trending)
+2026-02-03 15:00:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,42.55,42.02,19.05,-2.03,-3.843322,-1.584988,prob 28.53% < threshold 45.00% (Trending)
+2026-02-03 15:15:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,42.55,42.02,19.05,-2.03,-2.612505,-1.672351,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 15:30:00,SKIP,0.3468,0.3404,0.3721,Trending,,range,1,42.55,42.02,19.05,-2.03,-0.693192,-1.637536,prob 34.68% < threshold 45.00% (Trending)
+2026-02-03 15:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,42.55,42.02,19.05,-2.03,-4.971819,-1.673456,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 16:00:00,SKIP,0.2575,0.3333,0.1569,Trending,,range,1,42.05,36.99,14.73,1.82,-3.38156,-1.758841,prob 25.75% < threshold 45.00% (Trending)
+2026-02-03 16:15:00,SKIP,0.2624,0.3333,0.3721,Trending,,range,1,42.05,36.99,14.73,1.82,-1.942897,-1.60686,prob 26.24% < threshold 45.00% (Trending)
+2026-02-03 16:30:00,SKIP,0.2608,0.2857,0.2414,Trending,,range,1,42.05,36.99,14.73,1.82,-0.270724,-1.320704,prob 26.08% < threshold 45.00% (Trending)
+2026-02-03 16:45:00,SKIP,0.2683,0.3333,0.2414,Trending,,range,1,42.05,36.99,14.73,1.82,-4.748242,-1.319061,prob 26.83% < threshold 45.00% (Trending)
+2026-02-03 17:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,42.32,36.99,16.27,1.82,-3.203714,-1.314096,prob 43.95% < threshold 45.00% (Trending|post-news✅)
+2026-02-03 17:15:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,42.32,36.99,16.27,1.82,-1.850895,-1.396741,prob 28.53% < threshold 45.00% (Trending)
+2026-02-03 17:30:00,SKIP,0.3468,0.3404,0.3721,Trending,,range,1,42.32,36.99,16.27,1.82,0.07062,-1.201589,prob 34.68% < threshold 45.00% (Trending)
+2026-02-03 17:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,42.32,36.99,16.27,1.82,-3.948372,-1.259896,prob 43.95% < threshold 45.00% (Trending|post-news✅)
+2026-02-03 18:00:00,SKIP,0.3317,0.5909,0.3721,Trending,,range,1,44.58,36.99,25.08,1.82,-2.477355,-1.251964,prob 33.17% < threshold 45.00% (Trending|post-news✅)
+2026-02-03 18:15:00,BUY,0.4859,0.5909,0.3721,Trending,,range,1,44.58,36.99,25.08,1.82,-1.934607,-1.310781,prob=48.59% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=34.00%
+2026-02-03 18:30:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,44.58,36.99,25.08,1.82,0.710352,-1.618499,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 18:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,44.58,36.99,25.08,1.82,-2.613138,-1.842429,prob 43.95% < threshold 45.00% (Trending)
+2026-02-03 19:00:00,SKIP,0.2255,0.3404,0.1429,Trending,,range,1,43.71,36.99,15.74,1.82,-1.362449,-1.976034,prob 22.55% < threshold 45.00% (Trending)
+2026-02-03 19:15:00,SKIP,0.2637,0.3404,0.3721,Trending,,range,1,43.71,36.99,15.74,1.82,-1.226307,-2.067568,prob 26.37% < threshold 45.00% (Trending)
+2026-02-03 19:30:00,SKIP,0.284,0.3333,0.3721,Trending,,range,1,43.71,36.99,15.74,1.82,1.443741,-2.009019,prob 28.40% < threshold 45.00% (Trending)
+2026-02-03 19:45:00,SKIP,0.284,0.3333,0.3721,Trending,,range,1,43.71,36.99,15.74,1.82,-1.613363,-2.01461,prob 28.40% < threshold 45.00% (Trending)
+2026-02-03 20:00:00,SKIP,0.1599,0.2857,0.1569,Trending,,range,1,40.51,32.21,7.85,0.47,-1.109685,-2.003707,prob 15.99% < threshold 45.00% (Trending)
+2026-02-03 20:15:00,SKIP,0.2281,0.2857,0.2745,Trending,,range,1,40.51,32.21,7.85,0.47,-1.272881,-1.842779,prob 22.81% < threshold 45.00% (Trending)
+2026-02-03 20:30:00,SKIP,0.2651,0.2857,0.2745,Trending,,range,1,40.51,32.21,7.85,0.47,1.39613,-1.589879,prob 26.51% < threshold 45.00% (Trending)
+2026-02-03 20:45:00,SKIP,0.2651,0.2857,0.2745,Trending,,range,1,40.51,32.21,7.85,0.47,-1.575145,-1.590573,prob 26.51% < threshold 45.00% (Trending)
+2026-02-03 21:00:00,SKIP,0.2075,0.1538,0.2745,Trending,,range,1,37.24,32.21,5.54,0.47,-1.196222,-1.595356,prob 20.75% < threshold 45.00% (Trending)
+2026-02-03 21:15:00,SKIP,0.1392,0.1538,0.1569,Trending,,range,1,37.24,32.21,5.54,0.47,-1.41573,-1.681671,prob 13.92% < threshold 45.00% (Trending)
+2026-02-03 21:30:00,SKIP,0.1909,0.1538,0.1429,Trending,,range,1,37.24,32.21,5.54,0.47,0.742426,-1.525509,prob 19.09% < threshold 45.00% (Trending)
+2026-02-03 21:45:00,SKIP,0.1871,0.1333,0.1429,Trending,,range,1,37.24,32.21,5.54,0.47,-1.655538,-1.585462,prob 18.71% < threshold 45.00% (Trending)
+2026-02-03 22:00:00,SKIP,0.1871,0.1333,0.1429,Trending,,range,1,35.05,32.21,6.69,0.47,-1.591855,-1.571366,prob 18.71% < threshold 45.00% (Trending)
+2026-02-03 22:15:00,SKIP,0.2138,0.1538,0.3721,Trending,,range,1,35.05,32.21,6.69,0.47,-1.539377,-1.629698,prob 21.38% < threshold 45.00% (Trending)
+2026-02-03 22:30:00,SKIP,0.2751,0.2857,0.3721,Trending,,range,1,35.05,32.21,6.69,0.47,-0.074532,-1.62288,prob 27.51% < threshold 45.00% (Trending)
+2026-02-03 22:45:00,SKIP,0.2536,0.2857,0.3721,Trending,,range,1,35.05,32.21,6.69,0.47,-2.351321,-1.627009,prob 25.36% < threshold 45.00% (Trending)
+2026-02-03 23:00:00,SKIP,0.27,0.2857,0.3721,Trending,,range,1,33.77,32.21,8.02,0.47,-2.503126,-1.746845,prob 27.00% < threshold 45.00% (Trending)
+2026-02-03 23:15:00,SKIP,0.2536,0.2857,0.3721,Trending,,range,1,33.77,32.21,8.02,0.47,-2.146944,-1.828807,prob 25.36% < threshold 45.00% (Trending)
+2026-02-03 23:30:00,SKIP,0.1599,0.2857,0.1569,Trending,,range,1,33.77,32.21,8.02,0.47,-0.753606,-1.7746,prob 15.99% < threshold 45.00% (Trending)
+2026-02-03 23:45:00,SKIP,0.1939,0.3333,0.3721,Trending,,range,1,33.77,32.21,8.02,0.47,-2.709005,-1.779231,prob 19.39% < threshold 45.00% (Trending)
+2026-02-04 01:00:00,SKIP,0.3455,0.3333,0.3721,Trending,,,0,29.75,30.57,1.17,8.6,-2.660038,-1.769683,prob 34.55% < threshold 45.00% (Trending)
+2026-02-04 01:15:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,29.75,30.57,1.17,8.6,-2.162719,-1.622164,prob 43.82% < threshold 45.00% (Trending)
+2026-02-04 01:30:00,SKIP,0.4117,0.3333,0.1569,Trending,,,0,29.75,30.57,1.17,8.6,-1.470895,-1.39047,prob 41.17% < threshold 45.00% (Trending)
+2026-02-04 01:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,29.75,30.57,1.17,8.6,-2.930665,-1.445488,prob 43.95% < threshold 45.00% (Trending)
+2026-02-04 02:00:00,BUY,0.5029,0.3404,0.6296,Trending,,,0,29.8,30.57,11.28,8.6,-2.892619,-1.449437,prob=50.29% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=39.34%
+2026-02-04 02:15:00,BUY,0.5029,0.3404,0.6296,Trending,,,0,29.8,30.57,11.28,8.6,-1.254544,-1.561552,prob=50.29% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=39.34%
+2026-02-04 02:30:00,BUY,0.5029,0.3404,0.6296,Trending,,,0,29.8,30.57,11.28,8.6,-0.955632,-1.473232,prob=50.29% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=39.34%
+2026-02-04 02:45:00,BUY,0.49,0.3404,0.5,Trending,,,0,29.8,30.57,11.28,8.6,-2.409742,-1.52964,prob=49.00% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=39.34%
+2026-02-04 03:00:00,BUY,0.5325,0.5,0.6296,Trending,,,0,31.84,30.57,18.1,8.6,-2.14073,-1.671799,prob=53.25% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=34.57%
+2026-02-04 03:15:00,BUY,0.5198,0.4315,0.6296,Trending,,,0,31.84,30.57,18.1,8.6,0.626674,-2.062483,prob=51.98% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=34.57%
+2026-02-04 03:30:00,BUY,0.5029,0.3404,0.6296,Trending,,,0,31.84,30.57,18.1,8.6,0.076887,-2.042564,prob=50.29% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=34.57%
+2026-02-04 03:45:00,BUY,0.4948,0.5,0.6296,Trending,,,0,31.84,30.57,18.1,8.6,-1.104647,-2.123772,prob=49.48% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=34.57%
+2026-02-04 04:00:00,BUY,0.5029,0.3404,0.6296,Trending,,,0,34.14,30.03,19.71,11.81,-0.979221,-2.341869,prob=50.29% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-04 04:15:00,BUY,0.5325,0.5,0.6296,Trending,,,0,34.14,30.03,19.71,11.81,2.244774,-2.524233,prob=53.25% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-04 04:30:00,BUY,0.5325,0.5,0.6296,Trending,,,0,34.14,30.03,19.71,11.81,0.929203,-2.522711,prob=53.25% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-04 04:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,34.14,30.03,19.71,11.81,0.141499,-2.530691,prob 43.95% < threshold 45.00% (Trending)
+2026-02-04 05:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,36.51,30.03,19.92,11.81,0.1389,-2.507909,prob 43.95% < threshold 45.00% (Trending)
+2026-02-04 05:15:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,36.51,30.03,19.92,11.81,3.589324,-2.269502,prob 43.95% < threshold 45.00% (Trending)
+2026-02-04 05:30:00,BUY,0.4652,0.3404,0.6296,Trending,,,0,36.51,30.03,19.92,11.81,2.360098,-2.081151,prob=46.52% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-04 05:45:00,BUY,0.5029,0.3404,0.6296,Trending,,,0,36.51,30.03,19.92,11.81,2.030418,-2.188224,prob=50.29% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-04 06:00:00,BUY,0.4652,0.3404,0.6296,Trending,,,0,38.91,30.03,20.66,11.81,1.911727,-2.221301,prob=46.52% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=29.03%
+2026-02-04 06:15:00,BUY,0.4652,0.3404,0.6296,Trending,,,0,38.91,30.03,20.66,11.81,4.677169,-2.226413,prob=46.52% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=29.03%
+2026-02-04 06:30:00,BUY,0.4652,0.3404,0.6296,Trending,,,0,38.91,30.03,20.66,11.81,3.359317,-2.079174,prob=46.52% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=29.03%
+2026-02-04 06:45:00,BUY,0.4652,0.3404,0.6296,Trending,,,0,38.91,30.03,20.66,11.81,3.205612,-2.139484,prob=46.52% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=29.03%
+2026-02-04 07:00:00,BUY,0.5029,0.3404,0.6296,Trending,,,0,41.43,30.03,22.09,11.81,2.818201,-2.157629,prob=50.29% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-04 07:15:00,BUY,0.4652,0.3404,0.6296,Trending,,,0,41.43,30.03,22.09,11.81,4.783295,-2.188603,prob=46.52% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-04 07:30:00,BUY,0.4652,0.3404,0.6296,Trending,,,0,41.43,30.03,22.09,11.81,3.619069,-2.175126,prob=46.52% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-04 07:45:00,BUY,0.4652,0.3404,0.6296,Trending,,,0,41.43,30.03,22.09,11.81,3.525383,-2.251446,prob=46.52% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-04 08:00:00,SKIP,0.2725,0.3333,0.2745,Trending,,range,1,40.65,29.6,14.29,11.35,3.192255,-2.473697,prob 27.25% < threshold 45.00% (Trending)
+2026-02-04 08:15:00,SKIP,0.2709,0.3333,0.2615,Trending,,range,1,40.65,29.6,14.29,11.35,4.81731,-2.44603,prob 27.09% < threshold 45.00% (Trending)
+2026-02-04 08:30:00,SKIP,0.2382,0.2857,0.3721,Trending,,range,1,40.65,29.6,14.29,11.35,3.354995,-2.446188,prob 23.82% < threshold 45.00% (Trending)
+2026-02-04 08:45:00,SKIP,0.1939,0.3333,0.3721,Trending,,range,1,40.65,29.6,14.29,11.35,2.98588,-2.39527,prob 19.39% < threshold 45.00% (Trending)
+2026-02-04 09:00:00,SKIP,0.2382,0.2857,0.3721,Trending,,range,1,40.59,29.6,15.74,11.35,2.746021,-2.326439,prob 23.82% < threshold 45.00% (Trending)
+2026-02-04 09:15:00,SKIP,0.3468,0.3404,0.3721,Trending,,range,1,40.59,29.6,15.74,11.35,4.656729,-2.088769,prob 34.68% < threshold 45.00% (Trending)
+2026-02-04 09:30:00,SKIP,0.284,0.3333,0.3721,Trending,,range,1,40.59,29.6,15.74,11.35,3.109783,-2.132707,prob 28.40% < threshold 45.00% (Trending)
+2026-02-04 09:45:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,40.59,29.6,15.74,11.35,2.376263,-2.053108,prob 28.53% < threshold 45.00% (Trending)
+2026-02-04 10:00:00,SKIP,0.2991,0.3404,0.5109,Trending,,range,1,40.58,29.6,14.66,11.35,2.366218,-2.08772,prob 29.91% < threshold 45.00% (Trending)
+2026-02-04 10:15:00,SKIP,0.1952,0.3404,0.3721,Trending,,range,1,40.58,29.6,14.66,11.35,4.534296,-2.220972,prob 19.52% < threshold 45.00% (Trending)
+2026-02-04 10:30:00,SKIP,0.1952,0.3404,0.3721,Trending,,range,1,40.58,29.6,14.66,11.35,2.749065,-2.093722,prob 19.52% < threshold 45.00% (Trending)
+2026-02-04 10:45:00,SKIP,0.2004,0.3333,0.0,Trending,,range,1,40.58,29.6,14.66,11.35,1.81034,-2.151194,prob 20.04% < threshold 45.00% (Trending)
+2026-02-04 11:00:00,SKIP,0.1662,0.2857,0.3721,Trending,,range,1,36.44,29.6,3.76,11.35,1.902385,-2.101317,prob 16.62% < threshold 45.00% (Trending)
+2026-02-04 11:15:00,SKIP,0.2393,0.2857,0.2414,Trending,,range,1,36.44,29.6,3.76,11.35,4.277711,-2.108326,prob 23.93% < threshold 45.00% (Trending)
+2026-02-04 11:30:00,SKIP,0.2239,0.2857,0.2414,Trending,,range,1,36.44,29.6,3.76,11.35,1.696558,-2.078627,prob 22.39% < threshold 45.00% (Trending)
+2026-02-04 11:45:00,SKIP,0.2281,0.2857,0.2745,Trending,,range,1,36.44,29.6,3.76,11.35,0.115714,-2.135746,prob 22.81% < threshold 45.00% (Trending)
+2026-02-04 12:00:00,SKIP,0.1782,0.3333,0.2414,Trending,,range,1,32.62,27.86,2.9,7.17,0.423161,-2.304976,prob 17.82% < threshold 45.00% (Trending)
+2026-02-04 12:15:00,SKIP,0.2737,0.3404,0.2745,Trending,,range,1,32.62,27.86,2.9,7.17,2.889282,-2.258151,prob 27.37% < threshold 45.00% (Trending)
+2026-02-04 12:30:00,SKIP,0.1485,0.3333,0.1569,Trending,,range,1,32.62,27.86,2.9,7.17,0.583478,-2.258293,prob 14.85% < threshold 45.00% (Trending)
+2026-02-04 12:45:00,SKIP,0.175,0.2857,0.2745,Trending,,range,1,32.62,27.86,2.9,7.17,-0.867577,-2.211052,prob 17.50% < threshold 45.00% (Trending)
+2026-02-04 13:00:00,SKIP,0.2934,0.4661,0.2745,Trending,,range,1,30.67,27.86,-7.48,7.17,-0.392304,-2.14732,prob 29.34% < threshold 45.00% (Trending)
+2026-02-04 13:15:00,SKIP,0.2367,0.3404,0.2745,Trending,,range,1,30.67,27.86,-7.48,7.17,1.728824,-1.926963,prob 23.67% < threshold 45.00% (Trending)
+2026-02-04 13:30:00,SKIP,0.175,0.2857,0.2745,Trending,,range,1,30.67,27.86,-7.48,7.17,-1.465392,-1.686407,prob 17.50% < threshold 45.00% (Trending)
+2026-02-04 13:45:00,SKIP,0.1599,0.2857,0.1569,Trending,,range,1,30.67,27.86,-7.48,7.17,-2.721522,-1.721862,prob 15.99% < threshold 45.00% (Trending)
+2026-02-04 14:00:00,SKIP,0.1939,0.3333,0.3721,Trending,,range,1,27.61,27.86,-3.18,7.17,-2.214282,-1.745069,prob 19.39% < threshold 45.00% (Trending)
+2026-02-04 14:15:00,SKIP,0.284,0.3333,0.3721,Trending,,range,1,27.61,27.86,-3.18,7.17,-0.581681,-1.743349,prob 28.40% < threshold 45.00% (Trending)
+2026-02-04 14:30:00,SKIP,0.2292,0.1538,0.3721,Trending,,range,1,27.61,27.86,-3.18,7.17,-3.410799,-1.62684,prob 22.92% < threshold 45.00% (Trending)
+2026-02-04 14:45:00,SKIP,0.2356,0.3333,0.2745,Trending,,range,1,27.61,27.86,-3.18,7.17,-4.410854,-1.671482,prob 23.56% < threshold 45.00% (Trending)
+2026-02-04 15:00:00,SKIP,0.2075,0.1538,0.2745,Trending,,range,1,26.45,27.86,-7.59,7.17,-3.650235,-1.638952,prob 20.75% < threshold 45.00% (Trending)
+2026-02-04 15:15:00,SKIP,0.185,0.2857,0.3721,Trending,,range,1,26.45,27.86,-7.59,7.17,-2.51423,-1.64294,prob 18.50% < threshold 45.00% (Trending)
+2026-02-04 15:30:00,SKIP,0.1511,0.1333,0.2745,Trending,,range,1,26.45,27.86,-7.59,7.17,-4.434395,-1.617934,prob 15.11% < threshold 45.00% (Trending|post-news✅)
+2026-02-04 15:45:00,SKIP,0.2624,0.3333,0.3721,Trending,,range,1,26.45,27.86,-7.59,7.17,-5.021169,-1.737163,prob 26.24% < threshold 45.00% (Trending)
+2026-02-04 16:00:00,SELL,0.4732,0.3333,0.6364,Trending,,,0,29.47,27.17,-22.6,-11.54,-4.500644,-1.888642,prob=47.32% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-04 16:15:00,SELL,0.4819,0.3333,0.7037,Trending,,,0,29.47,27.17,-22.6,-11.54,-3.250338,-1.958666,prob=48.19% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-04 16:30:00,SELL,0.521,0.3404,1.0,Trending,,,0,29.47,27.17,-22.6,-11.54,-4.897333,-1.97075,prob=52.10% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-04 16:45:00,SELL,0.521,0.3404,1.0,Trending,,,0,29.47,27.17,-22.6,-11.54,-4.0009,-1.602563,prob=52.10% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-04 17:00:00,SELL,0.521,0.3404,1.0,Trending,,,0,34.65,27.17,-35.58,-11.54,-4.071292,-1.592122,prob=52.10% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-04 17:15:00,SELL,0.5602,0.5909,1.0,Trending,,,0,34.65,27.17,-35.58,-11.54,-4.126404,-1.411887,prob=56.02% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-04 17:30:00,SELL,0.5602,0.5909,1.0,Trending,,,0,34.65,27.17,-35.58,-11.54,-3.905565,-1.091759,prob=56.02% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-04 17:45:00,SELL,0.521,0.3404,1.0,Trending,,,0,34.65,27.17,-35.58,-11.54,-0.74276,-0.674126,prob=52.10% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-04 18:00:00,SKIP,0.3903,0.3404,0.7037,Trending,,,0,39.81,27.17,-36.41,-11.54,-1.413126,-0.683598,prob 39.03% < threshold 45.00% (Trending)
+2026-02-04 18:15:00,SELL,0.4819,0.3333,0.7037,Trending,,,0,39.81,27.17,-36.41,-11.54,-2.3051,-0.671539,prob=48.19% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=34.00%
+2026-02-04 18:30:00,SELL,0.483,0.3404,0.7037,Trending,,,0,39.81,27.17,-36.41,-11.54,-1.823239,-0.574021,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=34.00%
+2026-02-04 18:45:00,SELL,0.483,0.3404,0.7037,Trending,,,0,39.81,27.17,-36.41,-11.54,2.218251,-0.592905,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=34.00%
+2026-02-04 19:00:00,SELL,0.483,0.3404,0.7037,Trending,,,0,44.28,27.17,-32.76,-11.54,1.22976,-0.39024,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=37.04%
+2026-02-04 19:15:00,SELL,0.4743,0.3404,0.6364,Trending,,,0,44.28,27.17,-32.76,-11.54,-0.335074,-0.387493,prob=47.43% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=37.04%
+2026-02-04 19:30:00,SKIP,0.4268,0.3333,0.2745,Trending,,,0,44.28,27.17,-32.76,-11.54,0.374301,-0.36931,prob 42.68% < threshold 45.00% (Trending)
+2026-02-04 19:45:00,SELL,0.4732,0.3333,0.6364,Trending,,,0,44.28,27.17,-32.76,-11.54,5.455429,-0.465528,prob=47.32% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=37.04%
+2026-02-04 20:00:00,SELL,0.4732,0.3333,0.6364,Trending,,,0,48.47,26.57,-31.56,-10.3,4.102722,-0.557608,prob=47.32% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=43.75%
+2026-02-04 20:15:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,48.47,26.57,-31.56,-10.3,1.486003,-0.591315,prob 43.95% < threshold 45.00% (Trending)
+2026-02-04 20:30:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,48.47,26.57,-31.56,-10.3,2.385503,-0.598089,prob 43.82% < threshold 45.00% (Trending)
+2026-02-04 20:45:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,48.47,26.57,-31.56,-10.3,6.765062,-0.652092,prob 43.82% < threshold 45.00% (Trending)
+2026-02-04 21:00:00,SKIP,0.3367,0.2857,0.3721,Trending,,,0,49.11,26.57,-22.83,-10.3,5.796848,-0.64625,prob 33.67% < threshold 45.00% (Trending)
+2026-02-04 21:15:00,SKIP,0.2751,0.2857,0.3721,Trending,,,0,49.11,26.57,-22.83,-10.3,2.894175,-0.493361,prob 27.51% < threshold 45.00% (Trending)
+2026-02-04 21:30:00,SKIP,0.3367,0.2857,0.3721,Trending,,,0,49.11,26.57,-22.83,-10.3,3.324144,-0.35695,prob 33.67% < threshold 45.00% (Trending)
+2026-02-04 21:45:00,SKIP,0.3367,0.2857,0.3721,Trending,,,0,49.11,26.57,-22.83,-10.3,6.059611,-0.398044,prob 33.67% < threshold 45.00% (Trending)
+2026-02-04 22:00:00,SKIP,0.3524,0.1538,0.6364,Trending,,,0,49.68,26.57,-20.73,-10.3,5.279579,-0.40449,prob 35.24% < threshold 45.00% (Trending)
+2026-02-04 22:15:00,SKIP,0.3267,0.2857,0.2745,Trending,,,0,49.68,26.57,-20.73,-10.3,2.286795,-0.392069,prob 32.67% < threshold 45.00% (Trending)
+2026-02-04 22:30:00,SKIP,0.284,0.3333,0.3721,Trending,,,0,49.68,26.57,-20.73,-10.3,2.78279,-0.305426,prob 28.40% < threshold 45.00% (Trending)
+2026-02-04 22:45:00,SKIP,0.25,0.2857,0.1569,Trending,,,0,49.68,26.57,-20.73,-10.3,5.140101,-0.318192,prob 25.00% < threshold 45.00% (Trending)
+2026-02-04 23:00:00,SKIP,0.2751,0.2857,0.3721,Trending,,,0,47.53,26.57,-13.65,-10.3,4.360841,-0.362366,prob 27.51% < threshold 45.00% (Trending)
+2026-02-04 23:15:00,SKIP,0.3468,0.3404,0.3721,Trending,,,0,47.53,26.57,-13.65,-10.3,1.343921,-0.359815,prob 34.68% < threshold 45.00% (Trending)
+2026-02-04 23:30:00,SKIP,0.284,0.3333,0.3721,Trending,,,0,47.53,26.57,-13.65,-10.3,1.876381,-0.342931,prob 28.40% < threshold 45.00% (Trending)
+2026-02-04 23:45:00,SKIP,0.2751,0.2857,0.3721,Trending,,,0,47.53,26.57,-13.65,-10.3,3.346235,-0.432276,prob 27.51% < threshold 45.00% (Trending)
+2026-02-05 01:00:00,SKIP,0.2255,0.3404,0.1429,Trending,,range,1,41.8,23.95,2.17,-3.24,2.860874,-0.517779,prob 22.55% < threshold 45.00% (Trending)
+2026-02-05 01:15:00,SKIP,0.2241,0.3333,0.1429,Trending,,range,1,41.8,23.95,2.17,-3.24,-1.192172,-0.549078,prob 22.41% < threshold 45.00% (Trending)
+2026-02-05 01:30:00,SKIP,0.2241,0.3333,0.1429,Trending,,range,1,41.8,23.95,2.17,-3.24,-0.8378,-0.555369,prob 22.41% < threshold 45.00% (Trending)
+2026-02-05 01:45:00,SKIP,0.1939,0.3333,0.3721,Trending,,range,1,41.8,23.95,2.17,-3.24,0.21896,-0.662972,prob 19.39% < threshold 45.00% (Trending)
+2026-02-05 02:00:00,SKIP,0.2359,0.3333,0.1569,Trending,,range,1,36.82,23.95,2.02,-3.24,-0.187201,-0.757894,prob 23.59% < threshold 45.00% (Trending)
+2026-02-05 02:15:00,SKIP,0.2359,0.3333,0.1569,Trending,,range,1,36.82,23.95,2.02,-3.24,-3.360168,-0.741448,prob 23.59% < threshold 45.00% (Trending)
+2026-02-05 02:30:00,SKIP,0.2586,0.3404,0.1569,Trending,,range,1,36.82,23.95,2.02,-3.24,-2.906855,-0.907922,prob 25.86% < threshold 45.00% (Trending)
+2026-02-05 02:45:00,SKIP,0.2205,0.3333,0.1569,Trending,,range,1,36.82,23.95,2.02,-3.24,-2.141164,-1.05404,prob 22.05% < threshold 45.00% (Trending)
+2026-02-05 03:00:00,SKIP,0.2314,0.3333,0.2414,Trending,,range,1,35.57,23.95,-14.25,-3.24,-2.28254,-1.005882,prob 23.14% < threshold 45.00% (Trending)
+2026-02-05 03:15:00,SKIP,0.1825,0.3333,0.2745,Trending,,range,1,35.57,23.95,-14.25,-3.24,-4.346552,-1.021078,prob 18.25% < threshold 45.00% (Trending)
+2026-02-05 03:30:00,SKIP,0.2314,0.3333,0.2414,Trending,,range,1,35.57,23.95,-14.25,-3.24,-3.320834,-0.975899,prob 23.14% < threshold 45.00% (Trending)
+2026-02-05 03:45:00,SKIP,0.1825,0.3333,0.2745,Trending,,range,1,35.57,23.95,-14.25,-3.24,-2.799095,-0.99414,prob 18.25% < threshold 45.00% (Trending)
+2026-02-05 04:00:00,SELL,0.508,0.5,0.7037,Trending,,,0,38.63,25.29,-36.37,-18.37,-3.036245,-1.030427,prob=50.80% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-05 04:15:00,SELL,0.483,0.3404,0.7037,Trending,,,0,38.63,25.29,-36.37,-18.37,-4.23995,-1.035559,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-05 04:30:00,SELL,0.5222,0.5909,0.7037,Trending,,,0,38.63,25.29,-36.37,-18.37,-3.131061,-0.990063,prob=52.22% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-05 04:45:00,SELL,0.5599,0.5909,0.7037,Trending,,,0,38.63,25.29,-36.37,-18.37,-2.299619,-0.953544,prob=55.99% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-05 05:00:00,SELL,0.4819,0.3333,0.7037,Trending,,,0,41.61,25.29,-32.56,-18.37,-1.488634,-0.035247,prob=48.19% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-05 05:15:00,SELL,0.483,0.3404,0.7037,Trending,,,0,41.61,25.29,-32.56,-18.37,-1.138236,0.174759,prob=48.30% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-05 05:30:00,SELL,0.5207,0.3404,0.7037,Trending,,,0,41.61,25.29,-32.56,-18.37,0.128289,0.214204,prob=52.07% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-05 05:45:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,41.61,25.29,-32.56,-18.37,0.974462,0.164374,prob 43.82% < threshold 45.00% (Trending)
+2026-02-05 06:00:00,SKIP,0.4194,0.2857,0.2745,Trending,,,0,43.89,25.29,-29.99,-18.37,1.553492,0.101071,prob 41.94% < threshold 45.00% (Trending)
+2026-02-05 06:15:00,SKIP,0.2469,0.1333,0.3721,Trending,,,0,43.89,25.29,-29.99,-18.37,2.093711,0.112646,prob 24.69% < threshold 45.00% (Trending)
+2026-02-05 06:30:00,SKIP,0.2507,0.1538,0.3721,Trending,,,0,43.89,25.29,-29.99,-18.37,3.226133,-0.057209,prob 25.07% < threshold 45.00% (Trending)
+2026-02-05 06:45:00,SELL,0.4505,0.1333,0.7037,Trending,,,0,43.89,25.29,-29.99,-18.37,4.021162,-0.154569,prob=45.05% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=29.03%
+2026-02-05 07:00:00,SELL,0.4744,0.2857,0.7037,Trending,,,0,46.68,25.29,-32.58,-18.37,4.291861,-0.104857,prob=47.44% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-05 07:15:00,SELL,0.4744,0.2857,0.7037,Trending,,,0,46.68,25.29,-32.58,-18.37,4.331774,-0.114539,prob=47.44% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-05 07:30:00,SKIP,0.2412,0.1333,0.2745,Trending,,,0,46.68,25.29,-32.58,-18.37,4.846966,-0.083217,prob 24.12% < threshold 45.00% (Trending)
+2026-02-05 07:45:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,46.68,25.29,-32.58,-18.37,5.820627,0.025613,prob 42.94% < threshold 45.00% (Trending)
+2026-02-05 08:00:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,46.63,26.46,-23.21,-16.45,5.984964,-0.02076,prob 42.94% < threshold 45.00% (Trending)
+2026-02-05 08:15:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,46.63,26.46,-23.21,-16.45,4.490718,-0.203167,prob 43.82% < threshold 45.00% (Trending)
+2026-02-05 08:30:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,46.63,26.46,-23.21,-16.45,4.525649,-0.218196,prob 43.82% < threshold 45.00% (Trending)
+2026-02-05 08:45:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,46.63,26.46,-23.21,-16.45,5.67711,-0.180401,prob 42.94% < threshold 45.00% (Trending)
+2026-02-05 09:00:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,45.97,26.46,-19.52,-16.45,5.236282,0.06853,prob 43.82% < threshold 45.00% (Trending)
+2026-02-05 09:15:00,SKIP,0.3455,0.3333,0.3721,Trending,,,0,45.97,26.46,-19.52,-16.45,2.9536,0.162277,prob 34.55% < threshold 45.00% (Trending)
+2026-02-05 09:30:00,SKIP,0.4194,0.2857,0.2745,Trending,,,0,45.97,26.46,-19.52,-16.45,2.765647,0.198904,prob 41.94% < threshold 45.00% (Trending)
+2026-02-05 09:45:00,SKIP,0.2683,0.3333,0.2414,Trending,,,0,45.97,26.46,-19.52,-16.45,4.09857,0.152633,prob 26.83% < threshold 45.00% (Trending)
+2026-02-05 10:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,45.14,26.46,-17.07,-16.45,4.22235,0.093851,prob 43.95% < threshold 45.00% (Trending)
+2026-02-05 10:15:00,SKIP,0.3352,0.3404,0.2745,Trending,,,0,45.14,26.46,-17.07,-16.45,1.313918,0.1046,prob 33.52% < threshold 45.00% (Trending)
+2026-02-05 10:30:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,45.14,26.46,-17.07,-16.45,1.173584,-0.053123,prob 43.82% < threshold 45.00% (Trending)
+2026-02-05 10:45:00,SKIP,0.2575,0.3333,0.1569,Trending,,,0,45.14,26.46,-17.07,-16.45,2.561679,-0.143528,prob 25.75% < threshold 45.00% (Trending)
+2026-02-05 11:00:00,SELL,0.4658,0.2857,0.6364,Trending,,,0,46.32,26.46,-26.03,-16.45,3.294168,-0.097367,prob=46.58% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=28.99%
+2026-02-05 11:15:00,SELL,0.4658,0.2857,0.6364,Trending,,,0,46.32,26.46,-26.03,-16.45,0.363873,-0.106358,prob=46.58% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=28.99%
+2026-02-05 11:30:00,SKIP,0.3115,0.2857,0.6364,Trending,,,0,46.32,26.46,-26.03,-16.45,0.284047,-0.077273,prob 31.15% < threshold 45.00% (Trending)
+2026-02-05 11:45:00,SKIP,0.4451,0.1538,0.6364,Trending,,,0,46.32,26.46,-26.03,-16.45,1.556514,0.023783,prob 44.51% < threshold 45.00% (Trending)
+2026-02-05 12:00:00,SKIP,0.1204,0.1538,0.1569,Trending,,range,1,47.4,28.45,-24.09,-20.17,2.68126,-0.019277,prob 12.04% < threshold 45.00% (Trending)
+2026-02-05 12:15:00,SKIP,0.1543,0.1538,0.2745,Trending,,range,1,47.4,28.45,-24.09,-20.17,0.448382,-0.20271,prob 15.43% < threshold 45.00% (Trending)
+2026-02-05 12:30:00,SKIP,0.1464,0.1538,0.2414,Trending,,range,1,47.4,28.45,-24.09,-20.17,0.700701,-0.232865,prob 14.64% < threshold 45.00% (Trending)
+2026-02-05 12:45:00,SKIP,0.138,0.1333,0.3721,Trending,,range,1,47.4,28.45,-24.09,-20.17,1.841858,-0.304623,prob 13.80% < threshold 45.00% (Trending)
+2026-02-05 13:00:00,SKIP,0.1418,0.1538,0.3721,Trending,,range,1,47.41,28.45,-20.38,-20.17,2.85105,-0.0491,prob 14.18% < threshold 45.00% (Trending)
+2026-02-05 13:15:00,SKIP,0.1939,0.3333,0.3721,Trending,,range,1,47.41,28.45,-20.38,-20.17,0.894233,0.037461,prob 19.39% < threshold 45.00% (Trending)
+2026-02-05 13:30:00,SKIP,0.1519,0.2857,0.2414,Trending,,range,1,47.41,28.45,-20.38,-20.17,1.354242,0.152451,prob 15.19% < threshold 45.00% (Trending)
+2026-02-05 13:45:00,SKIP,0.128,0.1333,0.2414,Trending,,range,1,47.41,28.45,-20.38,-20.17,2.363202,0.109967,prob 12.80% < threshold 45.00% (Trending)
+2026-02-05 14:00:00,SKIP,0.2737,0.3404,0.2745,Trending,,range,1,49.27,28.45,-30.0,-20.17,2.950809,0.05643,prob 27.37% < threshold 45.00% (Trending)
+2026-02-05 14:15:00,SKIP,0.2356,0.3333,0.2745,Trending,,range,1,49.27,28.45,-30.0,-20.17,1.721034,0.082859,prob 23.56% < threshold 45.00% (Trending)
+2026-02-05 14:30:00,SKIP,0.2281,0.2857,0.2745,Trending,,range,1,49.27,28.45,-30.0,-20.17,2.457601,0.049736,prob 22.81% < threshold 45.00% (Trending)
+2026-02-05 14:45:00,SKIP,0.1825,0.3333,0.2745,Trending,,range,1,49.27,28.45,-30.0,-20.17,3.548393,-0.029538,prob 18.25% < threshold 45.00% (Trending)
+2026-02-05 15:00:00,SKIP,0.2356,0.3333,0.2745,Trending,,range,1,51.12,28.45,-27.4,-20.17,3.705382,0.013644,prob 23.56% < threshold 45.00% (Trending)
+2026-02-05 15:15:00,SKIP,0.1622,0.2857,0.1429,Trending,,range,1,51.12,28.45,-27.4,-20.17,2.439681,0.060421,prob 16.22% < threshold 45.00% (Trending)
+2026-02-05 15:30:00,SKIP,0.1704,0.2562,0.2745,Trending,,range,1,51.12,28.45,-27.4,-20.17,2.997076,0.08478,prob 17.04% < threshold 45.00% (Trending)
+2026-02-05 15:45:00,SKIP,0.1543,0.1538,0.2745,Trending,,range,1,51.12,28.45,-27.4,-20.17,4.071482,0.334389,prob 15.43% < threshold 45.00% (Trending)
+2026-02-05 16:00:00,SELL,0.4744,0.2857,0.7037,Trending,,,0,52.43,29.57,-22.86,-16.25,3.898909,0.263523,prob=47.44% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-05 16:15:00,SELL,0.4537,0.1538,0.7037,Trending,,,0,52.43,29.57,-22.86,-16.25,2.924172,0.114168,prob=45.37% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-05 16:30:00,SKIP,0.405,0.1538,0.3721,Trending,,,0,52.43,29.57,-22.86,-16.25,3.420479,0.081494,prob 40.50% < threshold 45.00% (Trending)
+2026-02-05 16:45:00,SKIP,0.4276,0.1538,0.5,Trending,,,0,52.43,29.57,-22.86,-16.25,4.489908,0.018874,prob 42.76% < threshold 45.00% (Trending)
+2026-02-05 17:00:00,SKIP,0.4451,0.1538,0.6364,Trending,,,0,53.77,29.57,-20.73,-16.25,3.988744,0.271532,prob 44.51% < threshold 45.00% (Trending)
+2026-02-05 17:15:00,SELL,0.4744,0.2857,0.7037,Trending,,,0,53.77,29.57,-20.73,-16.25,3.429322,0.342507,prob=47.44% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-05 17:30:00,SELL,0.4819,0.3333,0.7037,Trending,,,0,53.77,29.57,-20.73,-16.25,3.873623,0.442727,prob=48.19% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-05 17:45:00,SELL,0.4537,0.1538,0.7037,Trending,,,0,53.77,29.57,-20.73,-16.25,4.73207,0.403503,prob=45.37% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-05 18:00:00,SKIP,0.2196,0.1333,0.2745,Trending,,,0,49.6,29.57,-7.94,-16.25,4.367552,0.36347,prob 21.96% < threshold 45.00% (Trending)
+2026-02-05 18:15:00,SKIP,0.2507,0.1538,0.3721,Trending,,,0,49.6,29.57,-7.94,-16.25,3.77675,0.301565,prob 25.07% < threshold 45.00% (Trending)
+2026-02-05 18:30:00,SKIP,0.284,0.3333,0.3721,Trending,,,0,49.6,29.57,-7.94,-16.25,3.832307,0.112691,prob 28.40% < threshold 45.00% (Trending)
+2026-02-05 18:45:00,SKIP,0.2751,0.2857,0.3721,Trending,,,0,49.6,29.57,-7.94,-16.25,3.968341,0.042198,prob 27.51% < threshold 45.00% (Trending)
+2026-02-05 19:00:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,45.98,29.57,-7.39,-16.25,2.78341,0.08247,prob 42.94% < threshold 45.00% (Trending)
+2026-02-05 19:15:00,SKIP,0.405,0.1538,0.3721,Trending,,,0,45.98,29.57,-7.39,-16.25,1.626785,-0.086473,prob 40.50% < threshold 45.00% (Trending)
+2026-02-05 19:30:00,SKIP,0.2523,0.2857,0.1429,Trending,,,0,45.98,29.57,-7.39,-16.25,1.894392,-0.069933,prob 25.23% < threshold 45.00% (Trending)
+2026-02-05 19:45:00,SKIP,0.3987,0.1538,0.2745,Trending,,,0,45.98,29.57,-7.39,-16.25,2.255394,0.164226,prob 39.87% < threshold 45.00% (Trending)
+2026-02-05 20:00:00,SKIP,0.4419,0.1333,0.6364,Trending,,,0,43.46,31.46,-8.89,-18.79,1.227522,0.099181,prob 44.19% < threshold 45.00% (Trending)
+2026-02-05 20:15:00,SKIP,0.3123,0.1538,0.3721,Trending,,,0,43.46,31.46,-8.89,-18.79,-0.369611,-0.04264,prob 31.23% < threshold 45.00% (Trending)
+2026-02-05 20:30:00,SKIP,0.3267,0.2857,0.2745,Trending,,,0,43.46,31.46,-8.89,-18.79,0.094899,-0.071345,prob 32.67% < threshold 45.00% (Trending)
+2026-02-05 20:45:00,SELL,0.4658,0.2857,0.6364,Trending,,,0,43.46,31.46,-8.89,-18.79,0.792493,-0.126331,prob=46.58% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=43.75%
+2026-02-05 21:00:00,SELL,0.4615,0.2585,0.6364,Trending,,,0,43.14,31.46,-14.94,-18.79,-0.017943,0.09114,prob=46.15% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=32.26%
+2026-02-05 21:15:00,SELL,0.4658,0.2857,0.6364,Trending,,,0,43.14,31.46,-14.94,-18.79,-2.065962,0.156458,prob=46.58% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=32.26%
+2026-02-05 21:30:00,SELL,0.4744,0.2857,0.7037,Trending,,,0,43.14,31.46,-14.94,-18.79,-1.469762,0.228415,prob=47.44% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=32.26%
+2026-02-05 21:45:00,SELL,0.5035,0.2857,0.6364,Trending,,,0,43.14,31.46,-14.94,-18.79,-0.04309,0.106454,prob=50.35% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=32.26%
+2026-02-05 22:00:00,SELL,0.4744,0.2857,0.7037,Trending,,,0,44.42,31.46,-20.84,-18.79,-0.809801,-0.016503,prob=47.44% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=38.33%
+2026-02-05 22:15:00,SELL,0.4828,0.1538,0.6364,Trending,,,0,44.42,31.46,-20.84,-18.79,-3.144155,-0.152577,prob=48.28% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=38.33%
+2026-02-05 22:30:00,SELL,0.5121,0.2857,0.7037,Trending,,,0,44.42,31.46,-20.84,-18.79,-2.377246,-0.314604,prob=51.21% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=38.33%
+2026-02-05 22:45:00,SELL,0.4744,0.2857,0.7037,Trending,,,0,44.42,31.46,-20.84,-18.79,-0.146374,-0.268362,prob=47.44% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=38.33%
+2026-02-05 23:00:00,SELL,0.4658,0.2857,0.6364,Trending,,,0,46.77,31.46,-25.58,-18.79,0.21951,0.131301,prob=46.58% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=29.79%
+2026-02-05 23:15:00,SELL,0.4732,0.3333,0.6364,Trending,,,0,46.77,31.46,-25.58,-18.79,-1.746563,-0.024639,prob=47.32% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=29.79%
+2026-02-05 23:30:00,SELL,0.4685,0.3404,0.5909,Trending,,,0,46.77,31.46,-25.58,-18.79,-1.124178,-0.010152,prob=46.85% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=29.79%
+2026-02-05 23:45:00,SKIP,0.4194,0.2857,0.2745,Trending,,,0,46.77,31.46,-25.58,-18.79,1.268428,0.409657,prob 41.94% < threshold 45.00% (Trending)
+2026-02-06 01:00:00,SKIP,0.2325,0.3404,0.2414,Trending,,range,1,50.21,34.94,-33.05,-27.64,1.567055,0.345748,prob 23.25% < threshold 45.00% (Trending)
+2026-02-06 01:15:00,SKIP,0.2325,0.3404,0.2414,Trending,,range,1,50.21,34.94,-33.05,-27.64,0.065274,0.233453,prob 23.25% < threshold 45.00% (Trending)
+2026-02-06 01:30:00,SKIP,0.2694,0.3404,0.2414,Trending,,range,1,50.21,34.94,-33.05,-27.64,0.673432,0.279611,prob 26.94% < threshold 45.00% (Trending)
+2026-02-06 01:45:00,SKIP,0.3088,0.5909,0.1429,Trending,,range,1,50.21,34.94,-33.05,-27.64,2.735858,0.332472,prob 30.88% < threshold 45.00% (Trending)
+2026-02-06 02:00:00,SELL,0.4672,0.5909,0.2745,Trending,,range,1,53.99,34.94,-35.5,-27.64,3.231664,0.732262,prob=46.72% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=39.34%
+2026-02-06 02:15:00,SKIP,0.3352,0.3404,0.2745,Trending,,range,1,53.99,34.94,-35.5,-27.64,2.424167,0.904018,prob 33.52% < threshold 45.00% (Trending)
+2026-02-06 02:30:00,SKIP,0.2554,0.2954,0.3721,Trending,,range,1,53.99,34.94,-35.5,-27.64,3.113638,1.083126,prob 25.54% < threshold 45.00% (Trending)
+2026-02-06 02:45:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,53.99,34.94,-35.5,-27.64,4.370899,0.980376,prob 28.53% < threshold 45.00% (Trending)
+2026-02-06 03:00:00,SKIP,0.2382,0.2857,0.3721,Trending,,range,1,55.01,34.94,-25.39,-27.64,4.717997,0.933912,prob 23.82% < threshold 45.00% (Trending)
+2026-02-06 03:15:00,SKIP,0.2725,0.3333,0.2745,Trending,,range,1,55.01,34.94,-25.39,-27.64,4.262457,0.853769,prob 27.25% < threshold 45.00% (Trending)
+2026-02-06 03:30:00,SKIP,0.2683,0.3333,0.2414,Trending,,range,1,55.01,34.94,-25.39,-27.64,4.514565,0.695439,prob 26.83% < threshold 45.00% (Trending)
+2026-02-06 03:45:00,SKIP,0.284,0.3333,0.3721,Trending,,range,1,55.01,34.94,-25.39,-27.64,5.441511,0.750054,prob 28.40% < threshold 45.00% (Trending)
+2026-02-06 04:00:00,SKIP,0.4364,0.3236,0.3721,Trending,,,0,50.51,33.34,-9.8,-11.99,5.039776,1.002954,prob 43.64% < threshold 45.00% (Trending)
+2026-02-06 04:15:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,50.51,33.34,-9.8,-11.99,4.626323,0.871836,prob 43.82% < threshold 45.00% (Trending)
+2026-02-06 04:30:00,BUY,0.4772,0.3404,0.3721,Trending,,,0,50.51,33.34,-9.8,-11.99,3.845436,0.868129,prob=47.72% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-06 04:45:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,50.51,33.34,-9.8,-11.99,3.52147,0.969898,prob 43.82% < threshold 45.00% (Trending)
+2026-02-06 05:00:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,46.61,33.34,-9.06,-11.99,3.255829,0.903321,prob 43.82% < threshold 45.00% (Trending)
+2026-02-06 05:15:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,46.61,33.34,-9.06,-11.99,3.14107,0.833224,prob 43.82% < threshold 45.00% (Trending)
+2026-02-06 05:30:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,46.61,33.34,-9.06,-11.99,1.966945,0.819854,prob 43.82% < threshold 45.00% (Trending)
+2026-02-06 05:45:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,46.61,33.34,-9.06,-11.99,1.457195,0.772025,prob 43.82% < threshold 45.00% (Trending)
+2026-02-06 06:00:00,SKIP,0.3455,0.3333,0.3721,Trending,,,0,43.22,33.34,-8.57,-11.99,1.057875,0.963237,prob 34.55% < threshold 45.00% (Trending)
+2026-02-06 06:15:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,43.22,33.34,-8.57,-11.99,0.847896,0.977614,prob 43.82% < threshold 45.00% (Trending)
+2026-02-06 06:30:00,SKIP,0.405,0.1538,0.3721,Trending,,,0,43.22,33.34,-8.57,-11.99,-0.700125,1.00576,prob 40.50% < threshold 45.00% (Trending)
+2026-02-06 06:45:00,SKIP,0.3224,0.2857,0.2414,Trending,,,0,43.22,33.34,-8.57,-11.99,-1.103718,0.8753,prob 32.24% < threshold 45.00% (Trending)
+2026-02-06 07:00:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,39.34,33.34,6.55,-11.99,-1.349542,0.827992,prob 43.82% < threshold 45.00% (Trending)
+2026-02-06 07:15:00,BUY,0.4772,0.3404,0.3721,Trending,,,0,39.34,33.34,6.55,-11.99,-1.606854,0.667094,prob=47.72% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-06 07:30:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,39.34,33.34,6.55,-11.99,-3.551702,0.413934,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 07:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,39.34,33.34,6.55,-11.99,-4.350602,0.189767,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 08:00:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,36.27,31.75,6.57,-10.32,-4.539516,0.086494,prob 43.82% < threshold 45.00% (Trending)
+2026-02-06 08:15:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,36.27,31.75,6.57,-10.32,-4.53168,-0.225252,prob 42.94% < threshold 45.00% (Trending)
+2026-02-06 08:30:00,SKIP,0.4419,0.1333,0.6364,Trending,,,0,36.27,31.75,6.57,-10.32,-5.64684,-0.175284,prob 44.19% < threshold 45.00% (Trending)
+2026-02-06 08:45:00,SKIP,0.4451,0.1538,0.6364,Trending,,,0,36.27,31.75,6.57,-10.32,-5.749243,0.2069,prob 44.51% < threshold 45.00% (Trending)
+2026-02-06 09:00:00,SKIP,0.4451,0.1538,0.6364,Trending,,,0,33.61,31.75,6.24,-10.32,-5.920671,0.148212,prob 44.51% < threshold 45.00% (Trending)
+2026-02-06 09:15:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,33.61,31.75,6.24,-10.32,-5.938534,0.06998,prob 42.94% < threshold 45.00% (Trending)
+2026-02-06 09:30:00,SKIP,0.405,0.1538,0.3721,Trending,,,0,33.61,31.75,6.24,-10.32,-6.748208,0.063002,prob 40.50% < threshold 45.00% (Trending)
+2026-02-06 09:45:00,SKIP,0.2651,0.2857,0.2745,Trending,,,0,33.61,31.75,6.24,-10.32,-6.845223,0.029928,prob 26.51% < threshold 45.00% (Trending)
+2026-02-06 10:00:00,SKIP,0.4012,0.1333,0.3721,Trending,,,0,32.63,31.75,10.08,-10.32,-7.203171,0.140934,prob 40.12% < threshold 45.00% (Trending)
+2026-02-06 10:15:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,32.63,31.75,10.08,-10.32,-7.244898,0.1518,prob 42.94% < threshold 45.00% (Trending)
+2026-02-06 10:30:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,32.63,31.75,10.08,-10.32,-7.947418,0.171719,prob 42.94% < threshold 45.00% (Trending)
+2026-02-06 10:45:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,32.63,31.75,10.08,-10.32,-8.317214,0.075269,prob 42.94% < threshold 45.00% (Trending)
+2026-02-06 11:00:00,SKIP,0.2651,0.2857,0.2745,Trending,,,0,31.79,31.75,9.27,-10.32,-8.862508,0.067308,prob 26.51% < threshold 45.00% (Trending)
+2026-02-06 11:15:00,SKIP,0.2412,0.1333,0.2745,Trending,,,0,31.79,31.75,9.27,-10.32,-8.088206,-0.040524,prob 24.12% < threshold 45.00% (Trending)
+2026-02-06 11:30:00,SKIP,0.3028,0.1333,0.2745,Trending,,,0,31.79,31.75,9.27,-10.32,-8.595884,-0.1849,prob 30.28% < threshold 45.00% (Trending)
+2026-02-06 11:45:00,SKIP,0.3465,0.1538,0.3721,Trending,,,0,31.79,31.75,9.27,-10.32,-8.681532,-0.171349,prob 34.65% < threshold 45.00% (Trending)
+2026-02-06 12:00:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,31.59,28.93,10.49,-5.01,-8.807936,0.020905,prob 42.94% < threshold 45.00% (Trending)
+2026-02-06 12:15:00,SKIP,0.4194,0.2857,0.2745,Trending,,,0,31.59,28.93,10.49,-5.01,-7.273517,-0.209163,prob 41.94% < threshold 45.00% (Trending)
+2026-02-06 12:30:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,31.59,28.93,10.49,-5.01,-8.080716,-0.162764,prob 42.94% < threshold 45.00% (Trending)
+2026-02-06 12:45:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,31.59,28.93,10.49,-5.01,-8.444999,0.192121,prob 42.94% < threshold 45.00% (Trending)
+2026-02-06 13:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,32.51,28.93,13.81,-5.01,-8.725666,0.137625,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 13:15:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,32.51,28.93,13.81,-5.01,-6.287995,0.064982,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 13:30:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,32.51,28.93,13.81,-5.01,-7.439928,0.058502,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 13:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,32.51,28.93,13.81,-5.01,-8.271177,0.02779,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 14:00:00,BUY,0.4772,0.3404,0.3721,Trending,,,0,33.82,28.93,14.77,-5.01,-8.269064,0.130867,prob=47.72% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=54.05%
+2026-02-06 14:15:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,33.82,28.93,14.77,-5.01,-5.01733,0.135908,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 14:30:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,33.82,28.93,14.77,-5.01,-6.454412,0.154363,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 14:45:00,BUY,0.5236,0.5909,0.3721,Trending,,,0,33.82,28.93,14.77,-5.01,-7.430579,0.064961,prob=52.36% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=54.05%
+2026-02-06 15:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,36.84,28.93,23.03,-5.01,-7.190992,0.057795,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 15:15:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,36.84,28.93,23.03,-5.01,-3.609426,-0.306861,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 15:30:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,36.84,28.93,23.03,-5.01,-4.830793,-0.449521,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 15:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,36.84,28.93,23.03,-5.01,-5.89076,-0.542086,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 16:00:00,BUY,0.4772,0.3404,0.3721,Trending,,,0,39.94,25.29,22.61,-0.77,-5.418175,-0.39476,prob=47.72% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-06 16:15:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,39.94,25.29,22.61,-0.77,-2.038064,-0.81955,prob 43.82% < threshold 45.00% (Trending)
+2026-02-06 16:30:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,39.94,25.29,22.61,-0.77,-3.11086,-0.807296,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 16:45:00,BUY,0.4772,0.3404,0.3721,Trending,,,0,39.94,25.29,22.61,-0.77,-4.151747,-0.609711,prob=47.72% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-06 17:00:00,BUY,0.4691,0.5,0.3721,Trending,,,0,43.24,25.29,24.64,-0.77,-3.468063,-0.683832,prob=46.91% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-06 17:15:00,BUY,0.4772,0.3404,0.3721,Trending,,,0,43.24,25.29,24.64,-0.77,-0.307527,-0.869667,prob=47.72% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-06 17:30:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,43.24,25.29,24.64,-0.77,-1.369155,-0.801164,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 17:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,43.24,25.29,24.64,-0.77,-2.346523,-0.816573,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 18:00:00,SKIP,0.2853,0.3404,0.3721,Trending,,,0,44.84,25.29,20.19,-0.77,-1.737136,-0.770613,prob 28.53% < threshold 45.00% (Trending)
+2026-02-06 18:15:00,SKIP,0.3299,0.3333,0.2414,Trending,,,0,44.84,25.29,20.19,-0.77,0.943863,-0.67666,prob 32.99% < threshold 45.00% (Trending)
+2026-02-06 18:30:00,SKIP,0.2853,0.3404,0.3721,Trending,,,0,44.84,25.29,20.19,-0.77,0.024612,-0.665871,prob 28.53% < threshold 45.00% (Trending)
+2026-02-06 18:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,44.84,25.29,20.19,-0.77,-1.082131,-0.724908,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 19:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,46.98,25.29,23.8,-0.77,-0.551659,-0.69788,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 19:15:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,46.98,25.29,23.8,-0.77,1.358489,-0.712102,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 19:30:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,46.98,25.29,23.8,-0.77,0.767604,-0.815333,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 19:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,46.98,25.29,23.8,-0.77,-0.307958,-0.825789,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 20:00:00,SKIP,0.3468,0.3404,0.3721,Trending,,range,1,47.95,22.02,20.07,-0.33,0.092701,-0.713822,prob 34.68% < threshold 45.00% (Trending)
+2026-02-06 20:15:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,47.95,22.02,20.07,-0.33,1.733008,-1.112334,prob 28.53% < threshold 45.00% (Trending)
+2026-02-06 20:30:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,47.95,22.02,20.07,-0.33,1.474017,-1.117259,prob 43.95% < threshold 45.00% (Trending)
+2026-02-06 20:45:00,SKIP,0.3764,0.5,0.3721,Trending,,range,1,47.95,22.02,20.07,-0.33,0.292975,-0.846082,prob 37.64% < threshold 45.00% (Trending)
+2026-02-06 21:00:00,SKIP,0.3101,0.5909,0.3721,Trending,,range,1,48.8,22.02,18.99,-0.33,0.302644,-0.88592,prob 31.01% < threshold 45.00% (Trending)
+2026-02-06 21:15:00,SKIP,0.3317,0.5909,0.3721,Trending,,range,1,48.8,22.02,18.99,-0.33,1.406404,-0.883533,prob 33.17% < threshold 45.00% (Trending)
+2026-02-06 21:30:00,SKIP,0.2853,0.3404,0.3721,Trending,,range,1,48.8,22.02,18.99,-0.33,1.601926,-0.820505,prob 28.53% < threshold 45.00% (Trending)
+2026-02-06 21:45:00,SKIP,0.2151,0.3404,0.1058,Trending,,range,1,48.8,22.02,18.99,-0.33,0.503614,-0.833682,prob 21.51% < threshold 45.00% (Trending)
+2026-02-06 22:00:00,SKIP,0.237,0.3404,0.1569,Trending,,range,1,46.9,22.02,12.63,-0.33,0.197273,-0.797143,prob 23.70% < threshold 45.00% (Trending)
+2026-02-06 22:15:00,SKIP,0.2216,0.3404,0.1569,Trending,,range,1,46.9,22.02,12.63,-0.33,1.103129,-0.711942,prob 22.16% < threshold 45.00% (Trending)
+2026-02-06 22:30:00,SKIP,0.1674,0.3333,0.1569,Trending,,range,1,46.9,22.02,12.63,-0.33,1.509193,-0.70257,prob 16.74% < threshold 45.00% (Trending)
+2026-02-06 22:45:00,SKIP,0.2205,0.3333,0.1569,Trending,,range,1,46.9,22.02,12.63,-0.33,0.41399,-0.755024,prob 22.05% < threshold 45.00% (Trending)
+2026-02-06 23:00:00,SKIP,0.2359,0.3333,0.1569,Trending,,range,1,45.93,22.02,14.49,-0.33,-0.14009,-0.726688,prob 23.59% < threshold 45.00% (Trending)
+2026-02-06 23:15:00,SKIP,0.237,0.3404,0.1569,Trending,,range,1,45.93,22.02,14.49,-0.33,0.566868,-0.736011,prob 23.70% < threshold 45.00% (Trending)
+2026-02-06 23:30:00,SKIP,0.284,0.3333,0.3721,Trending,,range,1,45.93,22.02,14.49,-0.33,0.983886,-0.829877,prob 28.40% < threshold 45.00% (Trending)
+2026-02-06 23:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,45.93,22.02,14.49,-0.33,0.012839,-0.799104,prob 43.95% < threshold 45.00% (Trending)
+2026-02-09 01:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,49.24,21.81,38.24,10.34,-0.584251,-0.697552,prob 43.95% < threshold 45.00% (Trending)
+2026-02-09 01:15:00,SELL,0.4521,0.5909,0.1569,Trending,,range,1,49.24,21.81,38.24,10.34,0.674332,-1.256091,prob=45.21% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=36.62%
+2026-02-09 01:30:00,SKIP,0.3317,0.5909,0.3721,Trending,,range,1,49.24,21.81,38.24,10.34,1.739753,-1.623453,prob 33.17% < threshold 45.00% (Trending)
+2026-02-09 01:45:00,SKIP,0.3201,0.3404,0.1569,Trending,,range,1,49.24,21.81,38.24,10.34,1.152689,-1.578786,prob 32.01% < threshold 45.00% (Trending)
+2026-02-09 02:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,52.1,21.81,33.83,10.34,0.769651,-1.643725,prob 43.95% < threshold 45.00% (Trending)
+2026-02-09 02:15:00,BUY,0.4691,0.5,0.3721,Trending,,range,1,52.1,21.81,33.83,10.34,1.92734,-1.661264,prob=46.91% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=39.34%
+2026-02-09 02:30:00,SKIP,0.4128,0.3404,0.1569,Trending,,range,1,52.1,21.81,33.83,10.34,2.765679,-1.608293,prob 41.28% < threshold 45.00% (Trending)
+2026-02-09 02:45:00,SKIP,0.4128,0.3404,0.1569,Trending,,range,1,52.1,21.81,33.83,10.34,2.255926,-1.608483,prob 41.28% < threshold 45.00% (Trending)
+2026-02-09 03:00:00,SKIP,0.2637,0.3404,0.3721,Trending,,range,1,49.29,21.81,15.28,10.34,2.026847,-1.635846,prob 26.37% < threshold 45.00% (Trending)
+2026-02-09 03:15:00,SKIP,0.2624,0.3333,0.3721,Trending,,range,1,49.29,21.81,15.28,10.34,3.090847,-1.578416,prob 26.24% < threshold 45.00% (Trending)
+2026-02-09 03:30:00,SKIP,0.3201,0.3404,0.1569,Trending,,range,1,49.29,21.81,15.28,10.34,3.368757,-1.57662,prob 32.01% < threshold 45.00% (Trending)
+2026-02-09 03:45:00,SKIP,0.2624,0.3333,0.3721,Trending,,range,1,49.29,21.81,15.28,10.34,2.294453,-1.601023,prob 26.24% < threshold 45.00% (Trending)
+2026-02-09 04:00:00,SKIP,0.4268,0.3333,0.2745,Trending,,,0,45.98,21.64,10.77,9.25,2.35454,-1.542553,prob 42.68% < threshold 45.00% (Trending)
+2026-02-09 04:15:00,SKIP,0.4382,0.3333,0.3721,Trending,,,0,45.98,21.64,10.77,9.25,3.268647,-1.510272,prob 43.82% < threshold 45.00% (Trending)
+2026-02-09 04:30:00,SKIP,0.4294,0.2857,0.3721,Trending,,,0,45.98,21.64,10.77,9.25,3.046738,-1.576481,prob 42.94% < threshold 45.00% (Trending)
+2026-02-09 04:45:00,BUY,0.4551,0.2857,0.6296,Trending,,,0,45.98,21.64,10.77,9.25,2.0594,-1.547031,prob=45.51% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=47.67%
+2026-02-09 05:00:00,BUY,0.6023,0.3404,0.6296,Trending,,,0,44.15,21.64,14.45,9.25,2.237352,-1.508778,prob=60.23% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-09 05:15:00,BUY,0.6113,0.3404,0.6296,Trending,,,0,44.15,21.64,14.45,9.25,2.605883,-1.531072,prob=61.13% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-09 05:30:00,BUY,0.5029,0.3404,0.6296,Trending,,,0,44.15,21.64,14.45,9.25,1.370728,-1.718215,prob=50.29% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-09 05:45:00,BUY,0.5029,0.3404,0.6296,Trending,,,0,44.15,21.64,14.45,9.25,0.669173,-1.497567,prob=50.29% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=39.39%
+2026-02-09 06:00:00,SKIP,0.4055,0.2857,0.1666,Trending,,,0,42.56,21.64,13.57,9.25,0.820678,-1.526316,prob 40.55% < threshold 45.00% (Trending)
+2026-02-09 06:15:00,SKIP,0.4226,0.3333,0.2414,Trending,,,0,42.56,21.64,13.57,9.25,1.225707,-1.542603,prob 42.26% < threshold 45.00% (Trending)
+2026-02-09 06:30:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,42.56,21.64,13.57,9.25,-0.401605,-1.493415,prob 43.95% < threshold 45.00% (Trending)
+2026-02-09 06:45:00,SKIP,0.4395,0.3404,0.3721,Trending,,,0,42.56,21.64,13.57,9.25,-0.666556,-1.493592,prob 43.95% < threshold 45.00% (Trending)
+2026-02-09 07:00:00,BUY,0.4652,0.3404,0.6296,Trending,,,0,42.46,21.64,18.2,9.25,-0.494804,-1.518999,prob=46.52% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-09 07:15:00,BUY,0.6577,0.5909,0.6296,Trending,,,0,42.46,21.64,18.2,9.25,-0.238776,-1.465672,prob=65.77% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-09 07:30:00,BUY,0.6577,0.5909,0.6296,Trending,,,0,42.46,21.64,18.2,9.25,-1.533777,-1.464004,prob=65.77% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-09 07:45:00,BUY,0.6444,0.5909,0.6296,Trending,,,0,42.46,21.64,18.2,9.25,-0.160396,-1.486665,prob=64.44% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=41.82%
+2026-02-09 08:00:00,BUY,0.6113,0.3404,0.6296,Trending,,,0,42.66,21.65,17.56,9.18,-0.038242,-1.432371,prob=61.13% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=38.89%
+2026-02-09 08:15:00,BUY,0.4523,0.3404,0.5,Trending,,,0,42.66,21.65,17.56,9.18,0.275957,-1.402396,prob=45.23% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=38.89%
+2026-02-09 08:30:00,BUY,0.5325,0.5,0.6296,Trending,,,0,42.66,21.65,17.56,9.18,-0.922469,-1.463876,prob=53.25% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=38.89%
+2026-02-09 08:45:00,BUY,0.5116,0.5909,0.6296,Trending,,,0,42.66,21.65,17.56,9.18,0.624262,-1.436529,prob=51.16% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=38.89%
+2026-02-09 09:00:00,SKIP,0.4268,0.3333,0.2745,Trending,,,0,39.94,21.65,9.14,9.18,0.709292,-1.401008,prob 42.68% < threshold 45.00% (Trending)
+2026-02-09 09:15:00,SKIP,0.4268,0.3333,0.2745,Trending,,,0,39.94,21.65,9.14,9.18,0.479959,-1.421709,prob 42.68% < threshold 45.00% (Trending)
+2026-02-09 09:30:00,SKIP,0.4268,0.3333,0.2745,Trending,,,0,39.94,21.65,9.14,9.18,-1.102106,-1.595486,prob 42.68% < threshold 45.00% (Trending)
+2026-02-09 09:45:00,SKIP,0.4194,0.2857,0.2745,Trending,,,0,39.94,21.65,9.14,9.18,0.293822,-1.390598,prob 41.94% < threshold 45.00% (Trending)
+2026-02-09 10:00:00,SKIP,0.4012,0.1333,0.3721,Trending,,,0,38.04,21.65,9.64,9.18,0.428218,-1.423779,prob 40.12% < threshold 45.00% (Trending)
+2026-02-09 10:15:00,BUY,0.4639,0.3333,0.6296,Trending,,,0,38.04,21.65,9.64,9.18,-0.010208,-1.473449,prob=46.39% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=30.23%
+2026-02-09 10:30:00,BUY,0.4639,0.3333,0.6296,Trending,,,0,38.04,21.65,9.64,9.18,-1.376923,-1.428004,prob=46.39% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=30.23%
+2026-02-09 10:45:00,BUY,0.4551,0.2857,0.6296,Trending,,,0,38.04,21.65,9.64,9.18,-0.013015,-1.427603,prob=45.51% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=30.23%
+2026-02-09 11:00:00,BUY,0.4639,0.3333,0.6296,Trending,,,0,36.96,21.65,10.22,9.18,0.276161,-1.453878,prob=46.39% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=28.99%
+2026-02-09 11:15:00,SKIP,0.4043,0.2857,0.1569,Trending,,,0,36.96,21.65,10.22,9.18,0.201482,-1.527096,prob 40.43% < threshold 45.00% (Trending)
+2026-02-09 11:30:00,SKIP,0.3955,0.1333,0.2745,Trending,,,0,36.96,21.65,10.22,9.18,-1.327385,-1.534876,prob 39.55% < threshold 45.00% (Trending)
+2026-02-09 11:45:00,SKIP,0.3912,0.1333,0.2414,Trending,,,0,36.96,21.65,10.22,9.18,-0.369483,-1.430199,prob 39.12% < threshold 45.00% (Trending)
+2026-02-09 12:00:00,SKIP,0.2359,0.3333,0.1569,Trending,,range,1,32.45,20.67,1.17,6.01,-0.092476,-1.378191,prob 23.59% < threshold 45.00% (Trending)
+2026-02-09 12:15:00,SKIP,0.2586,0.3404,0.1569,Trending,,range,1,32.45,20.67,1.17,6.01,-0.998533,-1.302225,prob 25.86% < threshold 45.00% (Trending)
+2026-02-09 12:30:00,SKIP,0.2586,0.3404,0.1569,Trending,,range,1,32.45,20.67,1.17,6.01,-2.815629,-1.358559,prob 25.86% < threshold 45.00% (Trending)
+2026-02-09 12:45:00,SKIP,0.241,0.3333,0.1969,Trending,,range,1,32.45,20.67,1.17,6.01,-1.965497,-1.291134,prob 24.10% < threshold 45.00% (Trending)
+2026-02-09 13:00:00,SKIP,0.2359,0.3333,0.1569,Trending,,range,1,28.94,20.67,2.11,6.01,-1.392498,-1.047509,prob 23.59% < threshold 45.00% (Trending)
+2026-02-09 13:15:00,SKIP,0.2751,0.2857,0.3721,Trending,,range,1,28.94,20.67,2.11,6.01,-2.35787,-1.24233,prob 27.51% < threshold 45.00% (Trending)
+2026-02-09 13:30:00,SKIP,0.2751,0.2857,0.3721,Trending,,range,1,28.94,20.67,2.11,6.01,-3.681668,-1.312301,prob 27.51% < threshold 45.00% (Trending)
+2026-02-09 13:45:00,SKIP,0.284,0.3333,0.3721,Trending,,range,1,28.94,20.67,2.11,6.01,-2.788042,-1.130521,prob 28.40% < threshold 45.00% (Trending)
+2026-02-09 14:00:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,26.45,20.67,3.48,6.01,-1.835387,-1.162766,prob 43.95% < threshold 45.00% (Trending)
+2026-02-09 14:15:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,26.45,20.67,3.48,6.01,-3.071247,-1.201986,prob 43.95% < threshold 45.00% (Trending)
+2026-02-09 14:30:00,SKIP,0.4395,0.3404,0.3721,Trending,,range,1,26.45,20.67,3.48,6.01,-4.100575,-1.157861,prob 43.95% < threshold 45.00% (Trending)
+2026-02-09 14:45:00,SKIP,0.3518,0.3333,0.3721,Trending,,range,1,26.45,20.67,3.48,6.01,-3.271565,-1.156523,prob 35.18% < threshold 45.00% (Trending)
+2026-02-09 15:00:00,SKIP,0.2751,0.2857,0.3721,Trending,,range,1,23.75,20.67,-2.16,6.01,-2.243153,-1.172213,prob 27.51% < threshold 45.00% (Trending)
+2026-02-09 15:15:00,SKIP,0.2284,0.2857,0.1569,Trending,,range,1,23.75,20.67,-2.16,6.01,-4.011226,-1.242146,prob 22.84% < threshold 45.00% (Trending)
+2026-02-09 15:30:00,SKIP,0.2575,0.3333,0.1569,Trending,,range,1,23.75,20.67,-2.16,6.01,-4.52727,-1.250202,prob 25.75% < threshold 45.00% (Trending)
+2026-02-09 15:45:00,SKIP,0.25,0.2857,0.1569,Trending,,range,1,23.75,20.67,-2.16,6.01,-4.429362,-1.153633,prob 25.00% < threshold 45.00% (Trending)
+2026-02-09 16:00:00,BUY,0.4639,0.3333,0.6296,Trending,,,0,22.35,22.16,4.76,14.56,-3.30099,-1.110258,prob=46.39% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-09 16:15:00,BUY,0.6113,0.3404,0.6296,Trending,,,0,22.35,22.16,4.76,14.56,-4.441987,-1.047201,prob=61.13% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-09 16:30:00,BUY,0.6113,0.3404,0.6296,Trending,,,0,22.35,22.16,4.76,14.56,-4.082329,-1.21761,prob=61.13% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-09 16:45:00,BUY,0.6408,0.5,0.6296,Trending,,,0,22.35,22.16,4.76,14.56,-3.901139,-1.19891,prob=64.08% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=45.68%
+2026-02-09 17:00:00,BUY,0.6113,0.3404,0.6296,Trending,,,0,23.54,22.16,12.07,14.56,-2.872446,-0.972687,prob=61.13% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-09 17:15:00,BUY,0.6408,0.5,0.6296,Trending,,,0,23.54,22.16,12.07,14.56,-3.742731,-1.169328,prob=64.08% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-09 17:30:00,BUY,0.6577,0.5909,0.6296,Trending,,,0,23.54,22.16,12.07,14.56,-2.914614,-1.235042,prob=65.77% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-09 17:45:00,BUY,0.6577,0.5909,0.6296,Trending,,,0,23.54,22.16,12.07,14.56,-2.825748,-1.246655,prob=65.77% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=58.21%
+2026-02-09 18:00:00,SELL,0.5569,0.3404,0.1569,Trending,,ctf_fade,0,26.38,22.16,19.39,14.56,-1.963878,-1.327117,prob=55.69% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=34.00%
+2026-02-09 18:15:00,BUY,0.6577,0.5909,0.6296,Trending,,,0,26.38,22.16,19.39,14.56,-2.437019,-1.468335,prob=65.77% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=34.00%
+2026-02-09 18:30:00,BUY,0.5493,0.5909,0.6296,Trending,,,0,26.38,22.16,19.39,14.56,-1.179233,-1.562905,prob=54.93% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=34.00%
+2026-02-09 18:45:00,BUY,0.5493,0.5909,0.6296,Trending,,,0,26.38,22.16,19.39,14.56,-1.475634,-1.456796,prob=54.93% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=34.00%
+2026-02-09 19:00:00,SKIP,0.4494,0.3333,0.1569,Trending,,,0,25.91,22.16,9.98,14.56,-0.700733,-1.534625,prob 44.94% < threshold 45.00% (Trending)
+2026-02-09 19:15:00,SELL,0.4505,0.3404,0.1569,Trending,,ctf_fade,0,25.91,22.16,9.98,14.56,-1.132049,-1.455833,prob=45.05% | model=combined(70%)+state(trending)+dir(SELL)(30%) | state=Trending | vol=normal | slot_wr=37.04%
+2026-02-09 19:30:00,BUY,0.4859,0.5909,0.3721,Trending,,,0,25.91,22.16,9.98,14.56,0.230808,-1.527668,prob=48.59% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=37.04%
+2026-02-09 19:45:00,SKIP,0.4279,0.3404,0.2745,Trending,,,0,25.91,22.16,9.98,14.56,0.288911,-1.48265,prob 42.79% < threshold 45.00% (Trending)
+2026-02-09 20:00:00,SKIP,0.3201,0.3404,0.1569,Trending,,range,1,25.51,23.67,9.11,14.54,0.276914,-1.432227,prob 32.01% < threshold 45.00% (Trending)
+2026-02-09 20:15:00,SKIP,0.4128,0.3404,0.1569,Trending,,range,1,25.51,23.67,9.11,14.54,-0.265575,-1.065359,prob 41.28% < threshold 45.00% (Trending)
+2026-02-09 20:30:00,SKIP,0.4128,0.3404,0.1569,Trending,,range,1,25.51,23.67,9.11,14.54,1.007734,-0.805549,prob 41.28% < threshold 45.00% (Trending)
+2026-02-09 20:45:00,SKIP,0.4382,0.3333,0.3721,Trending,,range,1,25.51,23.67,9.11,14.54,0.598826,-0.69438,prob 43.82% < threshold 45.00% (Trending)
+2026-02-09 21:00:00,BUY,0.4859,0.5909,0.3721,Trending,,range,1,26.9,23.67,15.82,14.54,0.645099,-1.234621,prob=48.59% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=32.26%
+2026-02-09 21:15:00,BUY,0.4859,0.5909,0.3721,Trending,,range,1,26.9,23.67,15.82,14.54,-0.041239,-0.948525,prob=48.59% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=32.26%
+2026-02-09 21:30:00,BUY,0.4859,0.5909,0.3721,Trending,,range,1,26.9,23.67,15.82,14.54,1.2283,-1.109068,prob=48.59% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=32.26%
+2026-02-09 21:45:00,BUY,0.4859,0.5909,0.3721,Trending,,range,1,26.9,23.67,15.82,14.54,0.768338,-1.472211,prob=48.59% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=32.26%
+2026-02-09 22:00:00,BUY,0.5206,0.7778,0.3721,Trending,,range,1,28.73,23.67,17.98,14.54,0.853522,-1.491752,prob=52.06% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=38.33%
+2026-02-09 22:15:00,BUY,0.4859,0.5909,0.3721,Trending,,range,1,28.73,23.67,17.98,14.54,-0.237362,-1.516175,prob=48.59% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=38.33%
+2026-02-09 22:30:00,BUY,0.4859,0.5909,0.3721,Trending,,range,1,28.73,23.67,17.98,14.54,0.610606,-1.454179,prob=48.59% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=38.33%
+2026-02-09 22:45:00,BUY,0.4859,0.5909,0.3721,Trending,,range,1,28.73,23.67,17.98,14.54,0.476594,-1.269387,prob=48.59% | model=combined(70%)+state(trending)+dir(BUY)(30%) | state=Trending | vol=normal | slot_wr=38.33%
+2026-02-09 23:00:00,SKIP,0.2683,0.3333,0.2414,Trending,,range,1,25.88,23.67,3.52,14.54,0.695764,-1.346657,prob 26.83% < threshold 45.00% (Trending)
+2026-02-09 23:15:00,SKIP,0.2725,0.3333,0.2745,Trending,,range,1,25.88,23.67,3.52,14.54,-0.544286,-1.277511,prob 27.25% < threshold 45.00% (Trending)
+2026-02-09 23:30:00,SKIP,0.2683,0.3333,0.2414,Trending,,range,1,25.88,23.67,3.52,14.54,-1.037671,-1.343874,prob 26.83% < threshold 45.00% (Trending)
+2026-02-09 23:45:00,SKIP,0.2683,0.3333,0.2414,Trending,,range,1,25.88,23.67,3.52,14.54,-0.850868,-1.302202,prob 26.83% < threshold 45.00% (Trending)

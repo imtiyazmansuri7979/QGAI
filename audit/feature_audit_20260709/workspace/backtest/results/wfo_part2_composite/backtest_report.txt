@@ -1,0 +1,38 @@
+================================================================
+⚡ QGAI AI REPLAY BACKTEST — REPORT
+Period         : 2026-06-22 → 2026-06-29
+Modes          : TP=fixed | SL=fixed | trail=fixed | runner=target | pred dirs=BUY,SELL
+Sizing         : FIXED LOT 0.01 (no compounding)
+Bars replayed  : 538 | Signals BUY/SELL: 98
+================================================================
+Trades         : 18  (W 8 / L 10)
+Win rate       : 44.4%
+Profit factor  : 3.63
+Avg R          : +0.353  |  Total: +6.4R
+Price move ($) : Total +214.1 | avg +11.89/trade  (gold points entry->exit, lot-independent)
+Captured/Avail : captured +214 pts | available 2,778 pts (all swings) / 135 net | efficiency 7.7% of path
+Net return     : +2.14%  (risk 3.0%/trade)
+Max drawdown   : 0.3%
+Avg win        : +1.29R | Avg loss: -0.39R
+Exit reasons   : {'FLIP': 9, 'TPCAP': 6, 'SL': 2, 'TRAIL': 1}
+----------------------------------------------------------------
+BY REGIME (R = movement relative to risk):
+  Ranging       8 trades | WR  37.5% |     +2.0R | avg +0.249R
+  Trending      3 trades | WR  66.7% |     +1.6R | avg +0.518R
+  Volatile      7 trades | WR  42.9% |     +2.8R | avg +0.400R
+BY HOUR (entry):
+  02:00         3 trades | WR   0.0% |     -1.9R
+  03:00         1 trades | WR 100.0% |     +1.0R
+  04:00         2 trades | WR  50.0% |     +1.2R
+  06:00         1 trades | WR 100.0% |     +0.9R
+  12:00         2 trades | WR 100.0% |     +4.8R
+  14:00         1 trades | WR 100.0% |     +0.0R
+  15:00         2 trades | WR  50.0% |     +0.8R
+  16:00         4 trades | WR   0.0% |     -1.4R
+  17:00         1 trades | WR   0.0% |     -0.1R
+  21:00         1 trades | WR 100.0% |     +1.1R
+BY MONTH:
+  2026-06      18 trades |     +6.4R | avg +0.353R
+================================================================
+⏱ DONE — run time 1.7 min (538 bars) | finished 00:04:53
+Files: logs/backtest_trades.csv (with f_* feature columns), logs/backtest_signals.csv

@@ -11,6 +11,23 @@
 > **DD high). PARK research (L2 A/B, more TP/buffer sweeps, ADX/news studies) until live is stable — don't**
 > **add variables mid-validation. Global WFO re-run = optional/low-priority (regime already wins). DO LATER.**
 
+### ✅ થઈ ગયું (DONE — 2026-07-09)
+| # | Task (કામ) | પરિણામ |
+|---|------------|--------|
+| **Signal↔Trade DECOUPLE** | Imtiyaz architecture: signal = pure engine (BUY/SELL/SKIP) દરેક bar, backtest જેવું; trade execution ને signal સાથે કોઈ સંબંધ નહીં; account ના હોય તોય signal બંધ ન થાય | `bridge_main.py` 11 log_signal sites હવે real `signal` + નવો `trade_action=` (EXECUTED/EXEC_FAILED/HOLD_IN_TRADE/BLOCK_*/MONITOR/NO_TRADE...). `bridge_data.py` નવો `trade_action` column (CSV+SQLite+migration). 78.59%→SKIP bug fixed → હવે signal=BUY, trade_action=HOLD_IN_TRADE. Test: `Test_Decouple_Signal.bat` **10/10 PASS** (offline, live files untouched). Trade-logic UNCHANGED. Dashboard SIGNAL LOG માં `trade_action` colored badge ઉમેર્યો (EXECUTED/HOLD_IN_TRADE/BLOCK_*/EXEC_FAILED...). **NEXT: bridge + dashboard restart કરી activate કરવું.** |
+| **Decision area = છેલ્લો BUY/SELL signal** | Imtiyaz: signal box + AI summary + Market Intelligence માં latest SKIP bar નહીં પણ **છેલ્લો પડેલો signal** (BUY/SELL) એના દરેક param સાથે દેખાય | Backend `bridge_dashboard.py`: `_remember_last_trade_signal()` cache (persist `logs/last_trade_signal.json`, restart-safe); `write_dashboard` line ~508 પર `sig` ને છેલ્લા BUY/SELL થી freeze — આખો decision block (prob/market_structure/ev_r/risk_grade/ai_summary/market_intel) એમાંથી derive થાય એટલે coherent. Live price/session/countdown `tick` માંથી → live રહે. Cached signal પર `signal_confirmed=True` + નવો `signal_is_cached` flag. Frontend `dashboard.html`: 🕒 last @ HH:MM hint. **Activation: bridge restart (backend).** |
+| **SIGNAL LOG win% dim on SKIP** | Imtiyaz: SKIP row પર win% gold ના દેખાય, SKIP-text જેવો dim | `dashboard.html _liveSigRender`: gold ફક્ત BUY/SELL ≥45% પર. Browser refresh. |
+| **SIGNAL LOG: virtual entry→exit→move દરેક BUY/SELL પર** | Imtiyaz: log માં દરેક buy/sell નો price move (દા.ત. 4076→4100 = +$24) દેખાવો જોઈએ — trade પડ્યો હોય કે ના — અને exit price calc દેખાય | Root: exit calc પહેલેથી છે (`shadow_ledger.py` દરેક signal ને live exit rules થી paper-trade કરી entry/exit/R/pnl કાઢે; scheduler દર 15min refresh; 821 signals). ખૂટતું હતું display. Fix (**dashboard-only, engine untouched**): `dashboard.html _liveSigRender()` હવે દરેક BUY/SELL પર shadow માંથી inline `4076.00→4100.00 +$24.00 +2.5R TPᵛ` (green/red, dashed) બતાવે — trade પડે કે ના પડે. Real trade close થયો હોય તો extra `WIN/LOSS +$move REAL` solid chip અલગ. **Activation: dashboard browser hard-refresh (bridge restart જરૂરી નથી).** |
+
+### ✅ થઈ ગયું (DONE — 2026-07-08)
+| # | Task (કામ) | પરિણામ |
+|---|------------|--------|
+| **ADX-death exit** | Imtiyaz idea + Fable-5 design: K/4 TF ADX slopes ≤0 for N bars + profit ≥ X×R → exit | Code DONE (`config.py` + `backtest_replay.py`). Default OFF. Bats: `Run_ADXDeath_TEST.bat` (2-week smoke) + `Run_ADXDeath_Sweep.bat` (18-cell K×N×X). **NEXT: run TEST bat, then sweep, then WFO top-2.** |
+| **PART 2 composite REJECTED** | 10 raw ADX → 5 tanh composites | WFO +405.6R vs +444.7R = −39R. Higher AUC but lower R → "accuracy ≠ profit." Bats DELETED. |
+| **max_open=2 REJECTED** | User caught R-unit measurement artifact | Fixed-lot 0.01×2 = double risk. Dollar return at 3% total: max_open=1 beats max_open=2 (6.85M% vs 4.95M%). 95% same-direction overlap = correlated bet. |
+| **Volume-exit DEAD** | Non-monotonic, tautological, broker tick_volume = noise | Conditional table: within each ADX-death bucket, volume adds nothing. Permanently closed. |
+| **TP-sweep in-sample** | Wider TPs win: Rng2.8/Trn1.4/Vol1.0 | In-sample done. WFO validation pending (do AFTER ADX-death). |
+
 ### ✅ થઈ ગયું (DONE — 2026-07-07 major session)
 | # | Task (કામ) | પરિણામ |
 |---|------------|--------|

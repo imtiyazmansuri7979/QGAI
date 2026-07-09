@@ -1,0 +1,5 @@
+﻿from,to,trades,wins,losses,wr_pct,pf,avg_r,total_r,net_return_pct,max_dd_pct,tp_mode,sl_mode,trail_mode,fixed_lot,risk_pct
+2026-06-22,2026-06-29,16,11,5,68.8,7.31,0.632,10.1,2.73,0.3,fixed,fixed,htf,0.01,3.0
+
+BY_REGIME,trades,wr_pct,total_r,avg_r
+Trending,16,68.8,10.1,0.632

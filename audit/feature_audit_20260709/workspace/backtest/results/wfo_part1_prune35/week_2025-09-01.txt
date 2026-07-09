@@ -1,0 +1,92 @@
+================================================================
+⚡ QGAI AI REPLAY BACKTEST  [trail=htf]
+================================================================
+  Hybrid feature sets (state-specific, separate from main 35-feat model): Ranging=28 | Trending=24 | Volatile=16
+
+  Loading models...
+  Market state model loaded ← C:\QGAI\data\models\final\hmm_model.pkl (variant=rel)
+  ✅ HMM loaded + verified
+  Ensemble model loaded ← C:\QGAI\data\models\final\xgb_model.pkl
+  ✅ XGB ensemble loaded + verified
+  Ensemble model loaded ← C:\QGAI\data\models\final\buy_model.pkl
+  ✅ BUY model loaded + verified
+  Ensemble model loaded ← C:\QGAI\data\models\final\sell_model.pkl
+  ✅ SELL model loaded + verified
+  Directional models loaded: buy_model + sell_model
+  Ensemble model loaded ← C:\QGAI\data\models\final\model_ranging.pkl
+  ✅ ranging model loaded + verified
+  Ensemble model loaded ← C:\QGAI\data\models\final\model_trending.pkl
+  ✅ trending model loaded + verified
+  Ensemble model loaded ← C:\QGAI\data\models\final\model_volatile.pkl
+  ✅ volatile model loaded + verified
+  State models loaded: ['ranging', 'trending', 'volatile'] ✅
+  News models: NOT found — using combined model (run train.py)
+  Online model loaded ← C:\QGAI\data\models\final/online_model.pkl (0 trades)
+  Online model loaded ← C:\QGAI\data\models\final/online_model.pkl ✅
+  BigWinPredictor loaded ← C:\QGAI\data\models\final\big_win_model.pkl (AUC=0.7463)
+  DurationPredictor loaded ← C:\QGAI\data\models\final\duration_model.pkl (AUC=0.7136)
+  Move-size models loaded: 6/6 ✅ | SL models: 4/4 ✅
+  Prediction models loaded: BigWin + Duration ✅
+  Loading data files for live inference...
+  OHLC   : 97,856 rows | avg range: 0.1453%
+  OHLC   : 97,856 rows | last: 2026-07-07 (0d ago) ✅
+  ADX    : 97,856 rows ✅
+  Building H4 tables...
+  H4 range   : 6,410 candles ✅
+  Trend ratio: 6,410 candles ✅
+  H1 OB table: 977 bull | 940 bear ✅
+  H4 OB table: 216 bull | 226 bear ✅
+  Models active: combined | state(ranging,trending,volatile) | buy | sell | online
+  ✅ Inference engine ready!
+
+  ✅ Capital set: $10,000.00 — trading UNLOCKED
+   ⚙ REGIME-ADAPTIVE TP ON: {'Ranging': 2.0, 'Trending': 1.0, 'Volatile': 0.8} (fallback 1.0%)
+⚡ RATCHET exit ON | buf 0.15% (fixed) | TP cap 1.0% | flip-exit True
+Bars to replay : 541  (2025-09-01 → 2025-09-08)
+Start equity   : $10,000.00 | risk/trade 3.0% | spread $0.20 | max open 1
+⚠️  Remember: only bars AFTER the model's training cutoff are out-of-sample.
+  Daily SL: 9%
+     100/541 bars ( 18.5%) | 2025-09-02 05:30:00 | equity $10,011.01 | trades 3 | open 1 | ⏱ 0.3m elapsed | ~1m left | ETA 12:48
+     200/541 bars ( 37.0%) | 2025-09-03 07:30:00 | equity $10,068.39 | trades 6 | open 0 | ⏱ 0.5m elapsed | ~1m left | ETA 12:48
+     300/541 bars ( 55.5%) | 2025-09-04 09:30:00 | equity $10,098.81 | trades 9 | open 1 | ⏱ 0.8m elapsed | ~1m left | ETA 12:48
+     400/541 bars ( 73.9%) | 2025-09-05 11:30:00 | equity $10,076.52 | trades 10 | open 0 | ⏱ 1.0m elapsed | ~0m left | ETA 12:48
+     500/541 bars ( 92.4%) | 2025-09-08 13:30:00 | equity $10,111.33 | trades 12 | open 1 | ⏱ 1.2m elapsed | ~0m left | ETA 12:48
+     541/541 bars (100.0%) | 2025-09-08 23:45:00 | equity $10,111.33 | trades 12 | open 1 | ⏱ 1.3m elapsed | ~0m left | ETA 12:48
+
+================================================================
+⚡ QGAI AI REPLAY BACKTEST — REPORT
+Period         : 2025-09-01 → 2025-09-08
+Modes          : TP=fixed | SL=fixed | trail=fixed | runner=target | pred dirs=BUY,SELL
+Sizing         : FIXED LOT 0.01 (no compounding)
+Bars replayed  : 541 | Signals BUY/SELL: 144
+================================================================
+Trades         : 12  (W 8 / L 4)
+Win rate       : 66.7%
+Profit factor  : 3.28
+Avg R          : +0.532  |  Total: +6.4R
+Price move ($) : Total +111.3 | avg +9.28/trade  (gold points entry->exit, lot-independent)
+Captured/Avail : captured +111 pts | available 1,291 pts (all swings) / 189 net | efficiency 8.6% of path
+Net return     : +1.58%  (risk 3.0%/trade)
+Max drawdown   : 0.2%
+Avg win        : +1.13R | Avg loss: -0.66R
+Exit reasons   : {'FLIP': 5, 'TPCAP': 4, 'SL': 2, 'TRAIL': 1}
+----------------------------------------------------------------
+BY REGIME (R = movement relative to risk):
+  Ranging       4 trades | WR  50.0% |     +0.8R | avg +0.204R
+  Trending      1 trades | WR 100.0% |     +0.5R | avg +0.502R
+  Volatile      7 trades | WR  71.4% |     +5.1R | avg +0.725R
+BY HOUR (entry):
+  04:00         4 trades | WR  50.0% |     -0.6R
+  05:00         1 trades | WR 100.0% |     +1.5R
+  06:00         2 trades | WR   0.0% |     -0.7R
+  14:00         1 trades | WR 100.0% |     +0.0R
+  15:00         1 trades | WR 100.0% |     +2.8R
+  16:00         2 trades | WR 100.0% |     +2.6R
+  18:00         1 trades | WR 100.0% |     +0.7R
+BY MONTH:
+  2025-09      12 trades |     +6.4R | avg +0.532R
+================================================================
+⏱ DONE — run time 1.3 min (541 bars) | finished 12:48:25
+Files: logs/backtest_trades.csv (with f_* feature columns), logs/backtest_signals.csv
+Saved: C:\QGAI\backtest\results\wfo_part1_prune35\backtest_summary_st-htf.csv
+

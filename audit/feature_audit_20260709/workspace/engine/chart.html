@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>QGAI - XAUUSD M15 Chart</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  :root{
+    --bg:#0b0f14;--panel:#111821;--panel2:#0f151d;--line:#263241;
+    --txt:#d6dde7;--mut:#8190a3;--buy:#76ff03;--sell:#ff1744;--skip:#ffff00;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--txt);font:13px/1.35 "Segoe UI",Arial,sans-serif;overflow:hidden}
+  header{height:54px;display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+  .brand{font-size:15px;font-weight:700;margin-right:2px;white-space:nowrap}
+  .chip{height:30px;display:inline-flex;align-items:center;gap:7px;padding:0 10px;border:1px solid var(--line);background:var(--panel2);border-radius:6px;color:var(--txt);white-space:nowrap}
+  .mut{color:var(--mut)}
+  .spacer{flex:1}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  button,.linkbtn{height:30px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);background:#17202b;color:var(--txt);border-radius:6px;padding:0 11px;text-decoration:none;cursor:pointer;font:inherit}
+  button:hover,.linkbtn:hover{background:#1d2937}
+  .seg{display:flex;gap:4px;padding:3px;border:1px solid var(--line);background:var(--panel2);border-radius:7px}
+  .seg button{height:24px;border:0;background:transparent;color:var(--mut);padding:0 9px}
+  .seg button.active{background:#243244;color:var(--txt)}
+  #wrap{position:relative;width:100vw;height:calc(100vh - 54px)}
+  #chart{width:100%;height:100%}
+  #err{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:#351216;color:#ffc2c2;border:1px solid #6f2630;padding:9px 14px;border-radius:7px;display:none;z-index:5}
+  #hud{position:absolute;left:12px;bottom:10px;display:flex;gap:8px;flex-wrap:wrap;z-index:4;pointer-events:none}
+  #hud .chip{height:28px;background:rgba(15,21,29,.92)}
+  @media (max-width:760px){
+    header{height:auto;min-height:54px;flex-wrap:wrap}
+    #wrap{height:calc(100vh - 92px)}
+    .spacer{display:none}
+    .hide-sm{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">QGAI Chart</div>
+  <div class="chip" id="sym">XAUUSD M15</div>
+  <div class="chip hide-sm" id="range">--</div>
+  <div class="chip"><span class="dot" style="background:var(--buy)"></span><span id="buyCnt">0</span> BUY</div>
+  <div class="chip"><span class="dot" style="background:var(--sell)"></span><span id="sellCnt">0</span> SELL</div>
+  <div class="chip hide-sm"><span class="dot" style="background:var(--skip)"></span><span id="skipCnt">0</span> SKIP</div>
+  <div class="spacer"></div>
+  <div class="seg" title="Marker display">
+    <button id="modeTrades" class="active" onclick="setMode('trades')">Trades</button>
+    <button id="modeSignals" onclick="setMode('signals')">Signals</button>
+    <button id="modeAll" onclick="setMode('all')">All</button>
+  </div>
+  <div class="seg" title="Chart view">
+    <button id="followBtn" class="active" onclick="toggleFollow()">Auto</button>
+    <button onclick="showLast()">Last</button>
+    <button onclick="fitAll()">Fit</button>
+  </div>
+  <div class="chip" id="nextClose">Next M15 --:--</div>
+  <button onclick="load(true)">Reload</button>
+  <a class="linkbtn" href="/tv_live.html">TV Live</a>
+  <a class="linkbtn" href="/dashboard.html">Dashboard</a>
+</header>
+<div id="wrap">
+  <div id="chart"></div>
+  <div id="err"></div>
+  <div id="hud">
+    <div class="chip" id="barCnt">0 candles</div>
+    <div class="chip" id="sigCnt">0 signals</div>
+    <div class="chip" id="tradeCnt">0 trades</div>
+    <div class="chip mut" id="updated">updated --</div>
+    <div class="chip" id="livePx">live --</div>
+    <div class="chip" id="lagWarn" style="display:none;color:#ffff00;border-color:#6f6500">OHLC lag</div>
+  </div>
+</div>
+
+<script>
+const el = document.getElementById('chart');
+const chart = LightweightCharts.createChart(el, {
+  autoSize:true,
+  layout:{ background:{color:'#0b0f14'}, textColor:'#c4cedb', fontFamily:'Segoe UI, Arial, sans-serif' },
+  grid:{ vertLines:{color:'#151d27'}, horzLines:{color:'#151d27'} },
+  rightPriceScale:{ borderColor:'#263241', scaleMargins:{top:.08,bottom:.12} },
+  timeScale:{ borderColor:'#263241', timeVisible:true, secondsVisible:false, rightOffset:8, barSpacing:8 },
+  handleScroll:{ mouseWheel:true, pressedMouseMove:true, horzTouchDrag:true, vertTouchDrag:true },
+  handleScale:{ axisPressedMouseMove:true, mouseWheel:true, pinch:true },
+  crosshair:{ mode:LightweightCharts.CrosshairMode.Normal },
+  localization:{ priceFormatter:p=>Number(p).toFixed(2) },
+});
+
+const candles = chart.addCandlestickSeries({
+  upColor:'#76ff03', downColor:'#ff1744',
+  borderUpColor:'#76ff03', borderDownColor:'#ff1744',
+  wickUpColor:'#b6ff70', wickDownColor:'#ff6b7a',
+  priceLineVisible:true,
+});
+
+function byId(id){ return document.getElementById(id); }
+function showErr(m){ const e=byId('err'); e.textContent=m; e.style.display='block'; }
+function hideErr(){ byId('err').style.display='none'; }
+function fmtShort(s){ return (s||'').replace('T',' ').slice(0,16); }
+let markerMode = 'trades';
+let markerGroups = {trades:[], signals:[], all:[]};
+let chartData = [];
+let followLive = true;
+
+function setMode(mode){
+  markerMode = mode;
+  byId('modeTrades').classList.toggle('active', mode === 'trades');
+  byId('modeSignals').classList.toggle('active', mode === 'signals');
+  byId('modeAll').classList.toggle('active', mode === 'all');
+  candles.setMarkers(markerGroups[mode] || []);
+}
+
+function setFollow(on){
+  followLive = on;
+  byId('followBtn').classList.toggle('active', followLive);
+}
+
+function toggleFollow(){
+  setFollow(!followLive);
+  if(followLive && chartData.length) chart.timeScale().scrollToRealTime();
+}
+
+function visibleLastWindow(){
+  const len = chartData.length;
+  return {from:Math.max(0, len - 250), to:len + 8};
+}
+
+function showLast(){
+  setFollow(true);
+  if(chartData.length) chart.timeScale().setVisibleLogicalRange(visibleLastWindow());
+}
+
+function fitAll(){
+  setFollow(false);
+  chart.timeScale().fitContent();
+}
+
+chart.timeScale().subscribeVisibleLogicalRangeChange(range=>{
+  if(!range || !chartData.length) return;
+  const nearRight = range.to >= chartData.length - 5;
+  if(!nearRight && followLive) setFollow(false);
+});
+
+async function load(fit=false){
+  try{
+    hideErr();
+    const r = await fetch('/logs/chart_data.json?_='+Date.now(), {cache:'no-store'});
+    if(!r.ok) throw new Error('chart_data.json not found ('+r.status+'). Run Start/7_Refresh_Chart.bat.');
+    const d = await r.json();
+    const data = d.candles || [];
+    chartData = data.slice();
+    candles.setData(data);
+    markerGroups = d.marker_groups || {trades:d.markers || [], signals:d.markers || [], all:d.markers || []};
+    candles.setMarkers(markerGroups[markerMode] || []);
+    if(fit || !load.loaded){
+      chart.timeScale().setVisibleLogicalRange(visibleLastWindow());
+      load.loaded = true;
+    }else if(followLive){
+      chart.timeScale().scrollToRealTime();
+    }
+
+    byId('sym').textContent = d.symbol || 'XAUUSD M15';
+    byId('range').textContent = fmtShort(d.from)+' -> '+fmtShort(d.to);
+    byId('barCnt').textContent = (d.n_candles || data.length || 0)+' candles';
+    byId('sigCnt').textContent = (d.n_signals || 0)+' signals';
+    byId('tradeCnt').textContent = (d.n_trades || 0)+' trades';
+    byId('updated').textContent = 'updated '+fmtShort(d.updated_at);
+    const lag = Number(d.ohlc_lag_bars || 0);
+    byId('lagWarn').style.display = lag > 0 ? 'inline-flex' : 'none';
+    byId('lagWarn').textContent = lag > 0 ? 'OHLC lag '+lag+' bar' : 'OHLC OK';
+    const c = d.signal_counts || {};
+    byId('buyCnt').textContent = c.BUY || 0;
+    byId('sellCnt').textContent = c.SELL || 0;
+    byId('skipCnt').textContent = c.SKIP || 0;
+    updateLiveTick();
+  }catch(e){
+    showErr(e.message);
+  }
+}
+
+function parseDashTime(s){
+  const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if(!m) return null;
+  return new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]));
+}
+
+function floorM15Seconds(dt){
+  const d = new Date(dt);
+  d.setUTCMinutes(Math.floor(d.getUTCMinutes()/15)*15, 0, 0);
+  return Math.floor(d.getTime()/1000);
+}
+
+function liveColor(d){
+  const open = (d.open_trades || [])[0] || null;
+  const dir = String(open && open.direction || '').toUpperCase();
+  if(dir === 'BUY') return '#76ff03';
+  if(dir === 'SELL') return '#ff1744';
+  const last = chartData[chartData.length - 1] || {};
+  return last.color || '#ffff00';
+}
+
+async function updateLiveTick(){
+  try{
+    if(!chartData.length) return;
+    const r = await fetch('/logs/dashboard.json?_='+Date.now(), {cache:'no-store'});
+    if(!r.ok) return;
+    const d = await r.json();
+    const px = Number(d.bid || d.price || 0);
+    const dt = parseDashTime(d.broker_time || d.updated);
+    if(!px || !dt) return;
+
+    const t = floorM15Seconds(dt);
+    const c = liveColor(d);
+    let last = chartData[chartData.length - 1];
+    if(!last || t > last.time){
+      const op = last ? Number(last.close) : px;
+      last = {time:t, open:op, high:Math.max(op, px), low:Math.min(op, px), close:px, color:c, borderColor:c, wickColor:c};
+      chartData.push(last);
+      if(chartData.length > 1300) chartData.shift();
+    }else{
+      last = {...last};
+      last.close = px;
+      last.high = Math.max(Number(last.high), px);
+      last.low = Math.min(Number(last.low), px);
+      last.color = c;
+      last.borderColor = c;
+      last.wickColor = c;
+      chartData[chartData.length - 1] = last;
+    }
+    candles.update(last);
+    if(followLive) chart.timeScale().scrollToRealTime();
+    byId('livePx').textContent = 'live '+px.toFixed(2);
+  }catch(e){}
+}
+
+function updateCountdown(){
+  const now = new Date();
+  const next = new Date(now);
+  const m = now.getMinutes();
+  const add = 15 - (m % 15);
+  next.setMinutes(m + add, 0, 0);
+  const ms = Math.max(0, next - now);
+  const mm = String(Math.floor(ms / 60000)).padStart(2,'0');
+  const ss = String(Math.floor((ms % 60000) / 1000)).padStart(2,'0');
+  byId('nextClose').textContent = 'Next M15 '+mm+':'+ss;
+  if(ms < 4500 && !updateCountdown.reloaded){
+    updateCountdown.reloaded = true;
+    setTimeout(()=>load(false), 5000);
+  }
+  if(ms > 10000) updateCountdown.reloaded = false;
+}
+
+load(true);
+setInterval(()=>load(false), 60000);
+setInterval(updateLiveTick, 2000);
+setInterval(updateCountdown, 1000);
+updateCountdown();
+</script>
+</body>
+</html>

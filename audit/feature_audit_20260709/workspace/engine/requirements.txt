@@ -1,0 +1,15 @@
+# QUANT GOLD AI v2 — Requirements
+xgboost>=2.0.0
+scikit-learn>=1.4.0
+lightgbm>=4.0.0
+catboost>=1.2.0
+pandas>=2.1.0
+numpy>=1.26.0
+openpyxl>=3.1.0
+joblib>=1.3.0
+river>=0.21.0
+MetaTrader5>=5.0.0
+requests>=2.31.0
+# ChatGPT integration
+openai>=1.3.0
+

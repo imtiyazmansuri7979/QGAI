@@ -425,7 +425,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 #equity_sparkline{display:block;width:100%;height:28px;margin-top:4px}
 
 /* ── IMPROVEMENT 3: SIGNAL HISTORY CHART ── */
-#sig_history_chart{display:block;width:100%;height:44px;margin-bottom:2px}
+#sig_history_chart{display:block;width:100%;height:60px;margin-bottom:2px}
 #signal_history_panel{margin-top:0}
 #signal_history_panel .tcard-hdr span{display:none!important}
 .g2-bot > .tcard:first-child:not(#feedback_panel){display:none}
@@ -656,6 +656,21 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
     var a=document.getElementById('lsfAll'),t=document.getElementById('lsfTrade');
     if(a)a.className='lsf-btn'+(m==='all'?' lsf-on':''); if(t)t.className='lsf-btn'+(m==='trade'?' lsf-on':'');
     _liveSigRender();};
+  // Date format — "2026-07-09 23:15:00" → "9 Jul 26" (+ " 23:15" when withTime). 3-char English month.
+  var _GUJ_MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function _gDate(bt,withTime){
+    if(!bt||bt.length<10) return bt||'--';
+    var p=bt.slice(0,10).split('-'); if(p.length<3) return bt;
+    var mo=parseInt(p[1],10), day=parseInt(p[2],10);
+    if(isNaN(mo)||isNaN(day)) return bt;
+    var s=day+' '+(_GUJ_MON[mo-1]||p[1])+' '+p[0].slice(2);
+    if(withTime){ var t=(bt.split(' ')[1]||'').slice(0,5); if(t) s+=' '+t; }
+    return s;
+  }
+  // _gDate lives inside this IIFE but is also used by the main update() loop in a SEPARATE
+  // <script> block → expose it globally, else "_gDate is not defined" crashes that render
+  // (signal-box date/data + signal-history chart all vanish). 2026-07-09 (Imtiyaz-reported).
+  window._gDate=_gDate;
   function _liveSigRender(){
     var box=document.getElementById('liveSigRows'); if(!box) return;
     // sort by full bar_time (date+time) — backfilled rows append out of order in the CSV
@@ -668,24 +683,28 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
       var sc=r.sig==='BUY'?'var(--green)':r.sig==='SELL'?'var(--red)':'var(--dim)';
       var bg=r.sig==='BUY'?'rgba(0,255,136,0.04)':r.sig==='SELL'?'rgba(255,34,85,0.04)':'transparent';
       var wp=r.wp?(Number(r.wp)*100).toFixed(2):'--';
-      var wc=parseFloat(wp)>=45?'var(--gold)':'var(--dim)';
+      // gold only for an actual directional (BUY/SELL) signal ≥45% — a SKIP row stays dim like its text
+      var wc=((r.sig==='BUY'||r.sig==='SELL')&&parseFloat(wp)>=45)?'var(--gold)':'var(--dim)';
       var rp=r.range==='1'?'<span title="H4 timeframe in tight range (move &lt;0.5%) — our range-phase filter flag" style="font-size:0.62rem;color:var(--orange);border:1px solid var(--orange);border-radius:3px;padding:0 3px;margin-left:4px">H4 RANGE</span>':'';
       var oc='', sh=_shadowMap[r.bt], _hasR=(r.outcome==='WIN'||r.outcome==='LOSS');
+      // (1) SIGNAL virtual result — entry→exit→move for EVERY BUY/SELL, WHETHER a real trade was placed or not.
+      //     Source = shadow ledger (paper-trades every signal with the live exit rules, exactly like backtest).
+      if((r.sig==='BUY'||r.sig==='SELL') && sh){
+        var _ep=Number(sh.ep)||0, _xp=Number(sh.xp)||0;
+        var _mv=(r.sig==='BUY')?(_xp-_ep):(_ep-_xp);                 // signed price move (lot-independent)
+        var _vcol=(_mv>=0)?'var(--green)':'var(--red)';
+        var _mvS=(_mv>=0?'+$':'-$')+Math.abs(_mv).toFixed(2);
+        var _rTxt=(sh.R>=0?'+':'')+Number(sh.R).toFixed(2)+'R';
+        var _vtip='SIGNAL virtual result (like backtest) — entry '+_ep.toFixed(2)+' → exit '+_xp.toFixed(2)+' | move '+_mvS+' | '+_rTxt+' | exit '+sh.exit+' | '+(sh.real==='1'?'a REAL trade was ALSO placed (exact account $ in CLOSED TRADES + 📒 LEDGER)':'paper only — no real trade placed')+(_hasR?' | account outcome '+r.outcome:'');
+        oc+='<span title="'+_vtip+'" style="font-size:0.62rem;font-weight:700;color:'+_vcol+';border:1px dashed '+_vcol+';border-radius:3px;padding:0 4px;margin-left:4px;font-family:var(--orb)">'
+           +_ep.toFixed(2)+'→'+_xp.toFixed(2)+' '+_mvS+' '+_rTxt+' '+sh.exit+'ᵛ</span>';
+      }
+      // (2) If a REAL trade actually CLOSED on this bar, add the account WIN/LOSS chip (separate from the signal result above).
       if(_hasR){
-        // REAL closed trade — real result + real price MOVE ($ = exit-entry, from write_outcome).
-        // Do NOT use the shadow SIM here (its simulated exit can differ → contradictory badges).
         var win=(r.outcome==='WIN'); var col=win?'var(--green)':'var(--red)';
         var _rmvN=Number(r.move);
         var _rmv=(r.move!=='' && !isNaN(_rmvN))?' '+(_rmvN>=0?'+$':'-$')+Math.abs(_rmvN).toFixed(2):'';
-        oc='<span title="REAL trade closed '+(win?'in profit':'at a loss')+(_rmv?' | price move'+_rmv:' (move fills after close)')+' — exact account $ / R in CLOSED TRADES + 📒 LEDGER" style="font-size:0.62rem;font-weight:700;color:'+col+';border:1px solid '+col+';border-radius:3px;padding:0 4px;margin-left:4px">'+(win?'WIN':'LOSS')+_rmv+' <span style="opacity:.7">REAL</span></span>';
-      } else if((r.sig==='BUY'||r.sig==='SELL') && sh){
-        // No real trade (monitor / not-traded) — show the SIMULATED (paper) outcome.
-        var win2=sh.R>0; var col2=win2?'var(--green)':'var(--red)';
-        var _mv=(r.sig==='BUY')?((sh.xp||0)-(sh.ep||0)):((sh.ep||0)-(sh.xp||0));   // price move (lot-independent)
-        var _mvS=(_mv>=0?'+$':'-$')+Math.abs(_mv).toFixed(2);
-        var _tip='VIRTUAL (paper) — entry '+(sh.ep||0).toFixed(2)+' → exit '+(sh.xp||0).toFixed(2)+' | why '+sh.exit+' | '+(sh.R>=0?'+':'')+sh.R.toFixed(2)+'R | move '+_mvS+' | '+(sh.pct>=0?'+':'')+(sh.pct||0).toFixed(2)+'%';
-        oc='<span title="'+_tip+'" style="font-size:0.62rem;font-weight:700;color:'+col2+';border:1px dashed '+col2+';border-radius:3px;padding:0 4px;margin-left:4px">'
-           +(win2?'WIN':'LOSS')+' '+(sh.R>=0?'+':'')+sh.R.toFixed(2)+'R '+_mvS+' '+sh.exit+'ᵛ</span>';
+        oc+='<span title="REAL account trade closed '+(win?'in profit':'at a loss')+(_rmv?' | account price move'+_rmv:' (move fills after close)')+' — exact account $ / R in CLOSED TRADES + 📒 LEDGER" style="font-size:0.62rem;font-weight:700;color:'+col+';border:1px solid '+col+';border-radius:3px;padding:0 4px;margin-left:4px">'+(win?'WIN':'LOSS')+_rmv+' <span style="opacity:.7">REAL</span></span>';
       }
       var bwn=Number(r.bw)*100;
       var bw=(r.bw&&bwn>0)?'<span title="Big-win probability — chance this becomes a large winner" style="font-size:0.62rem;color:var(--purple);margin-left:4px">BW '+bwn.toFixed(2)+'%</span>':'';
@@ -696,13 +715,17 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
       var _rsn=(r.reason||'').replace(/"/g,"'");
       var rsnTip=_rsn?' title="'+_rsn+'"':'';
       var rsnTxt=_rsn?'<span style="color:var(--dim);font-size:0.6rem;margin-left:6px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px">'+_rsn+'</span>':'';
-      var _dt=(r.bt&&r.bt.length>=16)?(r.bt.slice(5,10)+' '+r.bt.slice(11,16)):r.time;  // MM-DD HH:MM
+      var _dt=r.bt?_gDate(r.bt,true):r.time;  // "9 જુલાઈ 26 23:15"
+      // trade_action = what MT5 (receiver) did — SEPARATE from the pure engine signal (2026-07-09 decouple)
+      var _ta=(r.ta||'').trim();
+      var taCol=_ta==='EXECUTED'?'var(--green)':_ta==='EXEC_FAILED'?'var(--red)':_ta==='HOLD_IN_TRADE'?'var(--cyan)':_ta==='MONITOR'?'var(--blue)':_ta==='OPPOSITE_HANDLED'?'var(--purple)':(_ta.indexOf('BLOCK_')===0?'var(--orange)':'var(--dim)');
+      var taBadge=(_ta && _ta!=='NO_TRADE')?'<span title="What MT5 (receiver) did with this signal — separate from the pure engine signal (provider). BLOCK_*/HOLD_IN_TRADE/EXEC_FAILED = signal fired but no new trade opened." style="font-size:0.58rem;font-weight:700;color:'+taCol+';border:1px solid '+taCol+';border-radius:3px;padding:0 4px;margin-left:4px">'+_ta+'</span>':'';
       return '<div class="replay-row"'+rsnTip+' style="background:'+bg+';border-left:2px solid '+sc+'">'+
-        '<span title="'+(r.bt||'')+'" style="color:var(--dim);min-width:82px;font-size:0.7rem;font-family:var(--orb)">'+_dt+'</span>'+
+        '<span title="'+(r.bt||'')+'" style="color:var(--dim);min-width:118px;font-size:0.68rem;font-family:var(--orb);white-space:nowrap">'+_dt+'</span>'+
         '<span style="color:'+sc+';font-weight:700;min-width:42px">'+r.sig+'</span>'+
         '<span style="color:var(--cyan);min-width:58px;font-family:var(--orb);font-size:0.72rem">'+(r.price?Number(r.price).toFixed(2):'--')+'</span>'+
         '<span style="color:'+wc+';min-width:44px;font-family:var(--orb)">'+wp+'%</span>'+
-        '<span title="AI HMM regime — current market state (which model is used)" class="hmm-state hmm-'+(r.regime||'')+'" style="font-size:0.66rem;padding:1px 5px;margin-left:2px">'+(r.regime||'--')+'</span>'+rp+bw+lt+oc+rsnTxt+eqt+
+        '<span title="AI HMM regime — current market state (which model is used)" class="hmm-state hmm-'+(r.regime||'')+'" style="font-size:0.66rem;padding:1px 5px;margin-left:2px">'+(r.regime||'--')+'</span>'+taBadge+rp+bw+lt+oc+rsnTxt+eqt+
       '</div>';
     }).join('');
   }
@@ -721,11 +744,13 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
     if(!txt) return [];
     var L=txt.trim().split('\n'); if(L.length<2) return []; var h=L[0].split(','); var ix=function(n){return h.indexOf(n);};
     var iT=ix('bar_time'),iS=ix('signal'),iW=ix('win_prob'),iH=ix('hmm_state'),iP=ix('price'),iR=ix('in_range_phase'),iO=ix('outcome');
-    var iB=ix('big_win_prob'),iL=ix('lot'),iSl=ix('sl'),iTp=ix('tp'),iE=ix('equity'),iRe=ix('reason'),iMv=ix('move');
+    var iB=ix('big_win_prob'),iL=ix('lot'),iSl=ix('sl'),iTp=ix('tp'),iE=ix('equity'),iRe=ix('reason'),iMv=ix('move'),iTa=ix('trade_action');
+    var iSp=ix('state_prob'),iDp=ix('dir_prob');   // for the SIGNAL-box fallback (mirror the log)
     return L.slice(1).filter(function(x){return x;}).map(function(l){var c=l.split(',');
       return {time:((c[iT]||'').split(' ')[1]||(c[iT]||'')).slice(0,5),bt:(c[iT]||'').trim(),sig:(c[iS]||'').trim(),
         wp:c[iW],regime:(c[iH]||'').trim(),price:c[iP],range:(c[iR]||'').trim(),outcome:(c[iO]||'').trim().toUpperCase(),
-        bw:c[iB],lot:c[iL],sl:c[iSl],tp:c[iTp],eq:(iE>=0?c[iE]:''),reason:(iRe>=0?(c[iRe]||'').trim():''),move:(iMv>=0?(c[iMv]||'').trim():'')};});
+        bw:c[iB],lot:c[iL],sl:c[iSl],tp:c[iTp],eq:(iE>=0?c[iE]:''),reason:(iRe>=0?(c[iRe]||'').trim():''),move:(iMv>=0?(c[iMv]||'').trim():''),ta:(iTa>=0?(c[iTa]||'').trim():''),
+        sp:(iSp>=0?c[iSp]:''),dp:(iDp>=0?c[iDp]:'')};});
   }
   var _completeRows=null;   // full-history (backtest+live, with $ move) — fetched ONCE then cached
   window._liveSigLoad=function(){
@@ -738,6 +763,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
         // merge: full-history (history) + live (recent, real) — live overrides same bar
         var map={}; res[0].forEach(function(r){if(r.bt)map[r.bt]=r;}); res[1].forEach(function(r){if(r.bt)map[r.bt]=r;});
         _liveSigData=Object.keys(map).map(function(k){return map[k];});
+        window._liveSigData=_liveSigData;   // expose → SIGNAL box can mirror the log's last BUY/SELL
         _liveSigRender();
       }).catch(function(){});
     });
@@ -759,12 +785,12 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
         <span style="font-size:0.63rem;color:var(--dim)">TP <span id="dynamic_tp" style="color:var(--purple);font-weight:700">--</span></span>
         <span style="font-size:0.63rem;color:var(--dim)">SL <span id="sl_mult" style="color:var(--orange);font-weight:700">--</span></span>
         <span style="font-size:0.63rem;color:var(--dim)">Combos <span id="slot_combos_lbl" style="color:var(--cyan);font-weight:700">--</span></span>
-        <span style="margin-left:auto;font-size:0.63rem"><span id="day_of_week" style="color:var(--gold);font-weight:700">--</span></span>
+        <span style="margin-left:auto;font-size:0.63rem"><span id="signal_datetime" title="Signal ની તારીખ + ટાઈમ" style="color:var(--cyan);font-weight:700">--</span> · <span id="day_of_week" style="color:var(--gold);font-weight:700">--</span></span>
       </div>
       <div class="sig-hero-card">
         <div class="sig-hero-top">
           <div class="sig-desk-left">
-            <div class="sig-dir-lbl">Signal</div>
+            <div class="sig-dir-lbl">Signal <span id="sig_confirmed_tag" style="font-size:0.55em;font-weight:600;margin-left:6px;display:none"></span></div>
             <div class="sig-big SKIP" id="signal_main">--</div>
           </div>
           <div class="sig-desk-right">
@@ -1104,6 +1130,8 @@ function applySmartRefresh(openTrades){
 let equityHistory = [];
 let prevPnlMap = {};
 let lastSignalKey = '';
+let _lastConfirmedSig = 'SKIP';
+let _lastConfirmedProb = 0;
 let newsCountdownMins = null;
 
 // ── TAB SYSTEM ───────────────────────────────────────
@@ -1335,16 +1363,20 @@ function drawSigChart(history){
   const c = document.getElementById('sig_history_chart');
   if(!c) return;
   c.width = c.offsetWidth || c.parentElement.offsetWidth || 300;
+  c.height = c.offsetHeight || 60;            // match CSS px → 1:1 mapping, crisp price text
   const ctx = c.getContext('2d');
   ctx.clearRect(0,0,c.width,c.height);
   if(!history||history.length===0) return;
   const items = history.slice(-20);
   const w = c.width, h = c.height;
+  const LBL = 13;                             // top zone reserved for the horizontal price labels
+  const bh = h - LBL - 2;                     // bar drawing area (below the label zone)
   const bw = Math.max(3, (w / items.length) - 2);
+  const _wide = bw >= 15;                      // only label when bars are wide enough to read
   items.forEach((s,i)=>{
     const x = (i/(items.length))*(w) + 1;
     const prob = parseFloat(s.win_prob||0)*100;
-    const barH = Math.max(3, (prob/100)*(h-4));
+    const barH = Math.max(3, (prob/100)*bh);
     const isBuy = s.signal==='BUY', isSell=s.signal==='SELL';
     ctx.fillStyle = isBuy?'rgba(0,255,136,0.7)':isSell?'rgba(255,34,85,0.7)':'rgba(30,74,106,0.7)';
     ctx.fillRect(x, h-barH, bw-1, barH);
@@ -1353,9 +1385,22 @@ function drawSigChart(history){
     ctx.arc(x+bw/2, h-barH-2, 2, 0, Math.PI*2);
     ctx.fillStyle = prob>=52?'#00d4ff':'#ff8800';
     ctx.fill();
+    // entry price atop each BUY/SELL bar — horizontal, bold, black-outlined for contrast (2026-07-09)
+    if((isBuy||isSell) && s.price){
+      const pr = parseFloat(s.price);
+      if(pr>0){
+        const txt = _wide ? pr.toFixed(2) : pr.toFixed(0);
+        ctx.font = 'bold 9px system-ui,Segoe UI,sans-serif';
+        ctx.textAlign='center'; ctx.textBaseline='top';
+        ctx.lineWidth=2.5; ctx.strokeStyle='rgba(0,0,0,0.85)';
+        ctx.strokeText(txt, x+bw/2, 1);        // dark halo so it reads on any bar/background
+        ctx.fillStyle = isBuy?'#00ff88':'#ff5577';
+        ctx.fillText(txt, x+bw/2, 1);
+      }
+    }
   });
   // threshold line at 52%
-  const ty = h - (0.52*(h-4)) - 4;
+  const ty = h - (0.52*bh) - 2;
   ctx.beginPath(); ctx.moveTo(0,ty); ctx.lineTo(w,ty);
   ctx.strokeStyle='rgba(255,215,0,0.4)'; ctx.lineWidth=1; ctx.setLineDash([2,3]); ctx.stroke(); ctx.setLineDash([]);
 }
@@ -1404,8 +1449,8 @@ function $c(id,cls){const e=document.getElementById(id);if(e)e.className=cls;}
 function renderMarketIntel(mi){
   var box=document.getElementById('market_intel_box'); if(!box) return;
   if(!mi || !mi.trend){ box.innerHTML='<div style="text-align:center"><b style="font-size:0.9rem;color:var(--cyan);letter-spacing:1px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.65rem">— context</span></div>'; return; }
-  function pill(lbl,val,vc,bc){
-    return '<span style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;padding:2px 9px 3px;border-radius:9px;'
+  function pill(lbl,val,vc,bc,tip){
+    return '<span'+(tip?' title="'+tip+'"':'')+' style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;padding:2px 9px 3px;border-radius:9px;'
       +'background:rgba(255,255,255,0.045);border:1px solid '+(bc||'var(--line,#2a2f38)')+';white-space:nowrap">'
       +'<span style="font-size:0.68rem;font-weight:600;letter-spacing:.4px;color:var(--dim);line-height:1.1">'+lbl+'</span>'
       +'<b style="font-size:0.98rem;line-height:1.15;color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
@@ -1426,7 +1471,9 @@ function renderMarketIntel(mi){
     pill('M15',arr(t.m15)), pill('H1',arr(t.h1)), pill('H4',arr(t.h4)),
     pill('AGREE',(t.agree>0?'+':'')+t.agree,agCol), pill('LINE %',t.line_dist)]);
   var gStr=group('STRENGTH',[
-    pill('H1 ADX',s.h1_adx,adxc(s.h1_adx)), pill('H4 ADX',s.h4_adx,adxc(s.h4_adx)), pill('DI',s.di_dir,diCol)]);
+    pill('H1 ADX',s.h1_adx,adxc(s.h1_adx),null,'એન્જિન EWM-ADX(14) — MT5 ના Wilder ADX થી અલગ પદ્ધતિ (closed bars + forming bar, દર M15 update). Model આ જ ADX પર trained. MT5 પર match જોવા ADX Wilder મૂકો.'),
+    pill('H4 ADX',s.h4_adx,adxc(s.h4_adx),null,'એન્જિન EWM-ADX(14) — MT5 ના Wilder ADX થી અલગ પદ્ધતિ (closed bars + forming bar, દર M15 update). Model આ જ ADX પર trained. MT5 પર match જોવા ADX Wilder મૂકો.'),
+    pill('DI',s.di_dir,diCol)]);
   var gStruct=group('STRUCTURE',[
     pill('H4 R',st.h4_resist!=null?st.h4_resist:'—'), pill('H4 S',st.h4_support!=null?st.h4_support:'—'),
     pill('H1 R',st.h1_resist!=null?st.h1_resist:'—'), pill('H1 S',st.h1_support!=null?st.h1_support:'—'),
@@ -1442,11 +1489,12 @@ function renderMarketIntel(mi){
     +gTrend+gStr+gStruct+gFlow+gCtx+'</div>';
 }
 
-function renderAISummary(a){
+function renderAISummary(a, isConfirmed){
   var box=document.getElementById('ai_summary_box'); if(!box) return;
   if(!a || !a.signal){ box.innerHTML='<div style="text-align:center"><b style="font-size:0.9rem;color:var(--gold);letter-spacing:1px">🧠 AI DECISION SUMMARY</b> <span style="color:var(--dim);font-size:0.65rem">— waiting for signal…</span></div>'; return; }
+  var _dSig = (!isConfirmed && (a.signal==='BUY'||a.signal==='SELL')) ? 'SKIP' : a.signal;
   var confCol={'VERY HIGH':'var(--green)','HIGH':'#7ec850','MEDIUM':'var(--orange)','LOW':'var(--red)'}[a.confidence]||'var(--dim)';
-  var sigCol=a.signal==='BUY'?'var(--green)':a.signal==='SELL'?'var(--red)':'var(--gold,#e8c84a)';
+  var sigCol=_dSig==='BUY'?'var(--green)':_dSig==='SELL'?'var(--red)':'var(--gold,#e8c84a)';
   var m=a.models||{}, h=a.history||{}, hr=a.history_regime||{};
   function pct(x){return x==null?'--':(x*100).toFixed(1)+'%';}
   var dots=''; for(var i=0;i<(a.agreement_max||5);i++){dots+='<span style="color:'+(i<a.agreement?confCol:'#444')+'">●</span>';}
@@ -1454,8 +1502,8 @@ function renderAISummary(a){
   function gyr(v,hi,mid){return v>=hi?'var(--green)':v>=mid?'var(--orange,#e0a030)':'var(--red)';}
   var regCol=a.regime==='Trending'?'var(--green)':a.regime==='Volatile'?'var(--orange,#e0a030)':a.regime==='Ranging'?'var(--red)':'var(--dim)';
   // pill(label,value,...) → bubble with LABEL on top (small) and VALUE below (large)
-  function pill(lbl,val,vc,bc){
-    return '<span style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;padding:2px 9px 3px;border-radius:9px;'
+  function pill(lbl,val,vc,bc,tip){
+    return '<span'+(tip?' title="'+tip+'"':'')+' style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;padding:2px 9px 3px;border-radius:9px;'
       +'background:rgba(255,255,255,0.045);border:1px solid '+(bc||'var(--line,#2a2f38)')+';white-space:nowrap">'
       +'<span style="font-size:0.68rem;font-weight:600;letter-spacing:.4px;color:var(--dim);line-height:1.1">'+lbl+'</span>'
       +'<b style="font-size:0.98rem;line-height:1.15;color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
@@ -1467,8 +1515,9 @@ function renderAISummary(a){
       +'<span style="font-size:0.72rem;font-weight:700;letter-spacing:.6px;color:var(--gold);text-align:center">'+title+'</span>'
       +'<div style="display:flex;flex-wrap:nowrap;gap:4px;align-items:center;justify-content:center">'+pills.join('')+'</div></div>';
   }
+  var _confTag = isConfirmed ? ' <span style="font-size:0.6em;color:var(--green)">✅</span>' : ' <span style="font-size:0.6em;color:var(--orange)">⏳</span>';
   var gDecision=group('DECISION',[
-    pill('SIGNAL',a.signal,sigCol,sigCol),
+    pill('SIGNAL',_dSig+_confTag,sigCol,sigCol),
     pill('PROB',pct(a.final_prob)+' / '+pct(a.threshold), gr(a.final_prob>=a.threshold), gr(a.final_prob>=a.threshold)),
     pill('REGIME',a.regime,regCol,regCol)]);
   var gConf=group('CONFIDENCE',[
@@ -1552,8 +1601,34 @@ async function load(){
       el.style.color='var(--dim)';
       return;
     }
-    const sig = d.last_signal || {};
-    try { renderAISummary(d.ai_summary || {}); } catch(e){}
+    let sig = d.last_signal || {};
+    // MIRROR THE LOG (2026-07-09, Imtiyaz): the SIGNAL box must never disagree with the SIGNAL LOG.
+    // If the backend's live signal isn't an actionable BUY/SELL (a SKIP bar) AND its freeze/bootstrap
+    // hasn't kicked in yet, fall back to the most recent BUY/SELL from window._liveSigData — the SAME
+    // signals_all.csv the SIGNAL LOG is drawn from → box can never disagree with the log. No bridge
+    // restart needed. EV/GRADE recomputed from win_prob (ev_r = wp*1.5 - (1-wp); grade by wp).
+    let _feCached = false;
+    if(!(sig.signal==='BUY'||sig.signal==='SELL') && Array.isArray(window._liveSigData) && window._liveSigData.length){
+      let _last=null;
+      for(const r of window._liveSigData){
+        if((r.sig==='BUY'||r.sig==='SELL') && (!_last || r.bt>_last.bt)) _last=r;
+      }
+      if(_last){
+        const _wp=parseFloat(_last.wp)||0;
+        sig={signal:_last.sig, bar_time:_last.bt, price:parseFloat(_last.price)||0,
+             win_prob:_wp, hmm_state:_last.regime||'',
+             state_prob:parseFloat(_last.sp)||0, dir_prob:parseFloat(_last.dp)||0};
+        if(d.ev_r===null||d.ev_r===undefined){
+          const _ev=Math.round((_wp*1.5-(1-_wp))*1000)/1000;
+          d.ev_r=_ev; d.ev_label=_ev>=0.3?'Excellent':_ev>=0?'OK':'Poor';
+          d.risk_grade=_wp>=0.55?'A':_wp>=0.50?'B':_wp>=0.45?'C':'D';
+          d.risk_grade_label=({A:'Excellent',B:'Good',C:'Fair',D:'Weak'})[d.risk_grade];
+        }
+        _feCached=true;
+      }
+    }
+    const _isConf = (d.signal_confirmed === true) || _feCached;
+    try { renderAISummary(d.ai_summary || {}, _isConf); } catch(e){}
     try { renderMarketIntel(d.market_intel || {}); } catch(e){}
 
     // ── LIVE PRICE BAR ────────────────────────────────────────
@@ -1889,25 +1964,42 @@ async function load(){
       }
     }
 
-    // WIN PROB BAR — handled below in signal section
-    const wp0 = sig.win_prob ? sig.win_prob*100 : 0;
+    // SIGNAL — forming bar: show last confirmed signal; bar-close: show real signal
+    const _rawSig = sig.signal||'SKIP';
+    const _isForming = !_isConf && (_rawSig==='BUY'||_rawSig==='SELL');
+    if(_isConf){ _lastConfirmedSig = _rawSig; _lastConfirmedProb = sig.win_prob ? sig.win_prob*100 : 0; }
+    const _dispSig = _isForming ? _lastConfirmedSig : _rawSig;
+    const _dispProb = _isForming ? _lastConfirmedProb : (sig.win_prob ? sig.win_prob*100 : 0);
+
+    // WIN PROB BAR
+    const wp0 = _dispProb;
     $s('prob_bar','width',Math.min(100,wp0)+'%');
     {const _pb=document.getElementById('prob_bar'); if(_pb){ _pb.style.setProperty('--p', Math.min(100,wp0)); _pb.setAttribute('data-label', wp0.toFixed(2)+'%'); }}
     $t('prob_val_label', wp0.toFixed(2)+'%');
-
-    // SIGNAL
     const sm = document.getElementById('signal_main');
-    if(sm){ sm.textContent = sig.signal||'--'; sm.className = 'sig-big '+(sig.signal||'SKIP'); }
+    if(sm){ sm.textContent = _dispSig; sm.className = 'sig-big '+_dispSig; }
+    const _scTag = document.getElementById('sig_confirmed_tag');
+    if(_scTag){
+      // Box now shows the LAST actionable (BUY/SELL) signal. When it's a CACHED past signal
+      // (current bar was SKIP), show a dim "🕒 last @ HH:MM" hint so it's not read as the live bar.
+      if(d.signal_is_cached || _feCached){
+        const _lt=((sig.bar_time||'').split(' ')[1]||'').slice(0,5);
+        _scTag.textContent='🕒 last'+(_lt?' @ '+_lt:'');
+        _scTag.style.color='var(--dim)'; _scTag.style.display='';
+      } else { _scTag.style.display='none'; }
+    }
     const sdb = document.getElementById('sig_dir_block');
-    if(sdb) sdb.className = 'sig-dir-block '+(sig.signal||'SKIP');
+    if(sdb) sdb.className = 'sig-dir-block '+_dispSig;
     const sdot = document.getElementById('sig_state_dot');
     const hmmNow = sig.hmm_state||'--';
     if(sdot) sdot.style.background = hmmNow==='Trending'?'var(--green)':hmmNow==='Volatile'?'var(--red)':'var(--cyan)';
     // ── SIGNAL CARD — new layout ─────────────────────────────
-    $t('signal_bar_time', (sig.bar_time||'--').split(' ')[1]||'--');
-    $t('signal_bar_time2', (sig.bar_time||'--').split(' ')[1]||'--');
+    // Signal box date+time — Gujarati "9 જુલાઈ 26 23:15" (of THIS signal — cached or live)
+    $t('signal_datetime', _gDate(sig.bar_time, true));
+    $t('signal_bar_time', _gDate(sig.bar_time, true));
+    $t('signal_bar_time2', _gDate(sig.bar_time, true));
     // Win prob
-    const wp = sig.win_prob ? sig.win_prob*100 : 0;
+    const wp = _dispProb;
     $t('win_prob', wp ? wp.toFixed(2)+'%' : '--');
     $t('sig_win_pct_big', wp ? wp.toFixed(2)+'%' : '--%');
     const wpBar = document.getElementById('win_prob_bar');
@@ -2788,7 +2880,8 @@ async function load(){
     if(_cv)  _cv.textContent=(_w.conf_volatility||'--')+(typeof _w.conf_volatility==='number'?'%':'');}
 
     if(_ws && _w.hmm){
-      const _sig_d=d.last_signal_direction||sig?.signal||'SKIP';
+      const _sig_d_raw=d.last_signal_direction||sig?.signal||'SKIP';
+      const _sig_d=(!_isConf && (_sig_d_raw==='BUY'||_sig_d_raw==='SELL')) ? _lastConfirmedSig : _sig_d_raw;
       const _summary=(()=>{
         const _volLabel = _w.volatility||'Normal';
         if(_sig_d==='SKIP') return 'Market uncertain — '+_volLabel+' volatility, '+(_w.hmm||'--')+' state. AI waiting for clearer setup.';

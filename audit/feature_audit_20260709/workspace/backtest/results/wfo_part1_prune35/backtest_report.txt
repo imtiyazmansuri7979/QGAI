@@ -1,0 +1,39 @@
+================================================================
+⚡ QGAI AI REPLAY BACKTEST — REPORT
+Period         : 2026-06-22 → 2026-06-29
+Modes          : TP=fixed | SL=fixed | trail=fixed | runner=target | pred dirs=BUY,SELL
+Sizing         : FIXED LOT 0.01 (no compounding)
+Bars replayed  : 538 | Signals BUY/SELL: 111
+================================================================
+Trades         : 17  (W 10 / L 7)
+Win rate       : 58.8%
+Profit factor  : 6.62
+Avg R          : +0.646  |  Total: +11.0R
+Price move ($) : Total +253.9 | avg +14.93/trade  (gold points entry->exit, lot-independent)
+Captured/Avail : captured +254 pts | available 2,778 pts (all swings) / 135 net | efficiency 9.1% of path
+Net return     : +2.54%  (risk 3.0%/trade)
+Max drawdown   : 0.3%
+Avg win        : +1.35R | Avg loss: -0.35R
+Exit reasons   : {'FLIP': 11, 'TPCAP': 4, 'SL': 1, 'TRAIL': 1}
+----------------------------------------------------------------
+BY REGIME (R = movement relative to risk):
+  Ranging      11 trades | WR  54.5% |     +6.2R | avg +0.563R
+  Trending      3 trades | WR 100.0% |     +3.5R | avg +1.151R
+  Volatile      3 trades | WR  33.3% |     +1.3R | avg +0.444R
+BY HOUR (entry):
+  01:00         1 trades | WR 100.0% |     +0.4R
+  02:00         3 trades | WR   0.0% |     -1.9R
+  03:00         1 trades | WR 100.0% |     +0.6R
+  04:00         1 trades | WR 100.0% |     +1.5R
+  06:00         1 trades | WR 100.0% |     +0.9R
+  12:00         2 trades | WR 100.0% |     +4.8R
+  14:00         1 trades | WR 100.0% |     +0.0R
+  15:00         2 trades | WR  50.0% |     +3.0R
+  16:00         3 trades | WR  33.3% |     +0.6R
+  17:00         1 trades | WR   0.0% |     -0.1R
+  21:00         1 trades | WR 100.0% |     +1.1R
+BY MONTH:
+  2026-06      17 trades |    +11.0R | avg +0.646R
+================================================================
+⏱ DONE — run time 1.6 min (538 bars) | finished 16:46:51
+Files: logs/backtest_trades.csv (with f_* feature columns), logs/backtest_signals.csv

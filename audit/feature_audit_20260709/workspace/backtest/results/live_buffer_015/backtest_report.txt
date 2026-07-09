@@ -1,0 +1,61 @@
+================================================================
+⚡ QGAI AI REPLAY BACKTEST — REPORT
+Period         : 2025-06-29 → 2026-06-29
+Modes          : TP=fixed | SL=fixed | trail=fixed | runner=target | pred dirs=BUY,SELL
+Bars replayed  : 23,607 | Signals BUY/SELL: 7414
+================================================================
+Trades         : 597  (W 392 / L 205)
+Win rate       : 65.7%
+Profit factor  : 4.27
+Avg R          : +0.718  |  Total: +428.5R
+Price move ($) : Total +10,750.2 | avg +18.01/trade  (gold points entry->exit, lot-independent)
+Captured/Avail : captured +10,750 pts | available 111,157 pts (all swings) / 751 net | efficiency 9.7% of path
+Net return     : +19890222.77%  (risk 3.0%/trade)
+Max drawdown   : 10.8%
+Avg win        : +1.39R | Avg loss: -0.57R
+Exit reasons   : {'FLIP': 237, 'TPCAP': 229, 'TRAIL': 74, 'SL': 57}
+----------------------------------------------------------------
+BY REGIME (R = movement relative to risk):
+  Ranging     194 trades | WR  65.5% |   +219.7R | avg +1.132R
+  Trending    264 trades | WR  65.2% |   +131.7R | avg +0.499R
+  Volatile    139 trades | WR  66.9% |    +77.2R | avg +0.555R
+BY HOUR (entry):
+  01:00        41 trades | WR  70.7% |    +41.6R
+  02:00        20 trades | WR  75.0% |    +13.6R
+  03:00        23 trades | WR  69.6% |     +6.5R
+  04:00        61 trades | WR  67.2% |    +41.8R
+  05:00        18 trades | WR  66.7% |    +11.7R
+  06:00         5 trades | WR  20.0% |     -1.2R
+  07:00        15 trades | WR  33.3% |     -0.0R
+  08:00        29 trades | WR  75.9% |    +31.8R
+  09:00        30 trades | WR  63.3% |    +20.0R
+  10:00         9 trades | WR 100.0% |     +8.3R
+  11:00         8 trades | WR  75.0% |     +3.3R
+  12:00        19 trades | WR  73.7% |    +33.9R
+  13:00         9 trades | WR  66.7% |    +17.0R
+  14:00        25 trades | WR  60.0% |    +18.2R
+  15:00        23 trades | WR  69.6% |    +21.4R
+  16:00       112 trades | WR  66.1% |   +102.4R
+  17:00        38 trades | WR  65.8% |    +16.7R
+  18:00        25 trades | WR  60.0% |     +8.6R
+  19:00        23 trades | WR  47.8% |     +1.7R
+  20:00        27 trades | WR  59.3% |    +17.7R
+  21:00         9 trades | WR  77.8% |     +6.3R
+  22:00        19 trades | WR  63.2% |     +3.3R
+  23:00         9 trades | WR  66.7% |     +3.7R
+BY MONTH:
+  2025-06       1 trades |     +0.7R | avg +0.694R
+  2025-07      15 trades |    +32.5R | avg +2.170R
+  2025-08      11 trades |    +15.4R | avg +1.404R
+  2025-09      30 trades |    +39.1R | avg +1.304R
+  2025-10      76 trades |    +44.0R | avg +0.579R
+  2025-11      39 trades |    +35.4R | avg +0.908R
+  2025-12      43 trades |    +27.1R | avg +0.629R
+  2026-01      63 trades |    +38.2R | avg +0.606R
+  2026-02      62 trades |    +24.9R | avg +0.401R
+  2026-03      92 trades |    +61.3R | avg +0.666R
+  2026-04      65 trades |    +37.5R | avg +0.577R
+  2026-05      42 trades |    +29.4R | avg +0.700R
+  2026-06      58 trades |    +43.0R | avg +0.741R
+================================================================
+Files: logs/backtest_trades.csv (with f_* feature columns), logs/backtest_signals.csv

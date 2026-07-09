@@ -8,6 +8,214 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-09 — SIGNAL box mirrors the LOG + entry price atop BUY/SELL bars (Imtiyaz req)
+Imtiyaz flag: SIGNAL LOG's newest row = SELL, but the big SIGNAL box showed SKIP (box's
+State/Direction matched the current SKIP bar → backend freeze/bootstrap not active in the running
+bridge). Verified `_bootstrap_last_trade_signal()` DOES find the last BUY/SELL in signals_all.csv
+(864 actionable rows; last = 05:30 BUY 4080.41) → backend fix is correct, just needs the bridge
+restarted with the new code. Added a **restart-independent frontend safety net** so the box can
+never disagree with the log:
+- **Frontend** `dashboard.html`:
+  - `_parseSig()` now also captures `state_prob` + `dir_prob`; `window._liveSigData` exposed.
+  - `update()`: when `d.last_signal` isn't an actionable BUY/SELL, the box falls back to the most
+    recent BUY/SELL from `window._liveSigData` — the SAME signals_all.csv the SIGNAL LOG is drawn
+    from → box mirrors the log's latest signal. EV/GRADE recomputed from win_prob when backend sends
+    null. Shows the dim "🕒 last @ HH:MM" hint. **Ctrl+F5 only, no restart needed.**
+  - `drawSigChart()`: entry price now printed **atop each BUY/SELL bar** — horizontal, bold 9px,
+    black-outlined for contrast (earlier 7px rotated label was unreadable). Chart height `44→60px`,
+    canvas internal height matches CSS for crisp text. SKIP bars unchanged.
+- **Backend** `bridge_dashboard.py` → `get_signal_history()`: added `price` to the SELECT + output
+  dict (feeds the chart's price labels). **Needs bridge restart.** Display-only, no filter/logic change.
+
+---
+
+## 2026-07-09 — `_gDate is not defined` crash + ADX vs MT5 explained (Imtiyaz flags)
+
+**(1) `_gDate is not defined (line 1947)` — render crash.** The signal box showed no date, missing
+WIN PROB/EV/GRADE/State/Direction, AND the Signal History chart was blank — ALL from ONE JS error.
+`_gDate()` was defined INSIDE the live-signal-log IIFE (`<script>` at ~652), but the main `update()`
+loop in a SEPARATE `<script>` block called it at line ~1947 → ReferenceError → every render step after
+that line aborted (date, signal-box fields, `drawSigChart` at ~2438 all downstream). **Fix:** exposed it
+globally — `window._gDate=_gDate;` right after the definition (dashboard.html ~673). Frontend-only →
+needs a browser hard-refresh (Ctrl+F5), no bridge restart.
+
+**(2) Dashboard ADX ≠ MT5 chart ADX — investigated (flag), NOT a bug.** STRENGTH showed H1 16.5 / H4 34.2
+while MT5 read H1 12.92 / H4 28.19. Confirmed the box value = engine's live per-bar ADX (dashboard.json
+04:00 bar: H1_ADX 16.49, H4_ADX 34.18 → rounds to 16.5/34.2), not frozen. Root cause = **smoothing method**:
+the engine computes ADX with `ewm(span=14)` (alpha≈0.133; `regen_adx_di.compute_adx_tf`,
+`mt5_data_updater.compute_adx_tf`, `regen_adx_asof.asof_tf` all identical) — MT5 uses **Wilder** smoothing
+(alpha=1/14≈0.071), ~2× slower → engine reads higher in a rising-ADX phase. Secondary: (a) as-of convention
+= last-CLOSED H1/H4 bars' EWM state + one step folding the **forming** (partial) bar, updated every M15 bar
+(not tick like MT5's right edge); (b) pandas-resample bar boundaries vs MT5 broker-server-time bars; (c) MT5
+ships two indicators (ADX vs ADX Wilder). **Live == training** (same `compute_adx_tf`), so the model is
+self-consistent; its thresholds (H4>30 trending, <20 ranging) were learned on THIS EWM-ADX. **Decision: keep
+as-is (option A)** — switching to Wilder would need a full retrain + backtest≠live re-verify. Added a
+clarifying tooltip on the STRENGTH H1/H4 ADX pills (dashboard.html `pill()` gained an optional `tip` arg).
+To compare on MT5, use **ADX Wilder, period 14**.
+
+## 2026-07-09 — Decision box: BOOTSTRAP last BUY/SELL on fresh restart (was stuck on SKIP)
+
+**Symptom (Imtiyaz):** after the "freeze box to last BUY/SELL" change + bridge restart, the signal box
+still showed **SKIP** with WIN PROB / EV / GRADE / State / Direction all `--` and no date.
+
+**Cause:** `_remember_last_trade_signal()` only cached a BUY/SELL when one arrived *after* restart, and
+persisted it to `logs/last_trade_signal.json`. On the FIRST restart that file didn't exist yet, and only
+SKIP bars had occurred since → `_LAST_TRADE_SIG` stayed `None` → box kept showing the live SKIP
+(`signal_is_cached=False`). It would have self-healed only on the next live BUY/SELL (possibly hours).
+
+**Fix (`bridge_dashboard.py`):** added `_bootstrap_last_trade_signal()` — when no persisted cache exists
+on first load, it reads the most recent BUY/SELL row from `signals_all.csv` and seeds `_LAST_TRADE_SIG`.
+Numeric columns (`_LTS_NUM_COLS`) are coerced to `float` so the decision block's arithmetic
+(`ev_r = wp*tp_m …`, `round(state_prob,4)`) never hits a `str × float` TypeError. The block *computes*
+eff_prob / ev_r / risk_grade / market-structure from raw fields (win_prob, state_prob, dir_prob, hmm_state,
+atr20_pct …), all present in the CSV, so a CSV row is enough for a coherent box. Verified on the live file:
+last BUY `2026-07-09 03:15` 54.44% → ev_r 0.361, GRADE B. Display-only; no filter/trade logic touched.
+**Needs a bridge restart to load.**
+
+## 2026-07-09 — Signal ↔ Trade DECOUPLE (Imtiyaz architecture) + new `trade_action` column
+
+**Imtiyaz spec:** System = signal PROVIDER, MT5 = signal RECEIVER. A pure/virtual engine signal
+(BUY/SELL/SKIP by threshold — exactly like backtest) must be logged on EVERY bar, regardless of
+whether a trade is placed (system or manual) or whether an account is even connected. Signal must
+NEVER stop, and trade-execution filters must NOT overwrite it.
+
+**Root problem (verified):** in `bridge_main.py`, 11 trade-execution paths each called
+`log_signal(bar_time, "SKIP", …)` — overwriting the engine's real BUY/SELL to "SKIP". This is
+exactly why a high-prob (e.g. 78.59%) BUY showed **SKIP** in the log when a position was already
+open (single-position HOLD) — backtest≠live in the signal column.
+
+**Fix — two decoupled columns (logging only; NO trade-logic change):**
+
+| Column | Meaning | Values |
+|--------|---------|--------|
+| `signal` | PURE engine decision — every bar, backtest-identical | BUY / SELL / SKIP |
+| `trade_action` (**NEW**) | what the RECEIVER (MT5) did | EXECUTED · EXEC_FAILED · HOLD_IN_TRADE · OPPOSITE_HANDLED · MONITOR · BLOCK_SLOT · BLOCK_RANGE · BLOCK_CTF · BLOCK_PULLBACK · BLOCK_SMMA · BLOCK_ADX · RESUME_SKIP · NO_TRADE |
+
+- `bridge_main.py`: all 11 `log_signal()` sites now pass the **real `signal`** + a `trade_action=`.
+  Execute path logs `EXECUTED` if a lot came back else `EXEC_FAILED` (so a no-account / AutoTrading-OFF
+  / retcode-10027 failure no longer hides the signal). Control flow / filter blocking logic **unchanged**.
+- `bridge_data.py`: `log_signal(..., trade_action="")` new param; new trailing `trade_action` column in
+  CSV, `signals_complete.csv`, and SQLite (`ALTER TABLE signals ADD COLUMN trade_action`, one-time).
+  `_ensure_signal_columns()` migrates old CSVs (blank for old rows).
+- **Test:** `Test_Decouple_Signal.bat` → `engine/test_decouple_signal.py` (offline, TEMP db+csv, live
+  files untouched). 10/10 checks PASS incl. the 78.59%→HOLD_IN_TRADE case + old-file migration.
+
+**Dashboard (done same day):** `dashboard.html` SIGNAL LOG (`_parseSig` + `_liveSigRender`) now parses
+the new `trade_action` column and shows a colored badge per row (EXECUTED=green · EXEC_FAILED=red ·
+HOLD_IN_TRADE=cyan · BLOCK_*=orange · MONITOR=blue · OPPOSITE_HANDLED=purple; NO_TRADE hidden as
+redundant on SKIP rows). So a high-prob BUY that MT5 held now reads `BUY … HOLD_IN_TRADE`, not SKIP.
+
+**Remaining:** restart bridge + dashboard server to activate (new column populates on next bar).
+
+---
+
+## 2026-07-09 — SIGNAL LOG: virtual entry→exit→move on EVERY BUY/SELL (Imtiyaz)
+
+**Imtiyaz spec:** in the SIGNAL LOG, every BUY/SELL must show its price move — e.g. `buy 4076 → exit
+4100 = +$24` — **whether or not a real trade was placed** (system = signal provider, like backtest).
+Exit-price calc "seemed to be missing" → make it visible + complete.
+
+**Root cause (verified — nothing was actually broken in the engine):** the exit-price calc already
+exists — `shadow_ledger.py` paper-trades EVERY BUY/SELL signal from `signals_all.csv` with the live
+exit rules (HTF-H1 stop + flip, ratchet buffer, far TP) and writes `logs/shadow_trades.csv`
+(entry_price, exit_price, exit_reason, R, pnl). Scheduler refreshes it every 15 min (`scheduler.py`
+`shadow_ledger.py`, 821 signals: 42 real + 779 paper). What was missing was **display**: the old
+badge (a) only showed for non-real signals (real rows used the `move` col, which is blank on older
+rows → "WIN" with no price → looked like "no exit calc"), and (b) never showed the entry→exit prices
+inline, only the move number.
+
+**Fix (dashboard-only — NO engine / data-path / trade-logic change):** `dashboard.html`
+`_liveSigRender()` rewritten so that:
+- **Every BUY/SELL row** now renders the SIGNAL's virtual result inline from the shadow ledger:
+  `4076.00→4100.00  +$24.00  +2.5R  TPᵛ` (green profit / red loss, dashed border, ᵛ = virtual).
+  Shown whether or not a real trade was placed (matches the provider/backtest spec).
+- If a **real trade also closed** on that bar, an extra solid `WIN/LOSS +$move REAL` chip is appended
+  (real account result kept SEPARATE from the virtual signal result — no contradiction).
+- Tooltip gives full detail (entry, exit, move, R, exit reason, real-vs-paper, account outcome).
+
+No new CSV columns, no bridge change. **Activation: just hard-refresh the dashboard browser**
+(shadow_trades.csv is already produced by the scheduler). Very recent BUY/SELL show the badge once the
+trade exits + next shadow refresh (≤15 min) — same as backtest (exit unknown until it happens).
+
+---
+
+## 2026-07-09 — Decision area shows the LAST BUY/SELL signal (not a SKIP bar) + SKIP win% dim
+
+**Imtiyaz spec:** the signal box must show the **last placed signal** (last BUY/SELL) with ALL its
+params, and the **AI DECISION SUMMARY** + **MARKET INTELLIGENCE** boxes above must show data for that
+SAME signal — a plain SKIP bar should not overwrite/blank the decision area.
+
+**Fix (backend `bridge_dashboard.py` — display only, NO trade-logic change):** the whole decision
+block (hmm/state/dir prob, `market_structure`, `eff_prob`, `ev_r`, `risk_grade`, `ai_summary`,
+`market_intel`, win/big-win/duration inside `sig`) is all derived from one `sig` dict. Added a
+last-actionable-signal cache — `_remember_last_trade_signal()` — that returns the most recent BUY/SELL
+signal (persisted to `logs/last_trade_signal.json`, survives restart). `write_dashboard()` now freezes
+`sig` to that at line ~508, so the entire block stays coherent on the last real signal. **Live price /
+spread / session / open-trades / countdown come from `tick` (not `sig`) → they stay live.** When a
+cached (past) signal is shown, `signal_confirmed` is forced True (renders directly, not "forming") and
+a new `signal_is_cached` flag is sent.
+- `dashboard.html`: the `sig_confirmed_tag` span now shows a dim **🕒 last @ HH:MM** hint (the signal's
+  own bar time) whenever `signal_is_cached` — so a frozen past signal isn't mistaken for the live bar.
+
+**Also (same day) — SIGNAL LOG win% colour:** on a **SKIP** row the win_prob no longer shows gold; it
+stays dim like the SKIP text. Gold only for an actual BUY/SELL ≥45%. (`dashboard.html` `_liveSigRender`.)
+
+**Also (same day) — date format + signal-box date/time:** new `_gDate()` helper →
+`2026-07-09 23:15` renders as **`9 Jul 26 23:15`** (day + 3-char English month + 2-digit year). Applied to
+(a) the SIGNAL LOG time column (was `MM-DD HH:MM`), and (b) the SIGNAL BOX — which previously showed
+NO date/time (the old `signal_bar_time` element didn't exist); added a `signal_datetime` span in the
+card header showing the signal's full date+time. (`dashboard.html`, frontend — browser refresh only.)
+
+**Activation:** signal-box/AI/intel change is BACKEND → needs a **bridge restart**. The SKIP-colour +
+virtual-move badges are frontend → just a browser hard-refresh.
+
+---
+
+## 2026-07-08 — Deep bug check + FORMING/CONFIRMED signal fix
+
+**7 bugs found and fixed across 3 files:**
+
+| # | File | Severity | Bug | Fix |
+|---|------|----------|-----|-----|
+| 1 | dashboard.html | CRITICAL | `_isConf` TDZ error — AI Decision Summary never rendered (silently swallowed by try/catch) | Moved `const _isConf` declaration before first use |
+| 2 | bridge_main.py | CRITICAL | `import sys` missing — `sys.exit(1)` in news-stale guard throws NameError, bridge continues with stale calendar | Added `import sys` |
+| 3 | bridge_main.py | MODERATE | SMMA/ADX block SKIP double-logged — guard at line 681 didn't check `_smma_block`/`_adx_block` | Added both to the elif guard |
+| 4 | backtest_replay.py | CRITICAL | EOD-closed trades missing from `trades_out` — equity changed but trade invisible in CSV | Added full record dict + append for EOD trades |
+| 5 | backtest_replay.py | CRITICAL (latent) | `sl_dist` undefined when `--ratchet off` → NameError on first trade | Added fallback `sl_dist` for non-ratchet mode |
+| 6 | backtest_replay.py | MODERATE | REVERSAL trade records always had None for win_prob/hmm_state — accessed `_tr.win_prob` instead of `_tr.sig.get("win_prob")` | Fixed to `_tr.sig.get(...)` |
+| 7 | backtest_replay.py | MODERATE | NaN ADX bars reset death streak to 0 instead of leaving unchanged | Changed init to -1, skip streak update on -1 |
+
+**FORMING/CONFIRMED signal fix (Imtiyaz request):**
+- Dashboard now suppresses forming-bar BUY/SELL — shows SKIP until bar-close confirmed
+- AI Decision Summary also suppressed — ✅/⏳ icon on SIGNAL pill
+- Both main signal card and summary card stay consistent
+
+---
+
+## 2026-07-08 — ADX-death exit rule (Imtiyaz idea + Fable-5 design)
+
+**Insight (Imtiyaz):** ADX slope falling across TFs during hold = trend dying = give-back coming.
+Data: 0 TFs falling = +1.34R avg, 4 falling = −0.23R avg. Strongest exit signal found this session.
+
+**Rule (Fable-5 design):** At each M15 bar close: if K≥3 of 4 TF ADX slopes ≤0 for N≥3 consecutive
+bars AND unrealized profit ≥0.5R → exit at bar close, reason `ADX_DEATH`.
+Slopes: M15=diff(1), M30=diff(2), H1=diff(4), H4=diff(16).
+
+**Changes:**
+- `engine/config.py`: FilterConfig + `adx_death_enabled=False, _k=3, _n=3, _min_r=0.5`
+- `engine/backtest_replay.py`: precompute 4-TF ADX slope arrays from ohlc before bar loop;
+  in trade mgmt loop after ratchet_bar, track per-trade death-streak + exit check
+- Env overrides: `QGAI_ADX_DEATH=1`, `QGAI_ADX_DEATH_K`, `_N`, `_MIN_R`
+- Default **OFF** → live unchanged until sweep + WFO validation
+
+**Test bats:**
+- `backtest/_runners/Run_ADXDeath_TEST.bat` — 2-week smoke test
+- `backtest/_runners/Run_ADXDeath_Sweep.bat` — 18-cell K{2,3}×N{2,3,4}×X{0.3,0.5,1.0} + baseline
+
+**Gate:** WFO ≥+444.7R AND Trending R not down AND avg-winner-R down <5% AND median R-saved >0
+
+---
+
 ## 2026-07-07 — FIX-3 parity (Fable-5 #1): reversal-close modeled in backtest
 Worked on by Claude via Cowork (Imtiyaz). Fable-5 ranked this #1 ("stop adding gains you can't collect").
 

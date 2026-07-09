@@ -1,0 +1,7 @@
+﻿from,to,trades,wins,losses,wr_pct,pf,avg_r,total_r,net_return_pct,max_dd_pct,tp_mode,sl_mode,trail_mode,fixed_lot,risk_pct
+2026-01-01,2026-02-01,66,48,18,72.7,4.48,0.548,36.2,16.08,0.9,fixed,fixed,htf,0.01,3.0
+
+BY_REGIME,trades,wr_pct,total_r,avg_r
+Ranging,14,64.3,20.7,1.481
+Trending,8,62.5,2.8,0.351
+Volatile,44,77.3,12.6,0.287
