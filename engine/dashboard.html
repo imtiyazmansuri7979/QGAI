@@ -247,16 +247,81 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 .lc-panel>div:first-child b{font-size:0.58rem!important;letter-spacing:1.8px!important;color:var(--cyan)!important}
 /* Signal log rows */
 #liveSigRows{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent}
-#panel_risk_session,#panel_signal,#panel_signal_log{height:100%;box-sizing:border-box;display:flex;flex-direction:column}
+#panel_signal,#panel_signal_log{height:100%;box-sizing:border-box;display:flex;flex-direction:column}
 #liveSigRows .replay-row{height:26px;min-height:26px;padding:0 10px;overflow:hidden}
-/* ── AI + MARKET PANEL — 2-column split that reflows with box width ── */
-.ai-market-grid{display:grid;grid-template-columns:minmax(0,1fr)}
-#ai_summary_box,#market_intel_box{min-width:0;overflow-wrap:break-word}
+/* ── RISK & SESSION — compact single-line status strip / ticker (2026-07-10) ── */
+.risk-strip{width:100%;overflow-x:auto;overflow-y:hidden;position:relative;background:var(--panel2,#0d1e2e);border-bottom:1px solid rgba(0,212,255,.22);height:auto;min-height:0;scrollbar-width:none;-ms-overflow-style:none}
+.risk-strip::-webkit-scrollbar{display:none}
+.risk-strip-track{display:flex;align-items:center;white-space:nowrap;padding:3px 10px;width:max-content}
+.risk-strip.rs-ticker .risk-strip-track{animation:rsScroll var(--rs-dur,32s) linear infinite}
+.risk-strip.rs-ticker:hover .risk-strip-track{animation-play-state:paused}
+@keyframes rsScroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.rs-item{display:inline-flex;align-items:baseline;gap:4px;font-size:0.64rem;white-space:nowrap;padding:0 10px;flex-shrink:0}
+.rs-lbl{color:var(--dim);font-weight:700;letter-spacing:.3px;font-size:0.56rem}
+.rs-val{font-family:var(--orb);font-weight:700;font-size:0.68rem;color:var(--fg,#e6ebf2)}
+.rs-sub{color:var(--dim);font-size:0.54rem;opacity:.8}
+.rs-div{width:1px;align-self:stretch;background:rgba(0,212,255,.18);flex-shrink:0;margin:2px 0}
+/* ── SIGNAL LOG — compact institutional table (2026-07-10) ── */
+.sl-titlebar{position:sticky;top:0;z-index:6}
+.sl-title{font-weight:800;letter-spacing:1px;color:var(--cyan);text-transform:uppercase}
+.sl-count{font-size:0.6rem;color:var(--purple);margin-left:6px;font-weight:600}
+/* Left group (DATE&TIME/ACTION/PRICE/PROBABILITY) stays compact-fixed; right group
+   (REGIME..EQUITY) shares whatever width remains EQUALLY via 1fr, so extra
+   panel width spreads across all four instead of piling into one column. */
+.sl-cols{grid-template-columns:94px 50px 58px 64px 1fr 1fr 1fr 1fr}
+.sl-table-header{display:grid;gap:6px;padding:3px 10px;font-size:0.54rem;font-weight:700;letter-spacing:.3px;color:var(--dim);text-transform:uppercase;background:rgba(0,10,20,.55);border-top:1px solid rgba(0,212,255,.2);border-bottom:1px solid rgba(0,212,255,.2);position:sticky;top:0;z-index:5}
+.sl-table-header>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;text-align:center}
+.sl-table-header>span:first-child,.sl-table-header>span:nth-child(2){text-align:left}
+.sl-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent}
+.sl-row{display:grid;gap:6px;align-items:center;min-height:38px;position:relative;overflow:hidden;padding:0 10px 0 13px;border-bottom:1px solid rgba(0,210,255,.14)}
+.sl-row:nth-child(even){background:rgba(0,20,35,.22)}
+.sl-row:hover{background:rgba(0,212,255,.07)}
+.sl-row>*{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sl-strip{position:absolute;left:0;top:0;bottom:0;width:3px}
+.sl-c-time{color:var(--dim);font-size:0.6rem;font-family:var(--orb)}
+.sl-c-action{font-weight:700;font-size:0.64rem;display:flex;align-items:center;gap:3px}
+.sl-c-price{color:var(--cyan);font-weight:700;font-family:var(--orb);font-size:0.68rem}
+.sl-c-prob{font-weight:700;font-size:0.64rem;font-family:var(--orb)}
+.sl-badge{display:inline-flex;align-items:center;justify-content:center;font-size:0.56rem;font-weight:700;border-radius:4px;padding:1px 6px;border:1px solid;background:rgba(255,255,255,.03);white-space:nowrap}
+.sl-c-regime,.sl-c-h4,.sl-c-bw,.sl-c-equity{display:flex;align-items:center;justify-content:center}
+.sl-c-bw{color:var(--purple);font-size:0.6rem}
+.sl-c-equity{color:var(--cyan);font-family:var(--orb);font-size:0.62rem;justify-content:flex-end}
+@container panel (max-width:480px){
+  .sl-cols{grid-template-columns:86px 42px 46px 52px 1fr 1fr}
+  .sl-c-h4,.sl-c-bw{display:none}
+}
+/* ── AI + MARKET PANEL — segmented card layout (2026-07-10, professional redesign) ── */
+/* Content-based height — override the global .grid-stack-item-content>[id]{height:100%}
+   rule (which would otherwise stretch this panel to fill its full GridStack row
+   allocation regardless of actual content). #panel_ai_market as an ID selector
+   outranks that rule's specificity, so no !important needed. */
+#panel_ai_market{height:auto;min-height:0}
+.ai-market-grid{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;min-height:0}
+#ai_summary_box,#market_intel_box{min-width:0;overflow-wrap:break-word;min-height:0}
 #market_intel_box{border-top:1px solid var(--line,#2a2f38)}
 @container panel (min-width:640px){
-  .ai-market-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .ai-market-grid{grid-template-columns:minmax(0,1.22fr) minmax(0,1fr)}
   #ai_summary_box{padding-right:14px}
   #market_intel_box{border-top:none;border-left:1px solid var(--line,#2a2f38);padding-left:14px}
+}
+.tsp-zone{container-type:inline-size;container-name:tspzone;display:grid;gap:5px;min-width:0;min-height:0;align-content:start}
+.tsp-row2{display:grid;grid-template-columns:1fr 1fr;gap:5px;min-width:0}
+.tsp-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;min-width:0}
+.tsp-card{border:1px solid rgba(0,212,255,.32);border-radius:8px;padding:3px 8px 4px;background:rgba(0,212,255,.02);box-shadow:inset 0 0 8px rgba(0,212,255,.04);min-width:0;display:flex;flex-direction:column;gap:2px;justify-content:center}
+.tsp-card.gold{border-color:rgba(232,200,74,.32);background:rgba(232,200,74,.02);box-shadow:inset 0 0 8px rgba(232,200,74,.04)}
+.tsp-card.horiz{flex-direction:row;align-items:baseline;gap:8px}
+.tsp-badge{align-self:flex-start;font-size:0.5rem;font-weight:700;letter-spacing:.4px;color:var(--cyan);border:1px solid rgba(0,212,255,.45);border-radius:9px;padding:0px 7px;background:rgba(0,212,255,.06);white-space:nowrap;flex-shrink:0}
+.tsp-badge.gold{color:var(--gold);border-color:rgba(232,200,74,.45);background:rgba(232,200,74,.06)}
+.tsp-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:2px 10px;min-width:0}
+.tsp-kv{white-space:nowrap;font-size:0.6rem;min-width:0}
+.tsp-kv .lbl{color:var(--dim)}
+.tsp-kv b{font-size:0.66rem}
+.tsp-ai-text{color:#7aa5c4;font-size:0.58rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+@container tspzone (max-width:420px){
+  .tsp-row2{grid-template-columns:1fr}
+}
+@container tspzone (max-width:560px){
+  .tsp-row3{grid-template-columns:1fr}
 }
 /* ── CONTAINER QUERIES + FONT SCALING ── */
 .grid-stack-item-content{container-type:inline-size;container-name:panel}
@@ -706,6 +771,42 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   </div>
 
 </div>
+<!-- RISK & SESSION — compact single-line status strip (2026-07-10, converted from card panel) -->
+<div class="risk-strip" id="risk_strip">
+  <div class="risk-strip-track" id="risk_strip_track">
+    <span class="rs-item"><span class="rs-lbl">RISK/TRD</span><span class="rs-val" id="risk_per_trade2" style="color:var(--orange)">--</span><span class="rs-sub" id="risk_pct_lbl">-- equity</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">SL LEFT</span><span class="rs-val" id="daily_sl_left" style="color:var(--red)">--</span><span class="rs-sub" id="daily_sl_limit">$180 lim</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">TRADES</span><span class="rs-val" id="trades_today_lbl" style="color:var(--cyan)">0</span><span class="rs-sub" id="trades_today_sub">today</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">STREAK</span><span class="rs-val" id="streak_val">--</span><span class="rs-sub" id="streak_type">W/L</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">BEST</span><span class="rs-val" id="best_trade">--</span><span class="rs-sub">P&amp;L</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">AVG R</span><span class="rs-val" id="avg_r_today">--</span><span class="rs-sub">today</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">P&amp;L%</span><span class="rs-val" id="daily_pbl_pct">--</span><span class="rs-sub" id="daily_pbl_abs">--</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">T2 SL</span><span class="rs-val" id="t2_equity_sl">--</span><span class="rs-sub">2nd</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">EQUITY</span><span class="rs-val" id="equity" style="color:var(--green)">--</span><span class="rs-sub" id="equity_change_lbl">today</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">BALANCE</span><span class="rs-val" id="balance" style="color:var(--dim)">--</span><span class="rs-sub" id="leverage_lbl2">1:500</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">ACCT</span><span class="rs-val" id="account_id2" style="color:var(--cyan)">--</span><span class="rs-sub" id="leverage_lbl2b">1:500</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">MARGIN</span><span class="rs-val" id="free_margin" style="color:var(--dim)">--</span><span class="rs-sub" id="margin_used_lbl">--% used</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">TODAY W/L</span><span class="rs-val"><span id="sess_wins" style="color:var(--green)">0</span><span style="color:var(--dim)">W</span> <span id="sess_losses" style="color:var(--red)">0</span><span style="color:var(--dim)">L</span></span><span class="rs-sub">today</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">TODAY P&amp;L</span><span class="rs-val" id="sess_pnl" style="color:var(--dim)">--</span><span class="rs-sub">gross</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">SESS STREAK</span><span class="rs-val" id="sess_streak">--</span><span class="rs-sub">W/L</span></span>
+    <span class="rs-div"></span>
+    <span class="rs-item"><span class="rs-lbl">NEXT BAR</span><span class="rs-val" id="sess_nextbar" style="color:var(--orange)">--:--</span><span class="rs-sub">M15</span></span>
+  </div>
+</div>
 <!-- TAB BAR (moved to top — above the AI summary) -->
 <div class="tab-bar">
   <button class="tab-btn t-live active" onclick="switchTab('live')">🟢 LIVE</button>
@@ -784,8 +885,9 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 </div>
 
 <style>
-  .lsf-btn{background:#21262d;color:var(--dim);border:1px solid #30363d;border-radius:5px;padding:1px 8px;font-size:0.64rem;cursor:pointer}
-  .lsf-btn:hover{background:#30363d;color:#fff} .lsf-btn.lsf-on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+  .lsf-btn{appearance:none;-webkit-appearance:none;background:var(--panel2,#0d1e2e);color:var(--dim);border:1px solid rgba(0,212,255,.28);border-radius:5px;padding:2px 9px;font-size:0.6rem;font-weight:700;letter-spacing:.3px;font-family:inherit;cursor:pointer;outline:none;transition:border-color .15s,box-shadow .15s,color .15s}
+  .lsf-btn:hover{background:rgba(0,212,255,.08);color:var(--cyan);border-color:rgba(0,212,255,.55)}
+  .lsf-btn.lsf-on{background:rgba(0,212,255,.14);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 6px rgba(0,212,255,.4),inset 0 0 4px rgba(0,212,255,.18)}
 </style>
 <script>
 (function(){
@@ -824,75 +926,64 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
     var cn=document.getElementById('liveSigCnt'); if(cn) cn.textContent=_shortCount(_liveSigData.length)+' signals';
     if(!d.length){box.innerHTML='<div style="color:var(--dim);font-size:0.72rem;padding:8px 10px;text-align:center">No signals yet</div>';return;}
     box.innerHTML=d.map(function(r){
-      var sc=r.sig==='BUY'?'var(--green)':r.sig==='SELL'?'var(--red)':'var(--dim)';
-      var bg=r.sig==='BUY'?'rgba(0,255,136,0.04)':r.sig==='SELL'?'rgba(255,34,85,0.04)':'transparent';
+      var sc=r.sig==='BUY'?'var(--green)':r.sig==='SELL'?'var(--red)':'var(--cyan)';
       var wp=r.wp?(Number(r.wp)*100).toFixed(2):'--';
       // gold only for an actual directional (BUY/SELL) signal ≥45% — a SKIP row stays dim like its text
       var wc=((r.sig==='BUY'||r.sig==='SELL')&&parseFloat(wp)>=45)?'var(--gold)':'var(--dim)';
-      var rp=r.range==='1'?'<span title="H4 timeframe in tight range (move &lt;0.5%) — our range-phase filter flag" style="font-size:0.62rem;color:var(--orange);border:1px solid var(--orange);border-radius:3px;padding:0 3px;margin-left:4px">H4 RANGE</span>':'';
-      var oc='', sh=_shadowMap[r.bt], _hasR=(r.outcome==='WIN'||r.outcome==='LOSS');
-      // (0) HOLD/EXIT lifecycle badges (Option A, 2026-07-09) — additive only, never replaces the row's
-      // own raw signal/badges above (Fable-5: don't hide the raw per-bar signal, it's what flips come from).
-      var hx='', _hw=_holdWindowFor(r.bt), _exits=_exitWindowsFor(r.bt);
+      var sh=_shadowMap[r.bt], _hasR=(r.outcome==='WIN'||r.outcome==='LOSS');
+      // Extra lifecycle/virtual-result context (HOLD/EXIT/shadow-result/lot) — folded into one
+      // combined tooltip on the row instead of separate always-visible badges (2026-07-10 compact
+      // table redesign); nothing removed, just moved from inline badges to hover detail.
+      var _extra=[], _hw=_holdWindowFor(r.bt), _exits=_exitWindowsFor(r.bt);
       if(_hw){
-        var _holdCol=_hw.dir==='BUY'?'var(--green)':'var(--red)';
-        var _holdTip='Holding '+_hw.dir+' opened '+_gDate(_hw.entryBt,true)+' @'+_hw.ep.toFixed(2)+
-          (_hw.real==='1'?' (a REAL trade was also placed for this entry)':' (paper/virtual only)')+
-          ' — this bar\'s own raw signal ('+(r.sig||'--')+') is shown at left, unchanged; HOLD just means an earlier trade is still open.';
-        hx+='<span title="'+_holdTip+'" style="font-size:0.6rem;font-weight:700;color:'+_holdCol+';opacity:.6;border:1px dotted '+_holdCol+';border-radius:3px;padding:0 4px;margin-left:4px">🔒 HOLD '+_hw.dir+' @'+_hw.ep.toFixed(2)+'</span>';
+        _extra.push('HOLD '+_hw.dir+' opened '+_gDate(_hw.entryBt,true)+' @'+_hw.ep.toFixed(2)+
+          (_hw.real==='1'?' (REAL trade also placed)':' (paper/virtual only)'));
       }
       _exits.forEach(function(w){
-        var _win=(Number(w.R)>=0), _ecol=_win?'var(--green)':'var(--red)';
         var _rTxt2=(Number(w.R)>=0?'+':'')+Number(w.R).toFixed(2)+'R';
-        var _etip='EXIT for the '+w.dir+' opened '+_gDate(w.entryBt,true)+' @'+Number(w.ep).toFixed(2)+' — closed here @'+Number(w.xp).toFixed(2)+' via '+w.exit+' | '+_rTxt2+(w.real==='1'?' (REAL trade)':' (paper/virtual)');
-        hx+='<span title="'+_etip+'" style="font-size:0.62rem;font-weight:700;color:'+_ecol+';border:1px solid '+_ecol+';border-radius:3px;padding:0 4px;margin-left:4px">🏁 EXIT '+(_win?'WIN':'LOSS')+' '+_rTxt2+' <span style="opacity:.65">← '+_gDate(w.entryBt,true)+'</span></span>';
+        _extra.push('EXIT '+(Number(w.R)>=0?'WIN':'LOSS')+' '+_rTxt2+' for '+w.dir+' opened '+_gDate(w.entryBt,true)+' @'+Number(w.ep).toFixed(2)+' closed @'+Number(w.xp).toFixed(2)+' via '+w.exit+(w.real==='1'?' (REAL)':' (paper)'));
       });
-      // (1) SIGNAL virtual result — entry→exit→move for EVERY BUY/SELL, WHETHER a real trade was placed or not.
-      //     Source = shadow ledger (paper-trades every signal with the live exit rules, exactly like backtest).
       if((r.sig==='BUY'||r.sig==='SELL') && sh){
         var _ep=Number(sh.ep)||0, _xp=Number(sh.xp)||0;
-        var _mv=(r.sig==='BUY')?(_xp-_ep):(_ep-_xp);                 // signed price move (lot-independent)
-        var _vcol=(_mv>=0)?'var(--green)':'var(--red)';
+        var _mv=(r.sig==='BUY')?(_xp-_ep):(_ep-_xp);
         var _mvS=(_mv>=0?'+$':'-$')+Math.abs(_mv).toFixed(2);
         var _rTxt=(sh.R>=0?'+':'')+Number(sh.R).toFixed(2)+'R';
-        var _vtip='SIGNAL virtual result (like backtest) — entry '+_ep.toFixed(2)+' → exit '+_xp.toFixed(2)+' | move '+_mvS+' | '+_rTxt+' | exit '+sh.exit+' | '+(sh.real==='1'?'a REAL trade was ALSO placed (exact account $ in CLOSED TRADES + 📒 LEDGER)':'paper only — no real trade placed')+(_hasR?' | account outcome '+r.outcome:'');
-        oc+='<span title="'+_vtip+'" style="font-size:0.62rem;font-weight:700;color:'+_vcol+';border:1px dashed '+_vcol+';border-radius:3px;padding:0 4px;margin-left:4px;font-family:var(--orb)">'
-           +_ep.toFixed(2)+'→'+_xp.toFixed(2)+' '+_mvS+' '+_rTxt+' '+sh.exit+'ᵛ</span>';
+        _extra.push('Signal virtual result: '+_ep.toFixed(2)+'→'+_xp.toFixed(2)+' '+_mvS+' '+_rTxt+' via '+sh.exit+(sh.real==='1'?' (REAL trade also placed)':' (paper only)')+(_hasR?' — account outcome '+r.outcome:''));
       }
-      // (2) If a REAL trade actually CLOSED on this bar, add the account WIN/LOSS chip (separate from the signal result above).
       if(_hasR){
-        var win=(r.outcome==='WIN'); var col=win?'var(--green)':'var(--red)';
         var _rmvN=Number(r.move);
-        var _rmv=(r.move!=='' && !isNaN(_rmvN))?' '+(_rmvN>=0?'+$':'-$')+Math.abs(_rmvN).toFixed(2):'';
-        oc+='<span title="REAL account trade closed '+(win?'in profit':'at a loss')+(_rmv?' | account price move'+_rmv:' (move fills after close)')+' — exact account $ / R in CLOSED TRADES + 📒 LEDGER" style="font-size:0.62rem;font-weight:700;color:'+col+';border:1px solid '+col+';border-radius:3px;padding:0 4px;margin-left:4px">'+(win?'WIN':'LOSS')+_rmv+' <span style="opacity:.7">REAL</span></span>';
+        var _rmv=(r.move!=='' && !isNaN(_rmvN))?' ('+(_rmvN>=0?'+$':'-$')+Math.abs(_rmvN).toFixed(2)+')':'';
+        _extra.push('REAL account trade '+(r.outcome==='WIN'?'WIN':'LOSS')+_rmv);
       }
-      var bwn=Number(r.bw)*100;
-      var bw=(r.bw&&bwn>0)?'<span title="Big-win probability — chance this becomes a large winner" style="font-size:0.62rem;color:var(--purple);margin-left:4px">BW '+bwn.toFixed(2)+'%</span>':'';
       var lotn=Number(r.lot);
-      var lt=(r.lot&&lotn>0)?'<span title="Executed lot size'+((Number(r.sl)>0||Number(r.tp)>0)?(' | SL '+r.sl+' TP '+r.tp):'')+'" style="font-size:0.62rem;color:var(--gold);margin-left:4px">'+lotn.toFixed(2)+' lot</span>':'';
-      var eqn=Number(r.eq);
-      var eqt=(r.eq&&eqn>0)?'<span title="Account equity when this signal was generated" style="font-size:0.62rem;color:var(--dim);margin-left:auto;font-family:var(--orb)">$'+Math.round(eqn).toLocaleString()+'</span>':'';
-      var _rsn=(r.reason||'').replace(/"/g,"'");
-      var rsnTip=_rsn?' title="'+_rsn+'"':'';
-      var rsnTxt=_rsn?'<span style="color:var(--dim);font-size:0.6rem;margin-left:6px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px">'+_rsn+'</span>':'';
-      var _dt=r.bt?_gDate(r.bt,true):r.time;  // "9 જુલાઈ 26 23:15"
+      if(r.lot && lotn>0) _extra.push('Lot '+lotn.toFixed(2)+(Number(r.sl)>0||Number(r.tp)>0?' | SL '+r.sl+' TP '+r.tp:''));
+      var bwn=Number(r.bw)*100;
+      var _dtFull=r.bt||'';
+      var _dtCompact=r.bt?_gDate(r.bt,true):(r.time||'--');
       // trade_action = what MT5 (receiver) did — SEPARATE from the pure engine signal (2026-07-09 decouple)
       var _ta=(r.ta||'').trim();
-      var taCol=_ta==='EXECUTED'?'var(--green)':_ta==='EXEC_FAILED'?'var(--red)':_ta==='HOLD_IN_TRADE'?'var(--cyan)':_ta==='MONITOR'?'var(--blue)':_ta==='OPPOSITE_HANDLED'?'var(--purple)':(_ta.indexOf('BLOCK_')===0?'var(--orange)':'var(--dim)');
-      var taBadge=(_ta && _ta!=='NO_TRADE')?'<span title="What MT5 (receiver) did with this signal — separate from the pure engine signal (provider). BLOCK_*/HOLD_IN_TRADE/EXEC_FAILED = signal fired but no new trade opened." style="font-size:0.58rem;font-weight:700;color:'+taCol+';border:1px solid '+taCol+';border-radius:3px;padding:0 4px;margin-left:4px">'+_ta+'</span>':'';
+      var _taDesc=_ta&&_ta!=='NO_TRADE'?('MT5 action: '+_ta):'';
+      if(_taDesc) _extra.push(_taDesc);
+      var _extraTip=_extra.join(' | ').replace(/"/g,"'");
       // 2026-07-09 (Imtiyaz): a directional signal that did NOT open a new trade (BLOCK_*/HOLD_IN_TRADE/
       // MONITOR/EXEC_FAILED/OPPOSITE_HANDLED — anything except EXECUTED) is the RAW model call, NOT a live
       // trade. Render it struck-through + 🚫 so a blocked SELL can never be misread as a live SELL. This is
       // exactly why the SIGNAL box (gated decision) can show SKIP while the LOG shows this raw signal.
       var _noTrade=(r.sig==='BUY'||r.sig==='SELL') && _ta && _ta!=='EXECUTED';
-      var _sigDisp=_noTrade?('🚫<span style="text-decoration:line-through;opacity:.75">'+r.sig+'</span>'):r.sig;
-      return '<div class="replay-row"'+rsnTip+' style="background:'+bg+';border-left:2px solid '+sc+'">'+
-        '<span title="'+(r.bt||'')+'" style="color:var(--dim);min-width:118px;font-size:0.68rem;font-family:var(--orb);white-space:nowrap">'+_dt+'</span>'+
-        '<span style="color:'+sc+';font-weight:700;min-width:42px">'+_sigDisp+'</span>'+
-        '<span style="color:var(--cyan);min-width:58px;font-family:var(--orb);font-size:0.72rem">'+(r.price?Number(r.price).toFixed(2):'--')+'</span>'+
-        '<span style="color:'+wc+';min-width:44px;font-family:var(--orb)">'+wp+'%</span>'+
-        '<span title="AI HMM regime — current market state (which model is used)" class="hmm-state hmm-'+(r.regime||'')+'" style="font-size:0.66rem;padding:1px 5px;margin-left:2px">'+(r.regime||'--')+'</span>'+taBadge+rp+bw+lt+oc+hx+rsnTxt+eqt+
-      '</div>';
+      var _icon=r.sig==='BUY'?'▲':r.sig==='SELL'?'▼':'⊘';
+      var _actionDisp=_noTrade?('🚫<span style="text-decoration:line-through;opacity:.7">'+_icon+' '+r.sig+'</span>'):(_icon+' '+(r.sig||'--'));
+      var _actionTip=(_noTrade?'Blocked — no trade opened. ':'')+(_extraTip||'raw signal '+(r.sig||'--'));
+      return '<div class="sl-row sl-cols" title="'+(r.bt||'')+(_extraTip?' | '+_extraTip:'')+'">'
+        +'<span class="sl-strip" style="background:'+sc+'"></span>'
+        +'<span class="sl-c-time" title="'+_dtFull+'">'+_dtCompact+'</span>'
+        +'<span class="sl-c-action" style="color:'+sc+'" title="'+_actionTip+'">'+_actionDisp+'</span>'
+        +'<span class="sl-c-price">'+(r.price?Number(r.price).toFixed(2):'--')+'</span>'
+        +'<span class="sl-c-prob" style="color:'+wc+'">'+wp+'%</span>'
+        +'<span class="sl-c-regime"><span class="hmm-state hmm-'+(r.regime||'')+' sl-badge" style="padding:1px 6px;font-size:0.56rem">'+(r.regime||'--')+'</span></span>'
+        +'<span class="sl-c-h4">'+(r.range==='1'?'<span class="sl-badge" title="H4 in tight range (<0.5% move) — range-phase filter flag" style="border-color:var(--orange);color:var(--orange)">H4 RNG</span>':'<span style="color:var(--dim)">—</span>')+'</span>'
+        +'<span class="sl-c-bw" title="Big-win probability — chance this becomes a large winner">'+(bwn>0?'BW '+bwn.toFixed(1)+'%':'—')+'</span>'
+        +'<span class="sl-c-equity">'+(r.eq&&Number(r.eq)>0?'$'+Math.round(Number(r.eq)).toLocaleString():'—')+'</span>'
+      +'</div>';
     }).join('');
   }
   function _loadShadow(){
@@ -1046,15 +1137,18 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
         </div>
       </div>
     </div>
-    <div class="tcard" id="panel_signal_log" style="display:flex;flex-direction:column">
-      <div class="tcard-hdr" style="display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:0.69rem">SIGNAL LOG
-        <span id="liveSigCnt" style="font-size:0.62rem;color:var(--purple)">-- signals</span>
+    <div class="tcard" id="panel_signal_log" style="display:flex;flex-direction:column;overflow:hidden">
+      <div class="tcard-hdr sl-titlebar" style="display:flex;align-items:center;gap:6px;padding:4px 10px;flex:0 0 auto">
+        <span class="sl-title">SIGNAL LOG</span><span id="liveSigCnt" class="sl-count">-- signals</span>
         <span style="flex:1"></span>
-        <button class="lsf-btn lsf-on" id="lsfAll" onclick="_liveSigFilt('all')">All</button>
+        <button class="lsf-btn lsf-on" id="lsfAll" onclick="_liveSigFilt('all')">ALL</button>
         <button class="lsf-btn" id="lsfTrade" onclick="_liveSigFilt('trade')">BUY/SELL</button>
-        <button class="lsf-btn" onclick="_liveSigLoad()">Reload</button>
+        <button class="lsf-btn" onclick="_liveSigLoad()">RELOAD</button>
       </div>
-      <div style="padding:1px 0;overflow-y:auto;flex:1;min-height:0" id="liveSigRows">
+      <div class="sl-table-header sl-cols">
+        <span style="text-align:left">DATE &amp; TIME</span><span>ACTION</span><span>PRICE</span><span>PROBABILITY</span><span>REGIME</span><span class="sl-c-h4">H4 STATE</span><span class="sl-c-bw">BAND W.</span><span style="text-align:right">EQUITY</span>
+      </div>
+      <div class="sl-body" id="liveSigRows">
         <div style="color:var(--dim);font-size:0.72rem;padding:8px 10px;text-align:center">Loading...</div>
       </div>
     </div>
@@ -1069,36 +1163,6 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   </div>
 
   <!-- COL 1: Risk & Session (shown where Signal was) -->
-  <div class="risk-session-col" style="display:flex;flex-direction:column;gap:3px;min-height:0;order:0">
-    <!-- ⑤ RISK & SESSION -->
-    <div class="tcard" id="panel_risk_session">
-      <div class="tcard-hdr" id="risk_hdr">▸ RISK & SESSION</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:3px 3px 1px">
-        <div class="r-cell"><div class="r-key">RISK/TRD</div><div class="r-val" id="risk_per_trade2" style="color:var(--orange);font-size:0.82rem">--</div><div class="r-sub" id="risk_pct_lbl">-- equity</div></div>
-        <div class="r-cell"><div class="r-key">SL LEFT</div><div class="r-val" id="daily_sl_left" style="color:var(--red);font-size:0.82rem">--</div><div class="r-sub" id="daily_sl_limit">$180 lim</div></div>
-        <div class="r-cell"><div class="r-key">TRADES</div><div class="r-val" id="trades_today_lbl" style="color:var(--cyan);font-size:0.82rem">0</div><div class="r-sub" id="trades_today_sub">today</div></div>
-        <div class="r-cell"><div class="r-key">STREAK</div><div class="r-val" id="streak_val" style="font-size:0.82rem">--</div><div class="r-sub" id="streak_type">W/L</div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:1px 3px">
-        <div class="r-cell"><div class="r-key">BEST</div><div class="r-val" id="best_trade" style="font-size:0.82rem">--</div><div class="r-sub">P&L</div></div>
-        <div class="r-cell"><div class="r-key">AVG R</div><div class="r-val" id="avg_r_today" style="font-size:0.82rem">--</div><div class="r-sub">today</div></div>
-        <div class="r-cell"><div class="r-key">P&L%</div><div class="r-val" id="daily_pbl_pct" style="font-size:0.82rem">--</div><div class="r-sub" id="daily_pbl_abs">--</div></div>
-        <div class="r-cell"><div class="r-key">T2 SL</div><div class="r-val" id="t2_equity_sl" style="font-size:0.82rem">--</div><div class="r-sub">2nd</div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:1px 3px">
-        <div class="r-cell"><div class="r-key">EQUITY</div><div class="r-val" id="equity" style="color:var(--green);font-size:0.82rem">--</div><div class="r-sub" id="equity_change_lbl">today</div></div>
-        <div class="r-cell"><div class="r-key">BALANCE</div><div class="r-val" id="balance" style="color:var(--dim);font-size:0.82rem">--</div><div class="r-sub" id="leverage_lbl2">1:500</div></div>
-        <div class="r-cell"><div class="r-key">ACCT</div><div class="r-val" id="account_id2" style="font-size:0.72rem;color:var(--cyan)">--</div><div class="r-sub" id="leverage_lbl2b">1:500</div></div>
-        <div class="r-cell"><div class="r-key">MARGIN</div><div class="r-val" id="free_margin" style="color:var(--dim);font-size:0.82rem">--</div><div class="r-sub" id="margin_used_lbl">--% used</div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:1px 3px 3px">
-        <div class="r-cell"><div class="r-key">TODAY W/L</div><div class="r-val" style="font-size:0.82rem"><span id="sess_wins" style="color:var(--green)">0</span><span style="color:var(--dim)">W</span> <span id="sess_losses" style="color:var(--red)">0</span><span style="color:var(--dim)">L</span></div><div class="r-sub">today</div></div>
-        <div class="r-cell"><div class="r-key">TODAY P&L</div><div class="r-val" id="sess_pnl" style="font-size:0.82rem;color:var(--dim)">--</div><div class="r-sub">gross</div></div>
-        <div class="r-cell"><div class="r-key">STREAK</div><div class="r-val" id="sess_streak" style="font-size:0.82rem">--</div><div class="r-sub">W/L</div></div>
-        <div class="r-cell"><div class="r-key">NEXT BAR</div><div class="r-val" id="sess_nextbar" style="font-size:0.82rem;color:var(--orange)">--:--</div><div class="r-sub">M15</div></div>
-      </div>
-    </div>
-  </div>
 
   <!-- COL 3: Extra column (drag panels here) -->
   <div class="extra-col" style="display:flex;flex-direction:column;gap:3px;order:2;min-height:120px">
@@ -2192,15 +2256,37 @@ function $t(id,val){const e=document.getElementById(id);if(e)e.textContent=val;}
 function $s(id,prop,val){const e=document.getElementById(id);if(e)e.style[prop]=val;}
 function $h(id,val){const e=document.getElementById(id);if(e)e.innerHTML=val;}
 function $c(id,cls){const e=document.getElementById(id);if(e)e.className=cls;}
+// ── RISK & SESSION STRIP — always runs as a continuous round-loop ticker
+// (builds a seamless-loop duplicate, ids stripped so the live data bindings
+// on the real copy stay unique — regardless of whether content overflows).
+function _riskStripSync(){
+  var strip=document.getElementById('risk_strip'), track=document.getElementById('risk_strip_track');
+  if(!strip||!track) return;
+  var oldClone=track.querySelector('.rs-clone'); if(oldClone) oldClone.remove();
+  strip.classList.remove('rs-ticker');
+  var cloneHtml = track.innerHTML.replace(/\sid="[^"]*"/g,'');
+  var cloneEl = document.createElement('span');
+  cloneEl.className = 'rs-clone';
+  cloneEl.style.cssText = 'display:inline-flex;align-items:center';
+  cloneEl.innerHTML = '<span class="rs-div"></span>' + cloneHtml;
+  track.appendChild(cloneEl);
+  var singleWidth = track.scrollWidth / 2;
+  var pxPerSec = 42;
+  var dur = Math.max(18, Math.round(singleWidth / pxPerSec));
+  strip.style.setProperty('--rs-dur', dur+'s');
+  strip.classList.add('rs-ticker');
+}
+var _rsResizeT=null;
+window.addEventListener('resize', function(){ clearTimeout(_rsResizeT); _rsResizeT=setTimeout(function(){ try{_riskStripSync();}catch(e){} }, 250); });
 // ── MAIN LOAD ─────────────────────────────────────────────────
 function renderMarketIntel(mi){
   var box=document.getElementById('market_intel_box'); if(!box) return;
   if(!mi || !mi.trend){ box.innerHTML='<div style="text-align:center"><b style="font-size:0.9rem;color:var(--cyan);letter-spacing:1px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.65rem">— context</span></div>'; return; }
   function pill(lbl,val,vc,bc,tip){
-    return '<span'+(tip?' title="'+tip+'"':'')+' style="white-space:nowrap;font-size:0.62rem"><span style="color:var(--dim)">'+lbl+' </span><b style="color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
+    return '<span class="tsp-kv"'+(tip?' title="'+tip+'"':'')+'><span class="lbl">'+lbl+' </span><b style="color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
   }
   function group(title,pills){
-    return '<span style="font-size:0.54rem;font-weight:700;letter-spacing:.3px;color:var(--cyan);margin-right:5px;white-space:nowrap;border:1px solid rgba(0,212,255,0.35);border-radius:9px;padding:0px 6px">'+title+'</span>'+pills.join('&nbsp;&nbsp;')+' ';
+    return '<div class="tsp-card"><span class="tsp-badge">'+title+'</span><div class="tsp-row">'+pills.join('')+'</div></div>';
   }
   function arr(v){return v>0?'<span style="color:var(--green)">▲</span>':v<0?'<span style="color:var(--red)">▼</span>':'<span style="color:var(--dim)">–</span>';}
   function adxc(v){return v>=25?'var(--green)':v>=20?'var(--orange,#e0a030)':'var(--dim)';}
@@ -2208,7 +2294,7 @@ function renderMarketIntel(mi){
   var agCol=Math.abs(t.agree)>=3?'var(--green)':Math.abs(t.agree)>=1?'var(--orange,#e0a030)':'var(--dim)';
   var imbCol=fl.imbalance==='Bullish'?'var(--green)':fl.imbalance==='Bearish'?'var(--red)':'var(--dim)';
   var diCol=s.di_dir==='BULL'?'var(--green)':s.di_dir==='BEAR'?'var(--red)':'var(--dim)';
-  var gTrend=group('TREND',[
+  var gTrend=group('MARKET',[
     pill('M15',arr(t.m15)), pill('H1',arr(t.h1)), pill('H4',arr(t.h4)),
     pill('AGREE',(t.agree>0?'+':'')+t.agree,agCol), pill('LINE %',t.line_dist)]);
   var gStr=group('STRENGTH',[
@@ -2225,11 +2311,11 @@ function renderMarketIntel(mi){
   var _newsTxt=cx.news||'clear';
   var gCtx=group('CONTEXT',[
     pill('VOL',cx.volatility), pill('SESSION',cx.session,cx.session==='NY'?'var(--green)':'var(--dim)'),
-    '<span title="'+_newsTxt.replace(/"/g,"'")+'" style="white-space:nowrap;display:inline-block;max-width:140px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom"><span style="color:var(--dim)">NEWS </span><b>'+_newsTxt+'</b></span>']);
-  var _div='<span style="color:var(--line,#2a2f38);margin:0 8px">│</span>';
-  box.innerHTML='<b style="font-size:0.68rem;color:var(--cyan);letter-spacing:.4px;margin-right:8px">📊 MARKET</b>'
-    +'<span style="line-height:1.9">'
-    +gTrend+_div+gStr+_div+gStruct+_div+gFlow+_div+gCtx+'</span>';
+    '<span class="tsp-kv" title="'+_newsTxt.replace(/"/g,"'")+'"><span class="lbl">NEWS </span><b style="overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:150px;vertical-align:bottom">'+_newsTxt+'</b></span>']);
+  box.innerHTML='<div class="tsp-zone">'
+    +'<div class="tsp-row2">'+gTrend+gStr+'</div>'
+    +'<div class="tsp-row2">'+gStruct+gFlow+'</div>'
+    +gCtx+'</div>';
 }
 
 function renderAISummary(a, isConfirmed, holdNow, openPos, exitNow, exitInfo, tradeAction){
@@ -2253,13 +2339,13 @@ function renderAISummary(a, isConfirmed, holdNow, openPos, exitNow, exitInfo, tr
   function gr(g){return g?'var(--green)':'var(--red)';}          // good=green / bad=red
   function gyr(v,hi,mid){return v>=hi?'var(--green)':v>=mid?'var(--orange,#e0a030)':'var(--red)';}
   var regCol=a.regime==='Trending'?'var(--green)':a.regime==='Volatile'?'var(--orange,#e0a030)':a.regime==='Ranging'?'var(--red)':'var(--dim)';
-  // pill(label,value,...) → bubble with LABEL on top (small) and VALUE below (large)
+  // pill(label,value,...) → label + bold value, baseline-aligned inline
   function pill(lbl,val,vc,bc,tip){
-    return '<span'+(tip?' title="'+tip+'"':'')+' style="white-space:nowrap;font-size:0.62rem"><span style="color:var(--dim)">'+lbl+' </span><b style="color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
+    return '<span class="tsp-kv"'+(tip?' title="'+tip+'"':'')+'><span class="lbl">'+lbl+' </span><b style="color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
   }
-  // group(title, [pills]) → dim inline title + pills that wrap independently
+  // group(title, [pills]) → bordered card, pill-badge title + evenly-justified pill row
   function group(title,pills){
-    return '<span style="font-size:0.54rem;font-weight:700;letter-spacing:.3px;color:var(--gold);margin-right:5px;white-space:nowrap;border:1px solid rgba(232,200,74,0.35);border-radius:9px;padding:0px 6px">'+title+'</span>'+pills.join('&nbsp;&nbsp;')+' ';
+    return '<div class="tsp-card gold"><span class="tsp-badge gold">'+title+'</span><div class="tsp-row">'+pills.join('')+'</div></div>';
   }
   var _confTag = isConfirmed ? ' <span style="font-size:0.6em;color:var(--green)">✅</span>' : ' <span style="font-size:0.6em;color:var(--orange)">⏳</span>';
   var gDecision=group('DECISION',[
@@ -2272,14 +2358,14 @@ function renderAISummary(a, isConfirmed, holdNow, openPos, exitNow, exitInfo, tr
   // MODELS + VOTES combined: compact letter-code + ✓/✗, full label+% on hover
   function vcol(ok){return ok?'var(--green)':'var(--red)';}
   var V=a.votes||{};
-  function mk(code,fullLbl,prob,vkey){var ok=V[vkey]; return '<span title="'+fullLbl+' '+pct(prob)+'" style="white-space:nowrap"><span style="color:var(--dim)">'+code+'</span><b style="color:'+vcol(ok)+'">'+(ok?'✓':'✗')+'</b></span>';}
+  function mk(code,fullLbl,prob,vkey){var ok=V[vkey]; return '<span class="tsp-kv" title="'+fullLbl+' '+pct(prob)+'"><span class="lbl">'+code+' </span><b style="color:'+vcol(ok)+'">'+(ok?'✓':'✗')+'</b></span>';}
   var hmmOk=V['HMM actionable'];
   var gModels=group('MODELS ('+a.agreement+'/'+a.agreement_max+')',[
     mk('M',"Main (combined)",m.main,'Main (combined)'),
     mk('S',"Regime (state)",m.state,'Regime (state)'),
     mk('D',"Direction",m.direction,'Direction'),
     mk('B',"BigWin",m.bigwin,'BigWin'),
-    '<span title="HMM actionable: '+a.regime+'" style="white-space:nowrap"><span style="color:var(--dim)">H</span><b style="color:'+vcol(hmmOk)+'">'+(hmmOk?'✓':'✗')+'</b></span>']);
+    '<span class="tsp-kv" title="HMM actionable: '+a.regime+'"><span class="lbl">H </span><b style="color:'+vcol(hmmOk)+'">'+(hmmOk?'✓':'✗')+'</b></span>']);
   var gRisk=group('RISK',[
     pill('EXP','$'+(a.expected_move_usd||0),'var(--cyan)'),
     pill('SL','$'+(a.suggested_sl_usd||0),'var(--red)'),
@@ -2295,17 +2381,15 @@ function renderAISummary(a, isConfirmed, holdNow, openPos, exitNow, exitInfo, tr
   if(_aiBlocked && (_dSig==='BUY'||_dSig==='SELL')){
     _blkBanner = '<div style="background:rgba(255,23,68,0.08);border:1px solid rgba(255,107,107,0.3);border-radius:6px;padding:4px 10px;margin-bottom:6px;font-size:0.78rem;color:#ff6b6b;font-weight:600">⛔ BLOCKED — '+_dSig+' signal blocked by <span style="color:#ffa07a">'+(_aiBlockLabels[tradeAction]||tradeAction)+'</span> filter</div>';
   }
-  var _div='<span style="color:var(--line,#2a2f38);margin:0 8px">│</span>';
   var _invFull=(a.invalidation||'—')+(a.why?' | '+a.why:'');
-  box.innerHTML=
-    '<div style="display:flex;align-items:baseline;gap:8px">'
-    +'<b style="font-size:0.68rem;color:var(--gold);letter-spacing:.4px;white-space:nowrap;flex-shrink:0">🧠 AI</b>'
-    +'<span title="'+_invFull.replace(/"/g,"'")+'" style="font-size:0.56rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1">'
-    +'<span style="color:var(--orange,#e0a030);font-weight:600">⚠</span> '+_invFull+'</span>'
-    +'</div>'
-    +_blkBanner
-    +'<span style="line-height:1.9">'
-    +gDecision+_div+gConf+_div+gModels+_div+gRisk+_div+gHist+'</span>';
+  var gAI='<div class="tsp-card gold horiz"><span class="tsp-badge gold">AI</span>'
+    +'<span class="tsp-ai-text" title="'+_invFull.replace(/"/g,"'")+'">'
+    +'<span style="color:var(--orange,#e0a030);font-weight:700">⚠</span> '+_invFull+'</span></div>';
+  box.innerHTML='<div class="tsp-zone">'
+    +gAI+_blkBanner
+    +'<div class="tsp-row2">'+gDecision+gConf+'</div>'
+    +'<div class="tsp-row3">'+gModels+gRisk+gHist+'</div>'
+    +'</div>';
 }
 
 async function load(){
@@ -2383,6 +2467,7 @@ async function load(){
     const _exitNow = !!_exitInfo;
     try { renderAISummary(d.ai_summary || {}, _isConf, _holdNow, _openPos, _exitNow, _exitInfo, d.trade_action); } catch(e){}
     try { renderMarketIntel(d.market_intel || {}); } catch(e){}
+    try { if(typeof _fitAiMarketPanel==='function') _fitAiMarketPanel(); } catch(e){}
 
     // ── TRADE LIFECYCLE PANEL ─────────────────────────────────
     {
@@ -3159,6 +3244,7 @@ async function load(){
       const _snb=document.getElementById('sess_nextbar');
       if(_snb){const _nb=document.getElementById('ms_countdown');if(_nb)_snb.textContent=_nb.textContent;}
     }
+    try { _riskStripSync(); } catch(e){}
     $t('active_model_lbl', (d.active_hmm_state||'--').toLowerCase());
     $t('active_model_lbl2', (d.active_hmm_state||'--').toLowerCase());
     $t('active_auc_lbl', 'AUC: '+(d.active_model_auc ? d.active_model_auc.toFixed(4) : '--'));
@@ -3941,11 +4027,10 @@ function fitDashboardText(){}
 
 // ── PANEL CONFIGURATION ──────────────────────────────────────
 const PANEL_CONFIG = {
-  ai_market:       { el:'#panel_ai_market',       title:'AI + Market',          w:12, h:2, minW:4, minH:2, tab:'live',  priority:1  },
+  ai_market:       { el:'#panel_ai_market',       title:'AI + Market',          w:12, h:2, minW:4, minH:1, tab:'live',  priority:1  },
   open_trades:     { el:'#panel_open_trades',     title:'Open Trades',          w:12, h:2, minW:6, minH:2, tab:'live',  priority:5  },
-  risk_session:    { el:'#panel_risk_session',     title:'Risk & Session',       w:3,  h:7, minW:3, minH:3, tab:'live',  priority:6  },
-  signal:          { el:'#panel_signal',          title:'Signal + Lifecycle',   w:5,  h:7, minW:3, minH:4, tab:'live',  priority:7  },
-  signal_log:      { el:'#panel_signal_log',      title:'Signal Log',           w:4,  h:7, minW:3, minH:3, tab:'live',  priority:9  },
+  signal:          { el:'#panel_signal',          title:'Signal + Lifecycle',   w:7,  h:7, minW:3, minH:4, tab:'live',  priority:7  },
+  signal_log:      { el:'#panel_signal_log',      title:'Signal Log',           w:5,  h:7, minW:3, minH:3, tab:'live',  priority:9  },
   signal_history:  { el:'#signal_history_panel',  title:'Signal History',       w:12, h:2, minW:4, minH:2, tab:'live',  priority:10 },
   hours_heatmap:   { el:'#hours_heatmap_wrap',    title:'Hours Heatmap',        w:12, h:2, minW:6, minH:1, tab:'live',  priority:11 },
   closed_trades:   { el:'#panel_closed_trades',   title:'Closed Trades',        w:12, h:3, minW:6, minH:2, tab:'live',  priority:13 },
@@ -3963,6 +4048,34 @@ var _gsEditMode = false;
 var _gsLayoutBeforeEdit = null;
 var GS_LAYOUT_KEY = 'quantGoldDashboardLayout_v1';
 var _gsCurrentTab;
+
+// ── AI+MARKET PANEL — content-based auto-fit height (2026-07-10) ──
+// #panel_ai_market's actual rendered height varies with live data (invalidation
+// text length, number of wrapped lines). Only re-layout the GridStack row when
+// the required row count actually changes, so stable content across polls
+// doesn't cause repeated reflow.
+var _aiMarketLastH = null;
+function _fitAiMarketPanel(){
+  if(!_gsGrid || _gsEditMode) return;
+  var panel = document.getElementById('panel_ai_market');
+  if(!panel) return;
+  var wrap = panel.closest('.grid-stack-item');
+  if(!wrap) return;
+  var cellH = 60, marginPx = 4;
+  var contentH = panel.scrollHeight;
+  var neededH = Math.max(1, Math.ceil((contentH + marginPx) / (cellH + marginPx)));
+  if(neededH === _aiMarketLastH) return;
+  _aiMarketLastH = neededH;
+  var curH = parseInt(wrap.getAttribute('gs-h'), 10);
+  if(neededH === curH) return;
+  var x = parseInt(wrap.getAttribute('gs-x'), 10) || 0;
+  var y = parseInt(wrap.getAttribute('gs-y'), 10) || 0;
+  var w = parseInt(wrap.getAttribute('gs-w'), 10) || 12;
+  var minW = parseInt(wrap.getAttribute('gs-min-w'), 10) || 4;
+  _gsGrid.removeWidget(wrap, false);
+  _gsGrid.addWidget(wrap, {x:x, y:y, w:w, h:neededH, minW:minW, minH:1, autoPosition:false});
+  _gsGrid.compact();
+}
 
 function gsInitDashboard(){
   if(!_gsCurrentTab) _gsCurrentTab = 'live';
@@ -4048,6 +4161,7 @@ function gsInitDashboard(){
 
   // Apply initial tab filter
   _gsApplyTabFilter(_gsCurrentTab);
+  try { _fitAiMarketPanel(); } catch(e){}
 
   // Canvas resize observer
   if('ResizeObserver' in window){
