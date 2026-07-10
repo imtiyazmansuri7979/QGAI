@@ -265,7 +265,8 @@ def get_signal_history(limit: int = 40) -> list:
     try:
         conn = db_conn()
         rows = conn.execute(
-            "SELECT bar_time, mode, signal, win_prob, hmm_state, reason, price "
+            "SELECT bar_time, mode, signal, win_prob, hmm_state, reason, price, "
+            "COALESCE(trade_action, '') "
             "FROM signals WHERE mode != 'BACKTEST' "
             "ORDER BY bar_time DESC LIMIT ?", (limit,)).fetchall()
         conn.close()
@@ -275,7 +276,8 @@ def get_signal_history(limit: int = 40) -> list:
         out = [{"bar_time": r[0], "mode": r[1], "signal": r[2],
                 "win_prob": r[3], "eff_prob": _thr.get(r[4], round(_b, 2)),
                 "hmm_state": r[4], "reason": r[5] or "",
-                "price": r[6]}   # entry price — shown atop BUY/SELL bars in the history chart
+                "price": r[6],
+                "trade_action": r[7] or ""}
                for r in rows]
         out.reverse()
         return out
@@ -481,7 +483,7 @@ def _open_trade_risk(virtual_trades, current_price):
 # ── Dashboard writer ──────────────────────────────────────────
 
 def write_dashboard(session, virtual_trades, current_price, last_signal=None,
-                    engine_meta=None, signal_confirmed=False):
+                    engine_meta=None, signal_confirmed=False, trade_action=""):
     """
     Build and write dashboard.json.
     Called every bar and immediately after deal close.
@@ -787,6 +789,7 @@ def write_dashboard(session, virtual_trades, current_price, last_signal=None,
             # True when the box is showing a CACHED past BUY/SELL (current bar was SKIP) — lets the
             # UI show a "🕒 last signal @ HH:MM" hint so it isn't mistaken for the current bar.
             "signal_is_cached":   _sig_cached,
+            "trade_action":       trade_action,
             "state_prob":         state_prob,
             "dir_prob":           dir_prob,
             "active_hmm_state":   hmm_state,

@@ -29,6 +29,30 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 **No trading logic modified.** All signal/trade/polling/bridge code untouched.
 
+## 2026-07-10 — Dashboard: blocked signal display (Imtiyaz/Anisa)
+**What:** When a BUY/SELL signal is blocked by a filter (BLOCK_RANGE, BLOCK_CTF, BLOCK_PULLBACK, BLOCK_SMMA, BLOCK_ADX, BLOCK_SLOT), the dashboard now clearly shows it as blocked instead of showing a bright active signal that could be misread as a live trade.
+
+**Changes:**
+- `bridge_main.py`: Pass `trade_action` to every `write_dashboard()` call (MONITOR, BLOCK_SLOT, OPPOSITE_HANDLED, RESUME_SKIP, and computed BLOCK_* from filter chain)
+- `bridge_dashboard.py`: Accept `trade_action=""` param in `write_dashboard()`, include in JSON output; `get_signal_history()` now includes `trade_action` from SQLite
+- `dashboard.html` — 4 display locations updated:
+  1. **SIGNAL hero box**: "SELL BLOCKED" in gray (#555) + dimmed (opacity 0.6) + "⛔ range-phase H4 chop" tag
+  2. **AI Decision Summary**: red "⛔ BLOCKED — SELL signal blocked by [filter]" banner above the pill groups
+  3. **Signal History chart**: blocked bars drawn with hatched pattern + very low opacity
+  4. **Overnight replay / Signal History table**: blocked rows dimmed + strikethrough signal text + BLK RANGE badge
+
+**No trading logic modified.** Only display layer; all block decisions remain in `bridge_main.py`.
+
+## 2026-07-10 — Dashboard: Signal+Lifecycle merge + empty-space fix (Anisa)
+**What:** (1) Merged SIGNAL card and TRADE LIFECYCLE into one combined panel ("Signal + Lifecycle"). (2) Fixed 180px empty space above OPEN TRADES caused by hidden conditional panels (danger_banner, sl_progress_wrap) occupying GridStack grid positions even when display:none.
+
+**Changes in `dashboard.html`:**
+- Lifecycle HTML moved inside `#panel_signal` after sig-hero-reason; separate `#panel_lifecycle` wrapper removed
+- GridStack config: merged into one entry `signal: {title:'Signal + Lifecycle', w:5, h:6}`
+- **Empty-space fix:** Removed `danger_banner` and `sl_progress_wrap` from `PANEL_CONFIG` entirely — they're conditional bars, not persistent panels. During GridStack init, they're moved just above the grid as plain DOM elements (shown/hidden via existing CSS `.show` class and `display:none`). This eliminates the 180px gap (3 GridStack rows × 60px) that appeared between Market Intelligence and Open Trades when no trade was open and daily loss was below 70%.
+
+**No trading logic modified.**
+
 ---
 
 ## 2026-07-09 — Feature leakage fix: prune `corr_imp_ratio` + fix `in_range_phase` H4 lookahead (Imtiyaz)

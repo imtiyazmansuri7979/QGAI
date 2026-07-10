@@ -563,7 +563,7 @@ def run():
                            "MONITOR", trade_action="MONITOR", equity=_cur_equity, trading_equity=_cur_trading_eq)
                 write_dashboard(session, core.virtual_trades, tick.bid,
                                 result, _engine_meta(engine),
-                                signal_confirmed=True)
+                                signal_confirmed=True, trade_action="MONITOR")
                 time.sleep(POLL_SEC)   # FIX #6: vSL must stay monitored (1s heartbeat)
                 continue
 
@@ -574,7 +574,7 @@ def run():
                            "LIVE", trade_action="BLOCK_SLOT", equity=_cur_equity, trading_equity=_cur_trading_eq)
                 write_dashboard(session, core.virtual_trades, tick.bid,
                                 result, _engine_meta(engine),
-                                signal_confirmed=True)
+                                signal_confirmed=True, trade_action="BLOCK_SLOT")
                 time.sleep(POLL_SEC)   # FIX #6: vSL must stay monitored (1s heartbeat)
                 continue
 
@@ -587,7 +587,7 @@ def run():
                                "LIVE", lot=0.0, trade_action="OPPOSITE_HANDLED", equity=_cur_equity, trading_equity=_cur_trading_eq)
                     write_dashboard(session, core.virtual_trades, tick.bid,
                                     result, _engine_meta(engine),
-                                    signal_confirmed=True)
+                                    signal_confirmed=True, trade_action="OPPOSITE_HANDLED")
                     time.sleep(POLL_SEC)   # FIX #6: vSL must stay monitored (1s heartbeat)
                     continue
 
@@ -679,7 +679,7 @@ def run():
                                        getattr(CFG.filters, "resume_prompt_timeout_s", 60.0)):
                         log.info("  â­ Resume: skipped the last signal — waiting for the next one")
                         log_signal(bar_time, signal, result, _px0, "LIVE", trade_action="RESUME_SKIP", equity=_cur_equity, trading_equity=_cur_trading_eq)
-                        write_dashboard(session, core.virtual_trades, tick.bid, result, _engine_meta(engine), signal_confirmed=True)
+                        write_dashboard(session, core.virtual_trades, tick.bid, result, _engine_meta(engine), signal_confirmed=True, trade_action="RESUME_SKIP")
                         time.sleep(POLL_SEC)
                         continue
                 # FIX #16: execute FIRST, then log the REAL lot size
@@ -697,9 +697,14 @@ def run():
                 log_signal(bar_time, signal, result, float(live_ohlc["close"].iloc[-1]),
                            "LIVE", trade_action=_ta, equity=_cur_equity, trading_equity=_cur_trading_eq)
 
+            _dash_ta = ("BLOCK_RANGE" if _range_block else
+                        "BLOCK_CTF" if _ctf_block else
+                        "BLOCK_PULLBACK" if _pb_block else
+                        "BLOCK_SMMA" if _smma_block else
+                        "BLOCK_ADX" if _adx_block else "")
             write_dashboard(session, core.virtual_trades, tick.bid,
                             result, _engine_meta(engine),
-                            signal_confirmed=True)
+                            signal_confirmed=True, trade_action=_dash_ta)
             time.sleep(POLL_SEC)   # FIX #6: vSL monitored right after entry (1s heartbeat)
 
         except KeyboardInterrupt:
