@@ -2200,7 +2200,7 @@ function renderMarketIntel(mi){
     return '<span'+(tip?' title="'+tip+'"':'')+' style="white-space:nowrap;font-size:0.62rem"><span style="color:var(--dim)">'+lbl+' </span><b style="color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
   }
   function group(title,pills){
-    return '<span style="font-size:0.56rem;font-weight:700;letter-spacing:.3px;color:var(--cyan);margin-right:4px;white-space:nowrap">'+title+'</span>'+pills.join('&nbsp;&nbsp;')+' ';
+    return '<span style="font-size:0.54rem;font-weight:700;letter-spacing:.3px;color:var(--cyan);margin-right:5px;white-space:nowrap;border:1px solid rgba(0,212,255,0.35);border-radius:9px;padding:0px 6px">'+title+'</span>'+pills.join('&nbsp;&nbsp;')+' ';
   }
   function arr(v){return v>0?'<span style="color:var(--green)">▲</span>':v<0?'<span style="color:var(--red)">▼</span>':'<span style="color:var(--dim)">–</span>';}
   function adxc(v){return v>=25?'var(--green)':v>=20?'var(--orange,#e0a030)':'var(--dim)';}
@@ -2259,7 +2259,7 @@ function renderAISummary(a, isConfirmed, holdNow, openPos, exitNow, exitInfo, tr
   }
   // group(title, [pills]) → dim inline title + pills that wrap independently
   function group(title,pills){
-    return '<span style="font-size:0.56rem;font-weight:700;letter-spacing:.3px;color:var(--gold);margin-right:4px;white-space:nowrap">'+title+'</span>'+pills.join('&nbsp;&nbsp;')+' ';
+    return '<span style="font-size:0.54rem;font-weight:700;letter-spacing:.3px;color:var(--gold);margin-right:5px;white-space:nowrap;border:1px solid rgba(232,200,74,0.35);border-radius:9px;padding:0px 6px">'+title+'</span>'+pills.join('&nbsp;&nbsp;')+' ';
   }
   var _confTag = isConfirmed ? ' <span style="font-size:0.6em;color:var(--green)">✅</span>' : ' <span style="font-size:0.6em;color:var(--orange)">⏳</span>';
   var gDecision=group('DECISION',[
