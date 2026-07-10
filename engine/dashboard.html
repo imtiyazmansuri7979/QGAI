@@ -3949,7 +3949,6 @@ const PANEL_CONFIG = {
   signal_log:      { el:'#panel_signal_log',      title:'Signal Log',           w:4,  h:7, minW:3, minH:3, tab:'live',  priority:9  },
   signal_history:  { el:'#signal_history_panel',  title:'Signal History',       w:12, h:2, minW:4, minH:2, tab:'live',  priority:10 },
   hours_heatmap:   { el:'#hours_heatmap_wrap',    title:'Hours Heatmap',        w:12, h:2, minW:6, minH:1, tab:'live',  priority:11 },
-  feedback:        { el:'#feedback_panel',        title:'AI Feedback',          w:12, h:2, minW:4, minH:2, tab:'live',  priority:12 },
   closed_trades:   { el:'#panel_closed_trades',   title:'Closed Trades',        w:12, h:3, minW:6, minH:2, tab:'live',  priority:13 },
   slot_timeline:   { el:'#panel_slot_timeline',   title:'Slot Timeline',        w:12, h:2, minW:6, minH:1, tab:'stats', priority:14 },
   health:          { el:'#health_card',           title:'System Health',        w:6,  h:4, minW:4, minH:2, tab:'stats', priority:15 },
@@ -3984,6 +3983,11 @@ function gsInitDashboard(){
   ['danger_banner','sl_progress_wrap'].forEach(function(eid){
     var el = document.getElementById(eid);
     if(el) gridEl.parentNode.insertBefore(el, gridEl);
+  });
+  // Move conditional panels that render below the grid when active
+  ['feedback_panel'].forEach(function(eid){
+    var el = document.getElementById(eid);
+    if(el) gridEl.parentNode.insertBefore(el, gridEl.nextSibling);
   });
 
   var sortedPanels = Object.entries(PANEL_CONFIG).sort(function(a,b){ return a[1].priority - b[1].priority; });
