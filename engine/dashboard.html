@@ -716,13 +716,14 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   <span style="flex:1"></span>
   <span style="font-size:0.62rem;color:var(--dim)">Drag headers to move · Drag edges to resize</span>
 </div>
-<!-- AI DECISION SUMMARY (one box, refreshed every bar) -->
-<div id="ai_summary_box" style="margin:4px 10px;padding:4px 10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid var(--line,#2a2f38);font-size:0.8rem;line-height:1.35">
-  <div style="text-align:center"><b style="font-size:0.9rem;color:var(--gold);letter-spacing:1px">🧠 AI DECISION SUMMARY</b> <span style="color:var(--dim);font-size:0.65rem">— waiting for signal…</span></div>
-</div>
-<!-- MARKET INTELLIGENCE (context box below AI summary) -->
-<div id="market_intel_box" style="margin:0 10px 4px;padding:4px 10px;border-radius:10px;background:rgba(0,213,255,0.03);border:1px solid var(--line,#2a2f38);font-size:0.8rem;line-height:1.35">
-  <div style="text-align:center"><b style="font-size:0.9rem;color:var(--cyan);letter-spacing:1px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.65rem">— context</span></div>
+<!-- AI DECISION SUMMARY + MARKET INTELLIGENCE — merged into one panel (2026-07-10, Option B) -->
+<div class="tcard" id="panel_ai_market" style="margin:4px 10px;padding:0;font-size:0.8rem;line-height:1.35">
+  <div id="ai_summary_box" style="padding:4px 10px">
+    <div style="text-align:center"><b style="font-size:0.9rem;color:var(--gold);letter-spacing:1px">🧠 AI DECISION SUMMARY</b> <span style="color:var(--dim);font-size:0.65rem">— waiting for signal…</span></div>
+  </div>
+  <div id="market_intel_box" style="padding:4px 10px;border-top:1px solid var(--line,#2a2f38)">
+    <div style="text-align:center"><b style="font-size:0.9rem;color:var(--cyan);letter-spacing:1px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.65rem">— context</span></div>
+  </div>
 </div>
 <!-- 2026-06-28: SIGNALS tab removed — the 📋 SIGNAL LOG lives inline in the main view (no duplicate).
      signals.html still exists standalone if a full-screen view is ever needed. -->
@@ -3942,8 +3943,7 @@ function fitDashboardText(){}
 
 // ── PANEL CONFIGURATION ──────────────────────────────────────
 const PANEL_CONFIG = {
-  ai_summary:      { el:'#ai_summary_box',       title:'AI Decision Summary',  w:12, h:2, minW:4, minH:1, tab:'live',  priority:1  },
-  market_intel:    { el:'#market_intel_box',      title:'Market Intelligence',  w:12, h:2, minW:4, minH:1, tab:'live',  priority:2  },
+  ai_market:       { el:'#panel_ai_market',       title:'AI + Market',          w:12, h:3, minW:4, minH:2, tab:'live',  priority:1  },
   open_trades:     { el:'#panel_open_trades',     title:'Open Trades',          w:12, h:2, minW:6, minH:2, tab:'live',  priority:5  },
   risk_session:    { el:'#panel_risk_session',     title:'Risk & Session',       w:3,  h:7, minW:3, minH:3, tab:'live',  priority:6  },
   signal:          { el:'#panel_signal',          title:'Signal + Lifecycle',   w:5,  h:7, minW:3, minH:4, tab:'live',  priority:7  },
