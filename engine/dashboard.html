@@ -250,10 +250,11 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 #panel_risk_session,#panel_signal,#panel_signal_log{height:100%;box-sizing:border-box;display:flex;flex-direction:column}
 #liveSigRows .replay-row{height:26px;min-height:26px;padding:0 10px;overflow:hidden}
 /* ── AI + MARKET PANEL — 2-column split that reflows with box width ── */
-.ai-market-grid{display:grid;grid-template-columns:1fr}
+.ai-market-grid{display:grid;grid-template-columns:minmax(0,1fr)}
+#ai_summary_box,#market_intel_box{min-width:0;overflow-wrap:break-word}
 #market_intel_box{border-top:1px solid var(--line,#2a2f38)}
 @container panel (min-width:640px){
-  .ai-market-grid{grid-template-columns:1fr 1fr}
+  .ai-market-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   #ai_summary_box{padding-right:14px}
   #market_intel_box{border-top:none;border-left:1px solid var(--line,#2a2f38);padding-left:14px}
 }
@@ -2196,16 +2197,10 @@ function renderMarketIntel(mi){
   var box=document.getElementById('market_intel_box'); if(!box) return;
   if(!mi || !mi.trend){ box.innerHTML='<div style="text-align:center"><b style="font-size:0.9rem;color:var(--cyan);letter-spacing:1px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.65rem">— context</span></div>'; return; }
   function pill(lbl,val,vc,bc,tip){
-    return '<span'+(tip?' title="'+tip+'"':'')+' style="display:inline-flex;flex-direction:column;align-items:center;gap:0px;padding:1px 6px 2px;border-radius:7px;'
-      +'background:rgba(255,255,255,0.045);border:1px solid '+(bc||'var(--line,#2a2f38)')+';white-space:nowrap">'
-      +'<span style="font-size:0.56rem;font-weight:600;letter-spacing:.3px;color:var(--dim);line-height:1.05">'+lbl+'</span>'
-      +'<b style="font-size:0.76rem;line-height:1.05;color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
+    return '<span'+(tip?' title="'+tip+'"':'')+' style="white-space:nowrap;font-size:0.62rem"><span style="color:var(--dim)">'+lbl+' </span><b style="color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
   }
   function group(title,pills){
-    return '<div style="display:inline-flex;flex-direction:column;justify-content:space-between;align-items:center;gap:2px;padding:2px 5px 3px;border-radius:7px;'
-      +'background:rgba(255,255,255,0.02);border:1px solid var(--line,#2a2f38)">'
-      +'<span style="font-size:0.6rem;font-weight:700;letter-spacing:.4px;color:var(--cyan);text-align:center">'+title+'</span>'
-      +'<div style="display:flex;flex-wrap:nowrap;gap:3px;align-items:center;justify-content:center">'+pills.join('')+'</div></div>';
+    return '<span style="font-size:0.56rem;font-weight:700;letter-spacing:.3px;color:var(--cyan);margin-right:4px;white-space:nowrap">'+title+'</span>'+pills.join('&nbsp;&nbsp;')+' ';
   }
   function arr(v){return v>0?'<span style="color:var(--green)">▲</span>':v<0?'<span style="color:var(--red)">▼</span>':'<span style="color:var(--dim)">–</span>';}
   function adxc(v){return v>=25?'var(--green)':v>=20?'var(--orange,#e0a030)':'var(--dim)';}
@@ -2221,18 +2216,20 @@ function renderMarketIntel(mi){
     pill('H4 ADX',s.h4_adx,adxc(s.h4_adx),null,'એન્જિન EWM-ADX(14) — MT5 ના Wilder ADX થી અલગ પદ્ધતિ (closed bars + forming bar, દર M15 update). Model આ જ ADX પર trained. MT5 પર match જોવા ADX Wilder મૂકો.'),
     pill('DI',s.di_dir,diCol)]);
   var gStruct=group('STRUCTURE',[
-    pill('H4 R',st.h4_resist!=null?st.h4_resist:'—'), pill('H4 S',st.h4_support!=null?st.h4_support:'—'),
-    pill('H1 R',st.h1_resist!=null?st.h1_resist:'—'), pill('H1 S',st.h1_support!=null?st.h1_support:'—'),
+    pill('H4 R/S',(st.h4_resist!=null?st.h4_resist:'—')+'/'+(st.h4_support!=null?st.h4_support:'—')),
+    pill('H1 R/S',(st.h1_resist!=null?st.h1_resist:'—')+'/'+(st.h1_support!=null?st.h1_support:'—')),
     pill('IN-OB',st.in_ob?'YES':'no',st.in_ob?'var(--green)':'var(--dim)')]);
   var gFlow=group('FLOW',[
     pill('PHASE',fl.phase,'var(--cyan)'), pill('IMBAL',fl.imbalance,imbCol),
     pill('CORR',fl.corr_ratio!=null?fl.corr_ratio:'—')]);
+  var _newsTxt=cx.news||'clear';
   var gCtx=group('CONTEXT',[
     pill('VOL',cx.volatility), pill('SESSION',cx.session,cx.session==='NY'?'var(--green)':'var(--dim)'),
-    pill('NEWS',cx.news||'clear')]);
-  box.innerHTML='<div style="text-align:center;margin-bottom:3px"><b style="font-size:0.74rem;color:var(--cyan);letter-spacing:.6px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.56rem">— context behind the decision</span></div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:stretch;justify-content:center;row-gap:4px">'
-    +gTrend+gStr+gStruct+gFlow+gCtx+'</div>';
+    '<span title="'+_newsTxt.replace(/"/g,"'")+'" style="white-space:nowrap;display:inline-block;max-width:140px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom"><span style="color:var(--dim)">NEWS </span><b>'+_newsTxt+'</b></span>']);
+  var _div='<span style="color:var(--line,#2a2f38);margin:0 8px">│</span>';
+  box.innerHTML='<b style="font-size:0.68rem;color:var(--cyan);letter-spacing:.4px;margin-right:8px">📊 MARKET</b>'
+    +'<span style="line-height:1.9">'
+    +gTrend+_div+gStr+_div+gStruct+_div+gFlow+_div+gCtx+'</span>';
 }
 
 function renderAISummary(a, isConfirmed, holdNow, openPos, exitNow, exitInfo, tradeAction){
@@ -2258,17 +2255,11 @@ function renderAISummary(a, isConfirmed, holdNow, openPos, exitNow, exitInfo, tr
   var regCol=a.regime==='Trending'?'var(--green)':a.regime==='Volatile'?'var(--orange,#e0a030)':a.regime==='Ranging'?'var(--red)':'var(--dim)';
   // pill(label,value,...) → bubble with LABEL on top (small) and VALUE below (large)
   function pill(lbl,val,vc,bc,tip){
-    return '<span'+(tip?' title="'+tip+'"':'')+' style="display:inline-flex;flex-direction:column;align-items:center;gap:0px;padding:1px 6px 2px;border-radius:7px;'
-      +'background:rgba(255,255,255,0.045);border:1px solid '+(bc||'var(--line,#2a2f38)')+';white-space:nowrap">'
-      +'<span style="font-size:0.56rem;font-weight:600;letter-spacing:.3px;color:var(--dim);line-height:1.05">'+lbl+'</span>'
-      +'<b style="font-size:0.76rem;line-height:1.05;color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
+    return '<span'+(tip?' title="'+tip+'"':'')+' style="white-space:nowrap;font-size:0.62rem"><span style="color:var(--dim)">'+lbl+' </span><b style="color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
   }
-  // group(title, [pills]) → a bordered cluster, heading + pills all CENTER-aligned
+  // group(title, [pills]) → dim inline title + pills that wrap independently
   function group(title,pills){
-    return '<div style="display:inline-flex;flex-direction:column;justify-content:space-between;align-items:center;gap:2px;padding:2px 5px 3px;border-radius:7px;'
-      +'background:rgba(255,255,255,0.02);border:1px solid var(--line,#2a2f38)">'
-      +'<span style="font-size:0.6rem;font-weight:700;letter-spacing:.4px;color:var(--gold);text-align:center">'+title+'</span>'
-      +'<div style="display:flex;flex-wrap:nowrap;gap:3px;align-items:center;justify-content:center">'+pills.join('')+'</div></div>';
+    return '<span style="font-size:0.56rem;font-weight:700;letter-spacing:.3px;color:var(--gold);margin-right:4px;white-space:nowrap">'+title+'</span>'+pills.join('&nbsp;&nbsp;')+' ';
   }
   var _confTag = isConfirmed ? ' <span style="font-size:0.6em;color:var(--green)">✅</span>' : ' <span style="font-size:0.6em;color:var(--orange)">⏳</span>';
   var gDecision=group('DECISION',[
@@ -2278,46 +2269,43 @@ function renderAISummary(a, isConfirmed, holdNow, openPos, exitNow, exitInfo, tr
   var gConf=group('CONFIDENCE',[
     pill('AGREE',dots+' '+a.agreement+'/'+a.agreement_max,confCol,confCol),
     pill('LEVEL',a.confidence,confCol,confCol)]);
-  // MODELS + VOTES combined: each model shows its prob + ✓/✗ (colored by vote)
+  // MODELS + VOTES combined: compact letter-code + ✓/✗, full label+% on hover
   function vcol(ok){return ok?'var(--green)':'var(--red)';}
   var V=a.votes||{};
-  function mk(lbl,prob,vkey){var ok=V[vkey]; return pill(lbl, pct(prob)+' '+(ok?'✓':'✗'), vcol(ok), vcol(ok));}
+  function mk(code,fullLbl,prob,vkey){var ok=V[vkey]; return '<span title="'+fullLbl+' '+pct(prob)+'" style="white-space:nowrap"><span style="color:var(--dim)">'+code+'</span><b style="color:'+vcol(ok)+'">'+(ok?'✓':'✗')+'</b></span>';}
   var hmmOk=V['HMM actionable'];
-  var gModels=group('MODELS + VOTES ('+a.agreement+'/'+a.agreement_max+')',[
-    mk('MAIN',m.main,'Main (combined)'),
-    mk('STATE',m.state,'Regime (state)'),
-    mk('DIR',m.direction,'Direction'),
-    mk('BIGWIN',m.bigwin,'BigWin'),
-    pill('HMM',(hmmOk?'✓':'✗')+' '+a.regime, vcol(hmmOk), vcol(hmmOk))]);
-  var gRisk=group('RISK / TARGET',[
-    pill('EXP MOVE','$'+(a.expected_move_usd||0),'var(--cyan)'),
+  var gModels=group('MODELS ('+a.agreement+'/'+a.agreement_max+')',[
+    mk('M',"Main (combined)",m.main,'Main (combined)'),
+    mk('S',"Regime (state)",m.state,'Regime (state)'),
+    mk('D',"Direction",m.direction,'Direction'),
+    mk('B',"BigWin",m.bigwin,'BigWin'),
+    '<span title="HMM actionable: '+a.regime+'" style="white-space:nowrap"><span style="color:var(--dim)">H</span><b style="color:'+vcol(hmmOk)+'">'+(hmmOk?'✓':'✗')+'</b></span>']);
+  var gRisk=group('RISK',[
+    pill('EXP','$'+(a.expected_move_usd||0),'var(--cyan)'),
     pill('SL','$'+(a.suggested_sl_usd||0),'var(--red)'),
     pill('TP','$'+(a.suggested_tp_usd||0),'var(--green)')]);
   var _avg=a.history&&a.history.avg_r!=null? a.history.avg_r : null;
   var histPills=[
     pill('WR', h.n? h.wr+'%':'—', h.n? gyr(h.wr,55,45):'var(--dim)'),
     pill('PF', h.pf!=null? h.pf : '—', h.pf!=null? gyr(h.pf,2,1.3):'var(--dim)'),
-    pill('AVG R', _avg!=null? (_avg>0?'+':'')+_avg : '—', _avg!=null? gr(_avg>0):'var(--dim)'),
+    pill('AVG', _avg!=null? (_avg>0?'+':'')+_avg : '—', _avg!=null? gr(_avg>0):'var(--dim)'),
     pill('n', h.n!=null? h.n : '—')];
-  if(hr && hr.n){ histPills.push(
-    pill(a.regime+' WR', hr.wr+'%','var(--cyan)'),
-    pill(a.regime+' PF', hr.pf,'var(--cyan)'),
-    pill('n', hr.n,'var(--cyan)')); }
-  var gHist=group('LIKE-THIS ('+a.history_band+')', histPills);
+  var gHist=group('LIKE-THIS',histPills);
   var _blkBanner = '';
   if(_aiBlocked && (_dSig==='BUY'||_dSig==='SELL')){
     _blkBanner = '<div style="background:rgba(255,23,68,0.08);border:1px solid rgba(255,107,107,0.3);border-radius:6px;padding:4px 10px;margin-bottom:6px;font-size:0.78rem;color:#ff6b6b;font-weight:600">⛔ BLOCKED — '+_dSig+' signal blocked by <span style="color:#ffa07a">'+(_aiBlockLabels[tradeAction]||tradeAction)+'</span> filter</div>';
   }
+  var _div='<span style="color:var(--line,#2a2f38);margin:0 8px">│</span>';
+  var _invFull=(a.invalidation||'—')+(a.why?' | '+a.why:'');
   box.innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:3px">'
-    +'<b style="font-size:0.78rem;color:var(--gold);letter-spacing:.6px;white-space:nowrap">🧠 AI DECISION SUMMARY</b>'
-    +'<span style="font-size:0.62rem;color:var(--dim);text-align:right">'
-    +'<span style="color:var(--orange,#e0a030);font-weight:600">⚠ INVALIDATION:</span> '+(a.invalidation||'—')
-    +(a.why?(' <span style="color:#666">|</span> '+a.why):'')+'</span>'
+    '<div style="display:flex;align-items:baseline;gap:8px">'
+    +'<b style="font-size:0.68rem;color:var(--gold);letter-spacing:.4px;white-space:nowrap;flex-shrink:0">🧠 AI</b>'
+    +'<span title="'+_invFull.replace(/"/g,"'")+'" style="font-size:0.56rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1">'
+    +'<span style="color:var(--orange,#e0a030);font-weight:600">⚠</span> '+_invFull+'</span>'
     +'</div>'
     +_blkBanner
-    +'<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:stretch;justify-content:center;row-gap:4px">'
-    +gDecision+gConf+gModels+gRisk+gHist+'</div>';
+    +'<span style="line-height:1.9">'
+    +gDecision+_div+gConf+_div+gModels+_div+gRisk+_div+gHist+'</span>';
 }
 
 async function load(){
@@ -3953,7 +3941,7 @@ function fitDashboardText(){}
 
 // ── PANEL CONFIGURATION ──────────────────────────────────────
 const PANEL_CONFIG = {
-  ai_market:       { el:'#panel_ai_market',       title:'AI + Market',          w:12, h:3, minW:4, minH:2, tab:'live',  priority:1  },
+  ai_market:       { el:'#panel_ai_market',       title:'AI + Market',          w:12, h:2, minW:4, minH:2, tab:'live',  priority:1  },
   open_trades:     { el:'#panel_open_trades',     title:'Open Trades',          w:12, h:2, minW:6, minH:2, tab:'live',  priority:5  },
   risk_session:    { el:'#panel_risk_session',     title:'Risk & Session',       w:3,  h:7, minW:3, minH:3, tab:'live',  priority:6  },
   signal:          { el:'#panel_signal',          title:'Signal + Lifecycle',   w:5,  h:7, minW:3, minH:4, tab:'live',  priority:7  },
