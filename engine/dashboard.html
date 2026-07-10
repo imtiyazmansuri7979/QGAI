@@ -249,6 +249,14 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 #liveSigRows{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent}
 #panel_risk_session,#panel_signal,#panel_signal_log{height:100%;box-sizing:border-box;display:flex;flex-direction:column}
 #liveSigRows .replay-row{height:26px;min-height:26px;padding:0 10px;overflow:hidden}
+/* ── AI + MARKET PANEL — 2-column split that reflows with box width ── */
+.ai-market-grid{display:grid;grid-template-columns:1fr}
+#market_intel_box{border-top:1px solid var(--line,#2a2f38)}
+@container panel (min-width:640px){
+  .ai-market-grid{grid-template-columns:1fr 1fr}
+  #ai_summary_box{padding-right:14px}
+  #market_intel_box{border-top:none;border-left:1px solid var(--line,#2a2f38);padding-left:14px}
+}
 /* ── CONTAINER QUERIES + FONT SCALING ── */
 .grid-stack-item-content{container-type:inline-size;container-name:panel}
 :root{
@@ -718,11 +726,13 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 </div>
 <!-- AI DECISION SUMMARY + MARKET INTELLIGENCE — merged into one panel (2026-07-10, Option B) -->
 <div class="tcard" id="panel_ai_market" style="margin:4px 10px;padding:0;font-size:0.8rem;line-height:1.35">
-  <div id="ai_summary_box" style="padding:4px 10px">
-    <div style="text-align:center"><b style="font-size:0.9rem;color:var(--gold);letter-spacing:1px">🧠 AI DECISION SUMMARY</b> <span style="color:var(--dim);font-size:0.65rem">— waiting for signal…</span></div>
-  </div>
-  <div id="market_intel_box" style="padding:4px 10px;border-top:1px solid var(--line,#2a2f38)">
-    <div style="text-align:center"><b style="font-size:0.9rem;color:var(--cyan);letter-spacing:1px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.65rem">— context</span></div>
+  <div class="ai-market-grid">
+    <div id="ai_summary_box" style="padding:4px 10px">
+      <div style="text-align:center"><b style="font-size:0.9rem;color:var(--gold);letter-spacing:1px">🧠 AI DECISION SUMMARY</b> <span style="color:var(--dim);font-size:0.65rem">— waiting for signal…</span></div>
+    </div>
+    <div id="market_intel_box" style="padding:4px 10px">
+      <div style="text-align:center"><b style="font-size:0.9rem;color:var(--cyan);letter-spacing:1px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.65rem">— context</span></div>
+    </div>
   </div>
 </div>
 <!-- 2026-06-28: SIGNALS tab removed — the 📋 SIGNAL LOG lives inline in the main view (no duplicate).
