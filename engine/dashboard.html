@@ -717,11 +717,11 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   <span style="font-size:0.62rem;color:var(--dim)">Drag headers to move · Drag edges to resize</span>
 </div>
 <!-- AI DECISION SUMMARY (one box, refreshed every bar) -->
-<div id="ai_summary_box" style="margin:6px 10px;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid var(--line,#2a2f38);font-size:0.8rem;line-height:1.35">
+<div id="ai_summary_box" style="margin:4px 10px;padding:4px 10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid var(--line,#2a2f38);font-size:0.8rem;line-height:1.35">
   <div style="text-align:center"><b style="font-size:0.9rem;color:var(--gold);letter-spacing:1px">🧠 AI DECISION SUMMARY</b> <span style="color:var(--dim);font-size:0.65rem">— waiting for signal…</span></div>
 </div>
 <!-- MARKET INTELLIGENCE (context box below AI summary) -->
-<div id="market_intel_box" style="margin:0 10px 6px;padding:6px 10px;border-radius:10px;background:rgba(0,213,255,0.03);border:1px solid var(--line,#2a2f38);font-size:0.8rem;line-height:1.35">
+<div id="market_intel_box" style="margin:0 10px 4px;padding:4px 10px;border-radius:10px;background:rgba(0,213,255,0.03);border:1px solid var(--line,#2a2f38);font-size:0.8rem;line-height:1.35">
   <div style="text-align:center"><b style="font-size:0.9rem;color:var(--cyan);letter-spacing:1px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.65rem">— context</span></div>
 </div>
 <!-- 2026-06-28: SIGNALS tab removed — the 📋 SIGNAL LOG lives inline in the main view (no duplicate).
@@ -2185,16 +2185,16 @@ function renderMarketIntel(mi){
   var box=document.getElementById('market_intel_box'); if(!box) return;
   if(!mi || !mi.trend){ box.innerHTML='<div style="text-align:center"><b style="font-size:0.9rem;color:var(--cyan);letter-spacing:1px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.65rem">— context</span></div>'; return; }
   function pill(lbl,val,vc,bc,tip){
-    return '<span'+(tip?' title="'+tip+'"':'')+' style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;padding:2px 9px 3px;border-radius:9px;'
+    return '<span'+(tip?' title="'+tip+'"':'')+' style="display:inline-flex;flex-direction:column;align-items:center;gap:0px;padding:1px 6px 2px;border-radius:7px;'
       +'background:rgba(255,255,255,0.045);border:1px solid '+(bc||'var(--line,#2a2f38)')+';white-space:nowrap">'
-      +'<span style="font-size:0.68rem;font-weight:600;letter-spacing:.4px;color:var(--dim);line-height:1.1">'+lbl+'</span>'
-      +'<b style="font-size:0.98rem;line-height:1.15;color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
+      +'<span style="font-size:0.56rem;font-weight:600;letter-spacing:.3px;color:var(--dim);line-height:1.05">'+lbl+'</span>'
+      +'<b style="font-size:0.76rem;line-height:1.05;color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
   }
   function group(title,pills){
-    return '<div style="display:inline-flex;flex-direction:column;justify-content:space-between;align-items:center;gap:4px;padding:4px 8px 5px;border-radius:9px;'
+    return '<div style="display:inline-flex;flex-direction:column;justify-content:space-between;align-items:center;gap:2px;padding:2px 5px 3px;border-radius:7px;'
       +'background:rgba(255,255,255,0.02);border:1px solid var(--line,#2a2f38)">'
-      +'<span style="font-size:0.72rem;font-weight:700;letter-spacing:.6px;color:var(--cyan);text-align:center">'+title+'</span>'
-      +'<div style="display:flex;flex-wrap:nowrap;gap:4px;align-items:center;justify-content:center">'+pills.join('')+'</div></div>';
+      +'<span style="font-size:0.6rem;font-weight:700;letter-spacing:.4px;color:var(--cyan);text-align:center">'+title+'</span>'
+      +'<div style="display:flex;flex-wrap:nowrap;gap:3px;align-items:center;justify-content:center">'+pills.join('')+'</div></div>';
   }
   function arr(v){return v>0?'<span style="color:var(--green)">▲</span>':v<0?'<span style="color:var(--red)">▼</span>':'<span style="color:var(--dim)">–</span>';}
   function adxc(v){return v>=25?'var(--green)':v>=20?'var(--orange,#e0a030)':'var(--dim)';}
@@ -2219,8 +2219,8 @@ function renderMarketIntel(mi){
   var gCtx=group('CONTEXT',[
     pill('VOL',cx.volatility), pill('SESSION',cx.session,cx.session==='NY'?'var(--green)':'var(--dim)'),
     pill('NEWS',cx.news||'clear')]);
-  box.innerHTML='<div style="text-align:center;margin-bottom:5px"><b style="font-size:0.86rem;color:var(--cyan);letter-spacing:1px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.62rem">— context behind the decision</span></div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:stretch;justify-content:center;row-gap:6px">'
+  box.innerHTML='<div style="text-align:center;margin-bottom:3px"><b style="font-size:0.74rem;color:var(--cyan);letter-spacing:.6px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.56rem">— context behind the decision</span></div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:stretch;justify-content:center;row-gap:4px">'
     +gTrend+gStr+gStruct+gFlow+gCtx+'</div>';
 }
 
@@ -2247,17 +2247,17 @@ function renderAISummary(a, isConfirmed, holdNow, openPos, exitNow, exitInfo, tr
   var regCol=a.regime==='Trending'?'var(--green)':a.regime==='Volatile'?'var(--orange,#e0a030)':a.regime==='Ranging'?'var(--red)':'var(--dim)';
   // pill(label,value,...) → bubble with LABEL on top (small) and VALUE below (large)
   function pill(lbl,val,vc,bc,tip){
-    return '<span'+(tip?' title="'+tip+'"':'')+' style="display:inline-flex;flex-direction:column;align-items:center;gap:1px;padding:2px 9px 3px;border-radius:9px;'
+    return '<span'+(tip?' title="'+tip+'"':'')+' style="display:inline-flex;flex-direction:column;align-items:center;gap:0px;padding:1px 6px 2px;border-radius:7px;'
       +'background:rgba(255,255,255,0.045);border:1px solid '+(bc||'var(--line,#2a2f38)')+';white-space:nowrap">'
-      +'<span style="font-size:0.68rem;font-weight:600;letter-spacing:.4px;color:var(--dim);line-height:1.1">'+lbl+'</span>'
-      +'<b style="font-size:0.98rem;line-height:1.15;color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
+      +'<span style="font-size:0.56rem;font-weight:600;letter-spacing:.3px;color:var(--dim);line-height:1.05">'+lbl+'</span>'
+      +'<b style="font-size:0.76rem;line-height:1.05;color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
   }
   // group(title, [pills]) → a bordered cluster, heading + pills all CENTER-aligned
   function group(title,pills){
-    return '<div style="display:inline-flex;flex-direction:column;justify-content:space-between;align-items:center;gap:4px;padding:4px 8px 5px;border-radius:9px;'
+    return '<div style="display:inline-flex;flex-direction:column;justify-content:space-between;align-items:center;gap:2px;padding:2px 5px 3px;border-radius:7px;'
       +'background:rgba(255,255,255,0.02);border:1px solid var(--line,#2a2f38)">'
-      +'<span style="font-size:0.72rem;font-weight:700;letter-spacing:.6px;color:var(--gold);text-align:center">'+title+'</span>'
-      +'<div style="display:flex;flex-wrap:nowrap;gap:4px;align-items:center;justify-content:center">'+pills.join('')+'</div></div>';
+      +'<span style="font-size:0.6rem;font-weight:700;letter-spacing:.4px;color:var(--gold);text-align:center">'+title+'</span>'
+      +'<div style="display:flex;flex-wrap:nowrap;gap:3px;align-items:center;justify-content:center">'+pills.join('')+'</div></div>';
   }
   var _confTag = isConfirmed ? ' <span style="font-size:0.6em;color:var(--green)">✅</span>' : ' <span style="font-size:0.6em;color:var(--orange)">⏳</span>';
   var gDecision=group('DECISION',[
@@ -2298,14 +2298,14 @@ function renderAISummary(a, isConfirmed, holdNow, openPos, exitNow, exitInfo, tr
     _blkBanner = '<div style="background:rgba(255,23,68,0.08);border:1px solid rgba(255,107,107,0.3);border-radius:6px;padding:4px 10px;margin-bottom:6px;font-size:0.78rem;color:#ff6b6b;font-weight:600">⛔ BLOCKED — '+_dSig+' signal blocked by <span style="color:#ffa07a">'+(_aiBlockLabels[tradeAction]||tradeAction)+'</span> filter</div>';
   }
   box.innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px">'
-    +'<b style="font-size:0.9rem;color:var(--gold);letter-spacing:1px;white-space:nowrap">🧠 AI DECISION SUMMARY</b>'
-    +'<span style="font-size:0.72rem;color:var(--dim);text-align:right">'
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:3px">'
+    +'<b style="font-size:0.78rem;color:var(--gold);letter-spacing:.6px;white-space:nowrap">🧠 AI DECISION SUMMARY</b>'
+    +'<span style="font-size:0.62rem;color:var(--dim);text-align:right">'
     +'<span style="color:var(--orange,#e0a030);font-weight:600">⚠ INVALIDATION:</span> '+(a.invalidation||'—')
     +(a.why?(' <span style="color:#666">|</span> '+a.why):'')+'</span>'
     +'</div>'
     +_blkBanner
-    +'<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:stretch;justify-content:center;row-gap:6px">'
+    +'<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:stretch;justify-content:center;row-gap:4px">'
     +gDecision+gConf+gModels+gRisk+gHist+'</div>';
 }
 
