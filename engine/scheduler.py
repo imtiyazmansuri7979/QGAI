@@ -9,7 +9,6 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='repla
 
 import time
 import subprocess
-import logging
 import os
 from datetime import datetime, timezone, timedelta
 
@@ -18,20 +17,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from config import CFG
+from console_colors import configure_color_logger
 
 # ── Logging ───────────────────────────────────────────
 Path(CFG.paths.logs_dir).mkdir(parents=True, exist_ok=True)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(
-            Path(CFG.paths.logs_dir)/"scheduler.log", encoding="utf-8"
-        )
-    ]
-)
-log = logging.getLogger("Scheduler")
+log = configure_color_logger("Scheduler", Path(CFG.paths.logs_dir) / "scheduler.log")
 
 # ── Global State ──────────────────────────────────────
 bridge_process  = None

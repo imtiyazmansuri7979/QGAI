@@ -8,6 +8,77 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-10 — Dashboard layout overhaul: GridStack.js integration (Anisa)
+**What:** Replaced the fragile custom drag/resize/zoom layout system with GridStack.js v12.6.0 — a professional 12-column grid with drag, resize, snap, collision detection, and layout persistence.
+
+**Changes in `engine/dashboard.html`:**
+- **GridStack integration:** All 20 panels wrapped in GridStack grid items with proper IDs, min sizes, and tab assignments (LIVE=13, STATS=6, ANALYSIS=1)
+- **Edit mode:** ✏️ EDIT button toggles drag/resize; toolbar with Compact, Auto Arrange, Save, Cancel, Reset; ESC key to cancel
+- **Tab filtering:** All tabs in one grid, `switchTab()` shows/hides panels via `gs-item-hidden` class
+- **Layout persistence:** Save/restore per-tab layouts to localStorage (`quantGoldDashboardLayout_v1`); survives page refresh; debounced auto-save on change
+- **Container queries:** `container-type: inline-size` on all panels; semantic font variables with `clamp()` (--font-panel-title, --font-main-value, --font-metric, --font-label, --font-small); `@container` queries for small panels
+- **Responsive breakpoints:** 1 column (<768px), 6 columns (768-1199px), 12 columns (>=1200px) via `_gsGrid.column()` on resize
+- **Canvas ResizeObserver:** Redraws sparkline/signal charts when panel resizes
+- **Performance:** Responsive resize throttled via `requestAnimationFrame`; layout save debounced 300ms
+- **Old code neutralized:** Old `fitDashboardText`, `setupPanelResizers`, `setupStitchedColumns` overridden via function hoisting (no-ops); old drag/resize/zoom JS is dead code
+
+**New files:**
+- `engine/gridstack-all.js` — GridStack v12.6.0 library (local, ~85KB)
+- `engine/gridstack.min.css` — GridStack CSS (~4KB)
+- `engine/dashboard_backup_pre_gridstack_20260710_081601.html` — pre-change backup
+
+**No trading logic modified.** All signal/trade/polling/bridge code untouched.
+
+---
+
+## 2026-07-09 — Feature leakage fix: prune `corr_imp_ratio` + fix `in_range_phase` H4 lookahead (Imtiyaz)
+**Issue:** Imtiyaz flagged `in_range_phase` and `corr_imp_ratio` for leakage risk. Code trace confirmed:
+- **`corr_imp_ratio`** (rank #28, importance 0.022): swing detection uses `h4["high"].iloc[i+j]` — explicitly
+  reads **3 future H4 bars** (12h+ lookahead). Training sees future-confirmed swings; live sees stale/missing
+  swings. AUC test: removing it = −0.014 test AUC (negligible, within noise).
+- **`in_range_phase`** (rank #1, importance 0.071): `get_range_features()` used `searchsorted(h4_df['datetime'],
+  t, side='right')` which includes the **current incomplete H4 candle** — its close/OHLC includes up to ~3.75h
+  of future M15 bars in training. AUC test: removing it = −0.074 test AUC (severe drop — feature is valuable
+  but implementation was leaky).
+**Fable-5 architectural review** confirmed both leakage paths.
+**AUC impact test** (`Start/6_Test_Leakage_AUC.bat`): 4 variants on 2,743 trades:
+  A) Baseline (36 feat): val 0.6771, test 0.6752
+  B) −corr_imp_ratio:    val 0.6861, test 0.6616 (−0.014)
+  C) −both:              val 0.6275, test 0.6085 (−0.067)
+  D) −in_range_phase:    val 0.6229, test 0.6014 (−0.074)
+**Fix 1 (`features.py` _MANUAL_PRUNE):** `corr_imp_ratio` added to `_MANUAL_PRUNE` → removed from model.
+  Also removed from `RANGING_FEATURES` list. Computation functions untouched (harmless).
+**Fix 2 (`features.py` get_range_features):** changed `searchsorted(h4_df['datetime'], t)` to
+  `searchsorted(h4_df['datetime'] + 4h, t)` — only COMPLETED H4 candles included. The current (incomplete)
+  H4 candle is excluded. No more future M15 bars leaking into `in_range_phase` or `is_post_big_move`.
+**⚠️ NEEDS RETRAIN + WFO-GATE.** Model now has 35 features (was 36). Expected: AUC may shift slightly due to
+honest `in_range_phase` values (no more future peek). `corr_imp_ratio` removal is AUC-neutral.
+
+## 2026-07-09 — SIGNAL box / AI DECISION SUMMARY showing SKIP while SIGNAL LOG shows the real BUY/SELL (Imtiyaz-flagged mismatch)
+**Symptom:** SIGNAL box + 🧠 AI DECISION SUMMARY both showed `SKIP`, while the SIGNAL LOG's latest row (same
+bar) showed a real `BUY` — yet EV (+1.05R), Risk Grade (A/Excellent), and the AI summary's own model votes
+(51.24% win, Trending, 63.16% dir, 74.7% bigwin) all matched the BUY exactly, not the null/`--` a genuine
+SKIP requires. Confirmed live (not just the screenshot): `signals_all.csv` last row = `signal=BUY,
+trade_action=HOLD_IN_TRADE`; `dashboard.json` at the same moment = `signal_confirmed:false, ev_r:1.05`
+(`ev_r` is only ever non-null when the backend's own `sig["signal"]` is BUY/SELL — proof the backend really
+decided BUY, the display just hid it).
+**Root cause:** `bridge_main.py`'s intra-bar heartbeat write (~every 30s between bar closes, `if verbose:`)
+re-sends the SAME already-decided `core._last_signal` dict but hardcoded `signal_confirmed=False` on every
+call. Two frontend spots (`dashboard.html` SIGNAL box `_isForming`/`_lastConfirmedSig` logic, and
+`renderAISummary()` line ~1556) both treat `signal_confirmed!==true` as "not yet decided, hide the real
+BUY/SELL behind SKIP" — a concept meant for a genuinely gate-blocked decision, but actually driven here by
+an unrelated "is this write a heartbeat vs a fresh bar" flag. Net effect: any real BUY/SELL was hidden behind
+SKIP for the ~15 minutes until the next bar close, any time the page was loaded/refreshed during that window
+— even though the SIGNAL LOG (reads `signals_all.csv` directly) always showed the truth.
+**Fix (`bridge_main.py:361-364`, one line):** the heartbeat call now passes
+`signal_confirmed=bool(core._last_signal.get("signal"))` instead of a hardcoded `False` — true once ANY real
+decision (bar-close or the startup pre-pop probe) has populated `core._last_signal`, so the box/AI-summary
+stop hiding an already-decided signal. The two genuinely-intentional `signal_confirmed=False` calls (the
+`_pre_pop_dashboard` startup probe, before any real bar exists yet) are untouched. `py_compile` clean.
+**Scope:** dashboard display only — live trading decisions/execution (`trade_action`, real gates) are
+completely unaffected; this never touched what the bot actually trades. **Activation: bridge restart**
+(backend Python change, not a browser-only fix this time).
+
 ## 2026-07-09 — Add RAW tick volume as a model feature (Imtiyaz)
 Request: give the model **raw tick volume** — no formula, ratio, z-score or normalization — and let the
 model itself decide if it's useful. **State before:** `f["tick_volume"]` (the closed bar's raw MT5 tick

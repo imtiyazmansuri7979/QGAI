@@ -392,11 +392,16 @@ def build_h4_range_table(ohlc_df: pd.DataFrame) -> pd.DataFrame:
 def get_range_features(t: pd.Timestamp, h4_df: pd.DataFrame) -> dict:
     """
     For a given M15 candle time t, compute 5 range-bound features.
-    Looks back at last 10 H4 candles to find big move.
+    Looks back at last 10 COMPLETED H4 candles to find big move.
     """
-    # Get H4 candles up to current time — searchsorted 150× faster
+    # Only use COMPLETED H4 candles (end time <= t) to avoid lookahead.
+    # H4 candle at dt covers [dt, dt+4h); it's complete when dt+4h <= t.
     _t64    = t.to_datetime64() if hasattr(t, 'to_datetime64') else np.datetime64(t)
-    _h4_idx = int(np.searchsorted(h4_df['datetime'].values, _t64, side='right')) if h4_df is not None else 0
+    if h4_df is not None:
+        _h4_end = h4_df['datetime'].values + np.timedelta64(4, 'h')
+        _h4_idx = int(np.searchsorted(_h4_end, _t64, side='right'))
+    else:
+        _h4_idx = 0
     past_h4 = h4_df.iloc[:_h4_idx].tail(12) if h4_df is not None else pd.DataFrame()
 
     if len(past_h4) < 4:
@@ -1173,14 +1178,9 @@ FEATURE_COLS = [
     # as a model feature (retrain required). Still COMPUTED in compute_features for
     # ADX/DI math, the dropna guard, and info-only ATR-zone logging.
     "volume",                # (PRUNED via _MANUAL_PRUNE) normalized tick-vol ratio — NOT used
-    # 2026-07-09 (Imtiyaz): add RAW tick volume as its OWN feature — NO ratio / z-score /
-    # normalization / formula. f["tick_volume"] = the closed bar's raw MT5 tick count
-    # (computed in compute_features ~line 625; else-branch fallback ~line 694 → 0.0). Let the
-    # model itself decide whether volume is useful — no hand-crafted transform. The normalized
-    # "volume" ratio above stays PRUNED (_MANUAL_PRUNE) on purpose; we want ONLY the raw count.
-    # ⚠️ NEEDS A RETRAIN (Start/3_Train_Models.bat): the live .pkl has no tick_volume column yet,
-    # so the bot will FEATURE-MISMATCH until retrained. REVERT: delete this "tick_volume" line.
-    "tick_volume",           # RAW tick volume (count) — no normalization
+    # 2026-07-10: RAW tick_volume was tested in 3-week WFO and underperformed
+    # baseline (+2.8R vs +21.7R same weeks), so it is NOT a model feature.
+    # Keep f["tick_volume"] computed for data/debug compatibility only.
     # ── PRICE MOMENTUM (data-proven) ─────────────────────────
     # Backtest: BUY when 4hr dropped → WR=31%, BUY when 4hr rose → WR=52%
     "move_1hr",              # Gold price change last 1hr ($) ← data #1 edge +27.7pp
@@ -1307,7 +1307,6 @@ RANGING_FEATURES = (
         "h1_support_dist",     # H1 support OB %dist ← NEW S/R
         "h1_in_ob_zone",       # price inside H1 OB zone ← NEW
         "h1_ob_strength",      # H1 resist OB strength ← NEW
-        "corr_imp_ratio",      # corrective vs impulsive ratio
         "h4_ranging_h1_neutral",   # H4 range + H1 not extended (good entry)
         "h4_ranging_h1_extended",  # H4 range + H1 extended (avoid)
         "move_1hr",                # 1hr momentum — important in ranging
@@ -1368,6 +1367,7 @@ _ZERO_IMP = {
 # (importance 0.0096-0.0129) — the model uses them a little, so watch the AUC
 # after retrain; if it drops, remove a name from this set to restore it.
 _MANUAL_PRUNE = {
+    "corr_imp_ratio",          # 12h+ swing lookahead leakage (Fable-5 review 2026-07-09)
     "h1_in_ob_zone", "last_3star_dev_sign", "ts_trend_h1", "is_post_big_move",
     "session_score", "ts_adx_switch_trend", "move_2hr", "move_8hr",
     # round 2 — only useful in the main model (0.0158/0.0174), zero in BUY/SELL:
@@ -1376,6 +1376,7 @@ _MANUAL_PRUNE = {
     # was already in _ZERO_IMP; `volume` is low-importance (0.02) and the data showed
     # volume is not a useful lever (entry/exit filters both failed). SL-hunting noise.
     "volume",
+    "tick_volume",  # 2026-07-10: raw volume WFO smoke weak; keep out of model inputs
     # 2026-06-29 (Anisa): drop ts_line_dist_pct from ALL models — even though it ranked
     # #2 in the main model (imp 0.0484). Removed by explicit request (don't want line-
     # distance as a feature). ⚠️ NEEDS A RETRAIN (3_Train_Models.bat): the live .pkl still

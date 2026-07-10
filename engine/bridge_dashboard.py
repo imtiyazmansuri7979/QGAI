@@ -586,6 +586,7 @@ def write_dashboard(session, virtual_trades, current_price, last_signal=None,
             closed_history.append({
                 "ticket":    d.order,
                 "time":      datetime.fromtimestamp(d.time, tz=timezone.utc).strftime("%H:%M:%S"),
+                "epoch":     d.time,
                 "direction": direction,
                 "entry":     round(entry_price, 2) if entry_deal else "--",
                 "exit":      round(exit_price, 2),
@@ -727,6 +728,7 @@ def write_dashboard(session, virtual_trades, current_price, last_signal=None,
         dash = {
             # Header
             "broker_time":        broker_time,
+            "broker_epoch":       int(tick.time),
             "symbol":             SYMBOL,
             "bid":                round(tick.bid, 2),
             "ask":                round(tick.ask, 2),

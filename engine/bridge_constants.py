@@ -4,7 +4,7 @@ Shared constants, imports and MT5 utility helpers.
 All other bridge modules import from here.
 """
 import MetaTrader5 as mt5
-import time, logging, sys, json, re, sqlite3
+import os, time, logging, sys, json, re, sqlite3
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta, timezone
@@ -14,15 +14,118 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config import CFG
 
 # ── Logging ───────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(Path(CFG.paths.logs_dir) / "bridge.log", encoding="utf-8")
+LOG_FORMAT = "%(asctime)s [%(levelname)s] %(message)s"
+
+_ANSI_RESET = "\033[0m"
+_ANSI_DIM = "\033[2m"
+_ANSI_RED = "\033[91m"
+_ANSI_GREEN = "\033[92m"
+_ANSI_YELLOW = "\033[93m"
+_ANSI_BLUE = "\033[94m"
+_ANSI_MAGENTA = "\033[95m"
+_ANSI_CYAN = "\033[96m"
+_ANSI_WHITE = "\033[97m"
+_ANSI_BOLD = "\033[1m"
+
+
+def _enable_console_color():
+    """Enable ANSI colors in Windows console without adding dependencies."""
+    if os.environ.get("NO_COLOR") or os.environ.get("QGAI_NO_COLOR"):
+        return False
+    if not sys.stderr.isatty():
+        return False
+    if os.name != "nt":
+        return True
+    try:
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        enabled = False
+        for handle_id in (-11, -12):  # STD_OUTPUT_HANDLE, STD_ERROR_HANDLE
+            handle = kernel32.GetStdHandle(handle_id)
+            mode = ctypes.c_uint()
+            if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+                enabled = bool(kernel32.SetConsoleMode(handle, mode.value | 0x0004)) or enabled
+        return enabled
+    except Exception:
+        return False
+
+
+_CONSOLE_COLOR = _enable_console_color()
+
+
+class _BridgeConsoleFormatter(logging.Formatter):
+    LEVEL_COLORS = {
+        logging.DEBUG: _ANSI_DIM,
+        logging.INFO: _ANSI_WHITE,
+        logging.WARNING: _ANSI_YELLOW + _ANSI_BOLD,
+        logging.ERROR: _ANSI_RED + _ANSI_BOLD,
+        logging.CRITICAL: _ANSI_RED + _ANSI_BOLD,
+    }
+
+    KEYWORD_COLORS = [
+        (r"\b(ERROR|failed|fail|halt|DAILY RATCHET HIT|NO broker SL)\b", _ANSI_RED + _ANSI_BOLD),
+        (r"\b(WARNING|Force-closing|DD BRAKE|SPREAD GUARD|SKIP|Outside slot)\b", _ANSI_YELLOW + _ANSI_BOLD),
+        (r"\b(connected|reconnected|ready|loaded|complete|UNLOCKED|OK|ALIVE)\b", _ANSI_GREEN + _ANSI_BOLD),
+        (r"\b(vSL|RATCHET|ratchet|TP|SL|ENTRY GATES)\b", _ANSI_CYAN + _ANSI_BOLD),
+        (r"\b(manual|Secondary|Primary|multi)\b", _ANSI_MAGENTA + _ANSI_BOLD),
+        (r"\b(XAUUSD(?:\.pc)?|M15|H1|H4)\b", _ANSI_BLUE + _ANSI_BOLD),
+        (r"[$][0-9,]+(?:\.[0-9]+)?", _ANSI_GREEN + _ANSI_BOLD),
+        (r"\b[+-]?[0-9]+(?:\.[0-9]+)?R\b", _ANSI_YELLOW + _ANSI_BOLD),
     ]
-)
-log = logging.getLogger("QGAI")
+
+    def format(self, record):
+        if not _CONSOLE_COLOR:
+            return super().format(record)
+
+        record_copy = logging.makeLogRecord(record.__dict__.copy())
+        record_copy.levelname = self._paint(record.levelname, self.LEVEL_COLORS.get(record.levelno, ""))
+        record_copy.msg = self._color_message(record.getMessage())
+        record_copy.args = ()
+
+        line = super().format(record_copy)
+        line = re.sub(
+            r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})",
+            lambda m: self._paint(m.group(1), _ANSI_DIM),
+            line,
+        )
+        return line
+
+    @staticmethod
+    def _paint(text, color):
+        return f"{color}{text}{_ANSI_RESET}" if color else text
+
+    @classmethod
+    def _color_message(cls, message):
+        colored = message
+        for pattern, color in cls.KEYWORD_COLORS:
+            colored = re.sub(pattern, lambda m: cls._paint(m.group(0), color), colored, flags=re.IGNORECASE)
+        return colored
+
+
+def _setup_bridge_logging():
+    Path(CFG.paths.logs_dir).mkdir(parents=True, exist_ok=True)
+
+    logger = logging.getLogger("QGAI")
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+
+    for handler in list(logger.handlers):
+        logger.removeHandler(handler)
+        handler.close()
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(_BridgeConsoleFormatter(LOG_FORMAT))
+
+    file_handler = logging.FileHandler(Path(CFG.paths.logs_dir) / "bridge.log", encoding="utf-8")
+    file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    return logger
+
+
+log = _setup_bridge_logging()
 
 # ── MT5 credentials ───────────────────────────────────────────
 try:

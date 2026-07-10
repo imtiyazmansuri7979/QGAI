@@ -358,10 +358,19 @@ def run():
             # Write dashboard EVERY poll (was gated on open trades â†’ froze the
             # price/dashboard after a trade closed until the next bar). Now the
             # live price updates every 1s whether or not a trade is open.
+            # 2026-07-09 (Imtiyaz-reported mismatch): this heartbeat re-sends the SAME
+            # core._last_signal dict from the last real bar-close (unchanged) every ~30s
+            # between bar closes. Hardcoding signal_confirmed=False here made the SIGNAL
+            # box + AI DECISION SUMMARY hide an already-decided BUY/SELL behind SKIP for
+            # the whole ~15min until the next bar close (while EV/Grade/AI-summary %s kept
+            # showing the real BUY — the tell-tale mismatch vs the SIGNAL LOG). confirmed
+            # must reflect whether core._last_signal is an actual decided signal (any
+            # bar-close call, or the startup pre-pop probe, sets its "signal" key), not
+            # whether THIS particular write is a heartbeat vs a fresh bar.
             if verbose:
                 write_dashboard(session, core.virtual_trades, tick.bid,
                                 core._last_signal, _engine_meta(engine),
-                                signal_confirmed=False)
+                                signal_confirmed=bool(core._last_signal.get("signal")))
 
             # â”€â”€ Bar detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             rates = mt5.copy_rates_from_pos(SYMBOL, TIMEFRAME, 0, 1)

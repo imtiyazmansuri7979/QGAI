@@ -9,10 +9,12 @@ Run:  python serve.py        (or use serve.bat)
 Open: http://localhost:8000/dashboard.html
 """
 import json
+import sys
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from datetime import datetime, timezone
+from console_colors import BLUE, BOLD, CYAN, DIM, GREEN, RED, YELLOW, enable_console_color, paint
 
 ENGINE_DIR = Path(__file__).resolve().parent
 LOGS_DIR   = ENGINE_DIR / "logs"
@@ -42,7 +44,15 @@ class QGAIHandler(SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):
         first = str(args[0]) if args else ""
         if "dashboard.json" not in first:
-            super().log_message(fmt, *args)
+            msg = fmt % args
+            color = GREEN if " 200 " in f" {msg} " else YELLOW
+            if any(code in f" {msg} " for code in (" 400 ", " 404 ", " 500 ")):
+                color = RED
+            sys.stderr.write(
+                f"{paint(self.address_string(), DIM)} - "
+                f"{paint(self.log_date_time_string(), DIM)} - "
+                f"{paint(msg, color)}\n"
+            )
 
     def _read_json_body(self):
         try:
@@ -109,7 +119,7 @@ class QGAIHandler(SimpleHTTPRequestHandler):
             try:
                 (LOGS_DIR / "mode.json").write_text(
                     json.dumps({"mode": mode}), encoding="utf-8")
-                print(f"  Mode set to: {mode}")
+                print(paint(f"  Mode set to: {mode}", CYAN + BOLD))
                 return self._send_json({"ok": True, "mode": mode})
             except Exception as e:
                 return self._send_json({"ok": False, "error": str(e)}, 500)
@@ -129,9 +139,10 @@ class QGAIHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("  QGAI Dashboard Server")
-    print(f"  http://localhost:{PORT}/dashboard.html")
-    print("  POST /mode and /feedback are handled (FIX #12)")
-    print("=" * 60)
+    enable_console_color()
+    print(paint("=" * 60, BLUE + BOLD))
+    print(paint("  QGAI Dashboard Server", CYAN + BOLD))
+    print(paint(f"  http://localhost:{PORT}/dashboard.html", GREEN + BOLD))
+    print(paint("  POST /mode and /feedback are handled (FIX #12)", YELLOW + BOLD))
+    print(paint("=" * 60, BLUE + BOLD))
     ThreadingHTTPServer(("0.0.0.0", PORT), QGAIHandler).serve_forever()

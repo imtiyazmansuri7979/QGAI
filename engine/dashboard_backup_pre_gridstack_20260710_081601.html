@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <title>QUANT GOLD AI v2 — Dashboard</title>
-<link rel="stylesheet" href="/gridstack.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -220,65 +219,49 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
   text-align:center!important;
   width:100%;
 }
-/* ── GRIDSTACK OVERRIDES ── */
-.grid-stack{min-height:200px}
-.grid-stack-item-content{background:transparent;overflow:auto;border-radius:10px}
-.grid-stack-item-content>.tcard,.grid-stack-item-content>.sig-card,.grid-stack-item-content>[id]{height:100%;overflow:auto;box-sizing:border-box}
-.grid-stack-item-content>.tcard{margin-bottom:0}
-.gs-item-hidden{display:none!important}
-/* Edit mode indicator */
-body.gs-edit-mode .grid-stack-item-content{outline:1px dashed rgba(0,212,255,.3);outline-offset:-1px}
-body.gs-edit-mode .grid-stack-item:hover .grid-stack-item-content{outline-color:rgba(0,255,238,.5)}
-body.gs-edit-mode .gs-drag-handle{cursor:grab;background:rgba(0,212,255,.08)}
-body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
-/* Edit toolbar */
-.gs-toolbar{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;margin-bottom:4px}
-.gs-toolbar.hidden{display:none}
-.gs-toolbar button{background:#21262d;color:var(--dim);border:1px solid #30363d;border-radius:5px;padding:3px 10px;font-size:0.69rem;cursor:pointer;font-family:'Arial',sans-serif}
-.gs-toolbar button:hover{background:#30363d;color:#fff}
-.gs-toolbar button.gs-active{background:#1f6feb;border-color:#1f6feb;color:#fff}
-.gs-toolbar .gs-toolbar-label{font-size:0.69rem;color:var(--cyan);letter-spacing:1px;font-weight:700}
-/* Lifecycle panel compact */
-.lc-panel{padding:3px 8px 4px;background:linear-gradient(135deg,#050d16,#081523);border-color:var(--border)}
-.lc-panel>div:first-child{margin-bottom:1px!important}
-.lc-panel>div:first-child b{font-size:0.58rem!important;letter-spacing:1.8px!important;color:var(--cyan)!important}
-/* Signal log rows */
-#liveSigRows{max-height:240px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent}
-#liveSigRows .replay-row{height:26px;min-height:26px;padding:0 10px;overflow:hidden}
-/* ── CONTAINER QUERIES + FONT SCALING ── */
-.grid-stack-item-content{container-type:inline-size;container-name:panel}
-:root{
-  --font-panel-title:clamp(11px,1.5cqw,18px);
-  --font-main-value:clamp(14px,2.5cqw,28px);
-  --font-metric:clamp(10px,1.2cqw,16px);
-  --font-label:clamp(8px,1cqw,13px);
-  --font-small:clamp(7px,0.8cqw,11px);
-}
-.tcard-hdr{font-size:var(--font-panel-title)}
-.cc-val{font-size:var(--font-metric)}
-.cc-lbl,.cc-sub,.prog-lbl{font-size:var(--font-label)}
-.sig-big{font-size:clamp(1.8rem,4cqw,3rem)}
-.sig-hero-top .sig-big{font-size:clamp(2rem,5cqw,3.15rem)!important}
-.sig-state-big{font-size:clamp(0.9rem,2cqw,1.3rem)}
-.sig-win-pct{font-size:clamp(0.9rem,2cqw,1.35rem)}
-.sig-hero-top .sig-win-pct{font-size:clamp(1rem,2.2cqw,1.45rem)!important}
-@container panel (max-width:400px){
-  .cc-val{font-size:0.78rem}
-  .sig-big{font-size:1.6rem}
-  .sig-state-big{font-size:0.85rem}
-  .sig-win-pct{font-size:0.85rem}
-  .g3{grid-template-columns:1fr 1fr}
-  .g2{grid-template-columns:1fr}
-}
-@container panel (max-width:280px){
-  .cc-val{font-size:0.65rem}
-  .sig-big{font-size:1.3rem}
-  .g3,.g2{grid-template-columns:1fr}
-}
-/* Overflow safety for tables and wide content */
-.hist-table-wrap,.trade-table-wrap{overflow-x:auto;min-width:0}
-.grid-stack-item-content table{max-width:100%;overflow-wrap:break-word}
-.grid-stack-item-content canvas{max-width:100%;height:auto}
+.main-four-layout{display:grid!important;grid-template-columns:minmax(160px,var(--dash-col-1,1fr)) 7px minmax(190px,var(--dash-col-2,1fr)) 7px minmax(220px,var(--dash-col-3,1fr))!important;grid-template-rows:auto auto!important;gap:0!important;align-items:start!important}
+.market-tools-col{grid-column:1;grid-row:1 / span 2;display:flex!important}
+.signal-desk-col{display:contents!important}
+/* 3-column row: RISK & SESSION (left) | Signal (middle) | SIGNAL LOG (right) — 2026-07-03 */
+.risk-session-col{grid-column:1;grid-row:1 / span 2;order:0!important;display:flex!important;align-self:start!important;padding-right:3px}
+.risk-session-col>.tcard{width:100%}
+.signal-desk-col>.tcard:first-child{grid-column:3;grid-row:1;align-self:start;display:flex;flex-direction:column;overflow:auto;border-bottom-left-radius:0;border-bottom-right-radius:0}
+.signal-desk-col>.tcard:nth-child(2){grid-column:3;grid-row:2;display:flex!important;flex-direction:column;margin-top:-1px;border-top:0;border-top-left-radius:0;border-top-right-radius:0}
+.signal-desk-col>.tcard:nth-child(3){grid-column:5;grid-row:1 / span 2;display:flex!important;flex-direction:column;min-height:150px;max-height:240px;overflow:hidden}
+.signal-desk-col>.tcard:nth-child(4){grid-column:1 / 6;grid-row:3;display:flex!important;flex-direction:column;margin-top:4px}
+.signal-desk-col>.tcard:nth-child(2).lc-panel{padding:3px 8px 4px;background:linear-gradient(135deg,#050d16,#081523);border-color:var(--border)}
+.signal-desk-col>.tcard:nth-child(2).lc-panel>div:first-child{margin-bottom:1px!important}
+.signal-desk-col>.tcard:nth-child(2).lc-panel>div:first-child b{font-size:0.58rem!important;letter-spacing:1.8px!important;color:var(--cyan)!important}
+.signal-desk-col #liveSigRows{height:174px!important;min-height:96px!important;max-height:174px!important;overflow-y:auto!important;flex:0 0 auto}
+.signal-desk-col #liveSigRows .replay-row{height:26px;min-height:26px;padding:0 10px;overflow:hidden}
+.dash-sep{grid-row:1 / span 2;align-self:stretch;cursor:col-resize;position:relative;z-index:5;background:linear-gradient(180deg,transparent,rgba(0,212,255,.28),transparent)}
+.dash-sep::before{content:'';position:absolute;left:3px;top:8px;bottom:8px;width:1px;background:rgba(0,212,255,.55);box-shadow:0 0 8px rgba(0,212,255,.45)}
+.dash-sep:hover,.dash-sep.dragging{background:linear-gradient(180deg,transparent,rgba(0,255,238,.45),transparent)}
+.dash-sep-1{grid-column:2}
+.dash-sep-2{grid-column:4}
+.panel-resizable{position:relative!important}
+.panel-grip{position:absolute;z-index:30;bottom:0;right:0;width:18px;height:18px;cursor:nwse-resize;opacity:0;transition:opacity .15s;pointer-events:auto}
+.panel-resizable:hover>.panel-grip{opacity:.7}
+.panel-grip:hover,.panel-grip.dragging{opacity:1!important}
+.panel-grip::before,.panel-grip::after{content:'';position:absolute;background:rgba(0,255,238,.55);border-radius:1px}
+.panel-grip::before{bottom:3px;right:3px;width:10px;height:2px}
+.panel-grip::after{bottom:3px;right:3px;width:2px;height:10px}
+.panel-resizable>.panel-grip-dots{position:absolute;z-index:29;bottom:5px;right:7px;width:8px;height:8px;opacity:0;transition:opacity .15s;pointer-events:none;background:radial-gradient(circle,rgba(0,255,238,.5) 1px,transparent 1px) 0 0/4px 4px}
+.panel-resizable:hover>.panel-grip-dots{opacity:.5}
+/* DRAG HANDLE on panel headers */
+.panel-drag-handle{cursor:grab;display:inline-flex;align-items:center;padding:0 4px;margin-right:4px;color:var(--dim);font-size:0.7rem;opacity:.4;transition:opacity .15s;user-select:none;vertical-align:middle}
+.panel-drag-handle:hover{opacity:1;color:var(--cyan)}
+.panel-drag-handle:active{cursor:grabbing}
+.panel-dragging{opacity:.5;outline:2px dashed var(--cyan)!important;z-index:100}
+.panel-drop-indicator{background:var(--cyan);border-radius:2px;box-shadow:0 0 10px var(--cyan);transition:all .1s;pointer-events:none;position:absolute;z-index:90}
+.panel-drop-indicator.drop-h{height:4px;left:0;right:0}
+.panel-drop-indicator.drop-v{width:4px;top:0;bottom:0}
+.extra-col:has(.panel-resizable) .extra-col-placeholder{display:none}
+.drag-active .extra-col,.drag-active .signal-desk-col,.drag-active .risk-session-col{outline:2px dashed rgba(0,212,255,.25);outline-offset:-2px;border-radius:4px}
+/* Flex-wrap layout for drag reorder in rows+columns */
+.dash-flex-container{display:flex!important;flex-wrap:wrap!important;gap:4px;align-items:stretch;position:relative;align-content:flex-start}
+.dash-flex-container>.panel-resizable{flex:0 0 auto;min-width:0;box-sizing:border-box;width:100%}
+.dash-flex-container.g2-bot{grid-template-columns:none!important}
 
 /* GRID */
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px}
@@ -602,7 +585,6 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   font-family:'Arial',sans-serif!important;
 }
 </style>
-<script src="/gridstack-all.js"></script>
 </head>
 <body>
 
@@ -688,7 +670,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 
     <div style="font-size:0.69rem;color:var(--dim)">
       <span id="account_id" style="color:var(--gold)">--</span> | <span id="leverage_lbl">1:500</span>
-      <button onclick="gsToggleEdit()" id="gs_edit_btn" style="margin-left:6px;background:#21262d;color:var(--dim);border:1px solid #30363d;border-radius:4px;padding:1px 6px;font-size:0.6rem;cursor:pointer" title="Toggle Edit Layout mode">✏️ EDIT</button>
+      <button onclick="resetDashLayout()" style="margin-left:6px;background:#21262d;color:var(--dim);border:1px solid #30363d;border-radius:4px;padding:1px 6px;font-size:0.6rem;cursor:pointer" title="Reset all panel sizes to default">RESET LAYOUT</button>
     </div>
   </div>
 
@@ -700,17 +682,6 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   <button class="tab-btn t-stats" onclick="switchTab('stats')">🟡 STATS</button>
   <button class="tab-btn" onclick="window.open('/chart.html','_blank')">📈 CHART</button>
   <button class="tab-btn t-ledger" onclick="switchTab('ledger')">📒 LEDGER (paper)</button>
-</div>
-<!-- EDIT MODE TOOLBAR -->
-<div id="gs_toolbar" class="gs-toolbar hidden">
-  <span class="gs-toolbar-label">✏️ EDIT LAYOUT</span>
-  <button onclick="gsCompact()" title="Remove gaps and compact panels">📐 Compact</button>
-  <button onclick="gsAutoArrange()" title="Auto-arrange panels by priority">🔄 Auto Arrange</button>
-  <button onclick="gsSaveLayout()" title="Save current layout">💾 Save</button>
-  <button onclick="gsCancelEdit()" title="Cancel and revert changes">❌ Cancel</button>
-  <button onclick="gsResetLayout()" title="Reset to default layout">🔁 Reset</button>
-  <span style="flex:1"></span>
-  <span style="font-size:0.62rem;color:var(--dim)">Drag headers to move · Drag edges to resize</span>
 </div>
 <!-- AI DECISION SUMMARY (one box, refreshed every bar) -->
 <div id="ai_summary_box" style="margin:6px 10px;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid var(--line,#2a2f38);font-size:0.8rem;line-height:1.35">
@@ -760,7 +731,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 <div class="tab-pane active" id="tab-live">
 
 <!-- ① OPEN TRADES — highest priority, money at risk -->
-<div class="tcard" id="panel_open_trades" style="margin-bottom:4px">
+<div class="tcard" style="margin-bottom:4px">
   <div class="tcard-hdr">⚡ Open Trades <span id="open_count_label">0 open</span>
     <span id="open_trades_empty_chip" style="margin-left:6px;font-size:0.66rem;color:var(--dim)">● AI monitoring every bar...</span>
   </div>
@@ -957,7 +928,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 
   <!-- COL 2: Signal Card -->
   <div class="signal-desk-col" style="display:flex;flex-direction:column;gap:3px;order:1">
-    <div class="tcard" id="panel_signal">
+    <div class="tcard">
       <div class="tcard-hdr" style="padding:4px 8px;font-size:0.69rem">
         <span id="hmm_state" class="sig-state-big hmm--" style="font-size:0.78rem">--</span>
         <span style="font-size:0.63rem;color:var(--dim)" id="active_auc_lbl">AUC:--</span>
@@ -1009,7 +980,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
       </div>
     </div>
     <!-- TRADE LIFECYCLE panel (2026-07-09 Imtiyaz) — bright colorful status window -->
-    <div class="tcard lc-panel" id="panel_lifecycle">
+    <div class="tcard lc-panel">
       <div style="text-align:center;margin-bottom:2px"><b style="font-size:0.72rem;letter-spacing:2px;color:var(--cyan)">🔄 TRADE LIFECYCLE</b></div>
       <div class="lc-bar" id="lifecycle_bar">
         <div class="lc-step s-skip" id="lc_entry">
@@ -1031,7 +1002,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
         </div>
       </div>
     </div>
-    <div class="tcard" id="panel_signal_log" style="display:flex;flex-direction:column">
+    <div class="tcard" style="display:flex;flex-direction:column">
       <div class="tcard-hdr" style="display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:0.69rem">SIGNAL LOG
         <span id="liveSigCnt" style="font-size:0.62rem;color:var(--purple)">-- signals</span>
         <span style="flex:1"></span>
@@ -1056,7 +1027,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   <!-- COL 1: Risk & Session (shown where Signal was) -->
   <div class="risk-session-col" style="display:flex;flex-direction:column;gap:3px;min-height:0;order:0">
     <!-- ⑤ RISK & SESSION -->
-    <div class="tcard" id="panel_risk_session">
+    <div class="tcard">
       <div class="tcard-hdr" id="risk_hdr">▸ RISK & SESSION</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:3px 3px 1px">
         <div class="r-cell"><div class="r-key">RISK/TRD</div><div class="r-val" id="risk_per_trade2" style="color:var(--orange);font-size:0.82rem">--</div><div class="r-sub" id="risk_pct_lbl">-- equity</div></div>
@@ -1135,7 +1106,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
       </div>
     </div>
   </div>
-  <div class="tcard" id="panel_closed_trades">
+  <div class="tcard">
     <div class="tcard-hdr">Closed Trades <span id="closed_count_label">0</span></div>
     <div style="padding:4px 0">
       <table class="hist-table">
@@ -1158,7 +1129,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 </div>
 <div class="sec-body" id="news_body">
 <div class="g2">
-  <div class="tcard" id="panel_news">
+  <div class="tcard">
     <div class="tcard-hdr">News Filter <span id="news_status_label">—</span></div>
     <div style="padding:8px 10px">
       <div class="news-box normal" id="news_box"><div id="news_reason">Loading...</div>
@@ -1181,7 +1152,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 
 
 <!-- SLOT TIMELINE (STATS tab) -->
-<div class="tcard" id="panel_slot_timeline" style="margin-bottom:6px">
+<div class="tcard" style="margin-bottom:6px">
   <div class="tcard-hdr">
     📅 Today's Trading Slots
     <span id="slot_timeline_meta" class="slot-count">-- slots</span>
@@ -1232,7 +1203,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 <div class="sec-body" id="settings_body">
 <div class="g3-settings">
   <!-- Settings -->
-  <div class="tcard" id="panel_settings">
+  <div class="tcard">
     <div class="tcard-hdr">System Settings</div>
     <div class="settings-grid">
       <div class="setting-row"><span class="setting-key">Symbol</span><span class="setting-val" id="s_symbol">XAUUSD</span></div>
@@ -1257,7 +1228,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   </div>
 
   <!-- Model Stats -->
-  <div class="tcard" id="panel_model_stats">
+  <div class="tcard">
     <div class="tcard-hdr">Model Stats</div>
     <div class="settings-grid">
       <div class="setting-row"><span class="setting-key">Combined AUC</span><span class="setting-val v-green" id="combined_auc">--</span></div>
@@ -1275,7 +1246,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   </div>
 
   <!-- Account Health + Risk State (2026-07-07, Fable-5) -->
-  <div class="tcard" id="panel_account_health">
+  <div class="tcard">
     <div class="tcard-hdr">🛡️ Account Health &amp; Risk State</div>
     <div id="dd_halt_banner" style="display:none;background:var(--red);color:#fff;font-weight:700;text-align:center;padding:6px;border-radius:6px;margin-bottom:6px">🛑 DD BRAKE — HALT</div>
     <div id="account_health_rows" style="font-family:var(--orb);font-size:0.72rem;line-height:1.6"></div>
@@ -1284,7 +1255,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   </div>
 
   <!-- Protection -->
-  <div class="tcard" id="panel_protection">
+  <div class="tcard">
     <div class="tcard-hdr">Protection</div>
     <div class="badges">
       <div class="badge" id="b_virtual">⚡ Virtual SL</div>
@@ -3866,361 +3837,6 @@ window.sendFeedback = function(type){
     if(_p) _p.style.display='none';
   }, 2000);
 };
-
-// ══════════════════════════════════════════════════════════════
-// ██  GRIDSTACK DASHBOARD — Phase 1+2 (2026-07-10)
-// ══════════════════════════════════════════════════════════════
-
-// Override old drag/resize/fit functions via hoisting — makes them no-ops
-function scheduleFitDashboardText(){}
-function setupPanelResizers(){}
-function setupStitchedColumns(){}
-function setupDashboardResizeFit(){}
-function fitDashboardText(){}
-
-// ── PANEL CONFIGURATION ──────────────────────────────────────
-const PANEL_CONFIG = {
-  ai_summary:      { el:'#ai_summary_box',       title:'AI Decision Summary',  w:12, h:2, minW:4, minH:1, tab:'live',  priority:1  },
-  market_intel:    { el:'#market_intel_box',      title:'Market Intelligence',  w:12, h:2, minW:4, minH:1, tab:'live',  priority:2  },
-  danger_banner:   { el:'#danger_banner',         title:'Danger Banner',        w:12, h:1, minW:6, minH:1, tab:'live',  priority:3  },
-  sl_progress:     { el:'#sl_progress_wrap',      title:'SL Progress',          w:12, h:2, minW:6, minH:1, tab:'live',  priority:4  },
-  open_trades:     { el:'#panel_open_trades',     title:'Open Trades',          w:12, h:2, minW:6, minH:2, tab:'live',  priority:5  },
-  risk_session:    { el:'#panel_risk_session',     title:'Risk & Session',       w:3,  h:7, minW:3, minH:3, tab:'live',  priority:6  },
-  signal:          { el:'#panel_signal',          title:'Signal Decision',      w:5,  h:5, minW:3, minH:3, tab:'live',  priority:7  },
-  lifecycle:       { el:'#panel_lifecycle',       title:'Trade Lifecycle',      w:5,  h:2, minW:3, minH:1, tab:'live',  priority:8  },
-  signal_log:      { el:'#panel_signal_log',      title:'Signal Log',           w:4,  h:7, minW:3, minH:3, tab:'live',  priority:9  },
-  signal_history:  { el:'#signal_history_panel',  title:'Signal History',       w:12, h:2, minW:4, minH:2, tab:'live',  priority:10 },
-  hours_heatmap:   { el:'#hours_heatmap_wrap',    title:'Hours Heatmap',        w:12, h:2, minW:6, minH:1, tab:'live',  priority:11 },
-  feedback:        { el:'#feedback_panel',        title:'AI Feedback',          w:12, h:2, minW:4, minH:2, tab:'live',  priority:12 },
-  closed_trades:   { el:'#panel_closed_trades',   title:'Closed Trades',        w:12, h:3, minW:6, minH:2, tab:'live',  priority:13 },
-  slot_timeline:   { el:'#panel_slot_timeline',   title:'Slot Timeline',        w:12, h:2, minW:6, minH:1, tab:'stats', priority:14 },
-  health:          { el:'#health_card',           title:'System Health',        w:6,  h:4, minW:4, minH:2, tab:'stats', priority:15 },
-  settings:        { el:'#panel_settings',        title:'System Settings',      w:3,  h:5, minW:3, minH:3, tab:'stats', priority:16 },
-  model_stats:     { el:'#panel_model_stats',     title:'Model Stats',          w:3,  h:5, minW:3, minH:3, tab:'stats', priority:17 },
-  account_health:  { el:'#panel_account_health',  title:'Account Health',       w:3,  h:4, minW:3, minH:2, tab:'stats', priority:18 },
-  protection:      { el:'#panel_protection',      title:'Protection',           w:3,  h:3, minW:3, minH:1, tab:'stats', priority:19 },
-  news:            { el:'#panel_news',            title:'News & Market',        w:12, h:4, minW:4, minH:2, tab:'analysis', priority:20 },
-};
-
-var _gsGrid = null;
-var _gsEditMode = false;
-var _gsLayoutBeforeEdit = null;
-var GS_LAYOUT_KEY = 'quantGoldDashboardLayout_v1';
-var _gsCurrentTab;
-
-function gsInitDashboard(){
-  if(!_gsCurrentTab) _gsCurrentTab = 'live';
-  var gridEl = document.createElement('div');
-  gridEl.className = 'grid-stack';
-  gridEl.id = 'dashboard_grid';
-
-  var toolbar = document.getElementById('gs_toolbar');
-  if(toolbar && toolbar.nextSibling){
-    toolbar.parentNode.insertBefore(gridEl, toolbar.nextSibling);
-  } else {
-    var tabBar = document.querySelector('.tab-bar');
-    if(tabBar) tabBar.after(gridEl);
-  }
-
-  var sortedPanels = Object.entries(PANEL_CONFIG).sort(function(a,b){ return a[1].priority - b[1].priority; });
-
-  sortedPanels.forEach(function(entry){
-    var id = entry[0], cfg = entry[1];
-    var panel = document.querySelector(cfg.el);
-    if(!panel) return;
-
-    var item = document.createElement('div');
-    item.className = 'grid-stack-item';
-    item.setAttribute('gs-id', id);
-    item.setAttribute('gs-w', String(cfg.w));
-    item.setAttribute('gs-h', String(cfg.h));
-    item.setAttribute('gs-min-w', String(cfg.minW));
-    item.setAttribute('gs-min-h', String(cfg.minH));
-    item.dataset.tab = cfg.tab;
-    item.dataset.panelTitle = cfg.title;
-
-    var content = document.createElement('div');
-    content.className = 'grid-stack-item-content';
-
-    panel.style.margin = '0';
-    panel.style.marginBottom = '0';
-    content.appendChild(panel);
-    item.appendChild(content);
-    gridEl.appendChild(item);
-  });
-
-  // Remove emptied old containers
-  var oldContainers = document.querySelectorAll('.main-four-layout, .signal-desk-col, .risk-session-col, .extra-col, .g2-bot, .g3-settings');
-  oldContainers.forEach(function(c){
-    if(!c.querySelector('[id^="panel_"], [id$="_box"], [id$="_wrap"], #health_card, #signal_history_panel, #feedback_panel, #danger_banner')){
-      c.remove();
-    }
-  });
-  // Remove empty tab panes (content moved to grid)
-  document.querySelectorAll('.tab-pane:not(#tab-ledger)').forEach(function(tp){
-    if(!tp.querySelector('[id^="panel_"], .tcard, .grid-stack-item')) tp.remove();
-  });
-  // Remove old dash-sep dividers
-  document.querySelectorAll('.dash-sep').forEach(function(s){ s.remove(); });
-
-  // Initialize GridStack
-  _gsGrid = GridStack.init({
-    column: 12,
-    cellHeight: 60,
-    margin: 4,
-    animate: true,
-    float: false,
-    disableResize: true,
-    disableDrag: true,
-    handle: '.tcard-hdr, .panel-header, .sig-hero-card',
-    acceptWidgets: false,
-  }, gridEl);
-
-  // Try restore saved layout
-  _gsRestoreLayout();
-
-  // Apply initial tab filter
-  _gsApplyTabFilter(_gsCurrentTab);
-
-  // Canvas resize observer
-  if('ResizeObserver' in window){
-    var canvasObs = new ResizeObserver(function(entries){
-      entries.forEach(function(e){
-        var canvas = e.target.querySelector('canvas');
-        if(canvas){
-          try{
-            if(canvas.id === 'sig_history_chart') drawSigChart([]);
-            if(canvas.id === 'equity_sparkline') drawSparkline(equityHistory, null);
-          }catch(ex){}
-        }
-      });
-    });
-    gridEl.querySelectorAll('.grid-stack-item-content').forEach(function(c){
-      if(c.querySelector('canvas')) canvasObs.observe(c);
-    });
-  }
-
-  // Save layout on change (debounced)
-  var _gsSaveTimer = null;
-  _gsGrid.on('change', function(){
-    clearTimeout(_gsSaveTimer);
-    _gsSaveTimer = setTimeout(function(){ if(_gsEditMode) _gsAutoSave(); }, 300);
-  });
-
-  // Responsive column breakpoints
-  function _gsResponsiveColumns(){
-    if(!_gsGrid) return;
-    var w = window.innerWidth;
-    var cols = w < 768 ? 1 : w < 1200 ? 6 : 12;
-    if(_gsGrid.opts.column !== cols){
-      _gsGrid.column(cols);
-      _gsGrid.compact();
-    }
-  }
-  var _gsResizeRAF = null;
-  window.addEventListener('resize', function(){
-    if(_gsResizeRAF) cancelAnimationFrame(_gsResizeRAF);
-    _gsResizeRAF = requestAnimationFrame(_gsResponsiveColumns);
-  });
-  _gsResponsiveColumns();
-
-  // ESC key to exit edit mode
-  document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape' && _gsEditMode) gsCancelEdit();
-  });
-}
-
-// ── TAB FILTER ────────────────────────────────────────────────
-function _gsApplyTabFilter(tab){
-  if(!_gsGrid) return;
-  var items = document.querySelectorAll('#dashboard_grid > .grid-stack-item');
-  items.forEach(function(item){
-    var itemTab = item.dataset.tab;
-    if(tab === 'live' && itemTab === 'live'){
-      item.classList.remove('gs-item-hidden');
-      _gsGrid.update(item, {noMove: false});
-    } else if(tab === itemTab){
-      item.classList.remove('gs-item-hidden');
-      _gsGrid.update(item, {noMove: false});
-    } else {
-      item.classList.add('gs-item-hidden');
-    }
-  });
-  _gsGrid.compact();
-}
-
-// Override switchTab for GridStack
-function switchTab(name){
-  // Tab button highlighting
-  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
-  var btn = document.querySelector('.tab-btn.t-'+name); if(btn) btn.classList.add('active');
-
-  if(name === 'ledger'){
-    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
-    var lp = document.getElementById('tab-ledger'); if(lp) lp.classList.add('active');
-    var gd = document.getElementById('dashboard_grid'); if(gd) gd.style.display='none';
-    try{ localStorage.setItem('qgai_tab', name); }catch(e){}
-    return;
-  }
-
-  // Before GridStack init — use old tab-pane system
-  if(!_gsGrid){
-    document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
-    var tp = document.getElementById('tab-'+name); if(tp) tp.classList.add('active');
-    _gsCurrentTab = name;
-    try{ localStorage.setItem('qgai_tab', name); }catch(e){}
-    if(name==='live'){ try{ drawSparkline(equityHistory, null); drawSigChart([]); }catch(e){} }
-    return;
-  }
-
-  // GridStack mode — show grid, hide ledger
-  var gd = document.getElementById('dashboard_grid'); if(gd) gd.style.display='';
-  document.querySelectorAll('.tab-pane:not(#tab-ledger)').forEach(function(p){ p.classList.remove('active'); });
-  _gsCurrentTab = name;
-  _gsApplyTabFilter(name);
-  try{ localStorage.setItem('qgai_tab', name); }catch(e){}
-  if(name==='live'){
-    try{ drawSparkline(equityHistory, null); drawSigChart([]); }catch(e){}
-  }
-}
-
-// ── EDIT MODE ─────────────────────────────────────────────────
-function gsToggleEdit(){
-  if(_gsEditMode) gsCancelEdit();
-  else gsEnterEdit();
-}
-
-function gsEnterEdit(){
-  if(!_gsGrid) return;
-  _gsEditMode = true;
-  _gsLayoutBeforeEdit = _gsGrid.save(false);
-  _gsGrid.enableMove(true);
-  _gsGrid.enableResize(true);
-  document.body.classList.add('gs-edit-mode');
-  var toolbar = document.getElementById('gs_toolbar');
-  if(toolbar) toolbar.classList.remove('hidden');
-  var btn = document.getElementById('gs_edit_btn');
-  if(btn){ btn.style.background='#1f6feb'; btn.style.color='#fff'; btn.textContent='✏️ EDITING'; }
-}
-
-function gsCancelEdit(){
-  if(!_gsGrid) return;
-  if(_gsLayoutBeforeEdit){
-    _gsGrid.load(_gsLayoutBeforeEdit);
-  }
-  gsExitEdit();
-}
-
-function gsExitEdit(){
-  if(!_gsGrid) return;
-  _gsEditMode = false;
-  _gsLayoutBeforeEdit = null;
-  _gsGrid.enableMove(false);
-  _gsGrid.enableResize(false);
-  document.body.classList.remove('gs-edit-mode');
-  var toolbar = document.getElementById('gs_toolbar');
-  if(toolbar) toolbar.classList.add('hidden');
-  var btn = document.getElementById('gs_edit_btn');
-  if(btn){ btn.style.background='#21262d'; btn.style.color=''; btn.textContent='✏️ EDIT'; }
-}
-
-function gsSaveLayout(){
-  _gsAutoSave();
-  gsExitEdit();
-}
-
-function gsCompact(){
-  if(_gsGrid) _gsGrid.compact();
-}
-
-function gsAutoArrange(){
-  if(!_gsGrid) return;
-  var sorted = Object.entries(PANEL_CONFIG).sort(function(a,b){ return a[1].priority - b[1].priority; });
-  var y = 0;
-  sorted.forEach(function(entry){
-    var id = entry[0], cfg = entry[1];
-    if(cfg.tab !== _gsCurrentTab) return;
-    var el = _gsGrid.engine.nodes.find(function(n){ return n.id === id; });
-    if(!el) return;
-    _gsGrid.update(el.el, { x:0, y:y, w:cfg.w, h:cfg.h });
-    y += cfg.h;
-  });
-  _gsGrid.compact();
-}
-
-// ── SAVE / RESTORE LAYOUT ────────────────────────────────────
-function _gsAutoSave(){
-  if(!_gsGrid) return;
-  try{
-    var layout = _gsGrid.save(false);
-    var data = { version:1, tab: _gsCurrentTab, panels:{} };
-    if(!Array.isArray(layout)) layout = layout.children || [];
-    layout.forEach(function(item){
-      data.panels[item.id] = { x:item.x, y:item.y, w:item.w, h:item.h };
-    });
-    var allLayouts = {};
-    try{ allLayouts = JSON.parse(localStorage.getItem(GS_LAYOUT_KEY)) || {}; }catch(e){}
-    allLayouts[_gsCurrentTab] = data;
-    localStorage.setItem(GS_LAYOUT_KEY, JSON.stringify(allLayouts));
-  }catch(e){ console.warn('Layout save failed:', e); }
-}
-
-function _gsRestoreLayout(){
-  if(!_gsGrid) return;
-  try{
-    var raw = localStorage.getItem(GS_LAYOUT_KEY);
-    if(!raw) return;
-    var allLayouts = JSON.parse(raw);
-    if(!allLayouts || typeof allLayouts !== 'object') return;
-    var tabLayout = allLayouts[_gsCurrentTab];
-    if(!tabLayout || !tabLayout.panels || tabLayout.version !== 1) return;
-    var panels = tabLayout.panels;
-    Object.keys(panels).forEach(function(id){
-      var p = panels[id];
-      var node = _gsGrid.engine.nodes.find(function(n){ return n.id === id; });
-      if(node && p){
-        _gsGrid.update(node.el, { x:p.x, y:p.y, w:p.w, h:p.h });
-      }
-    });
-    _gsGrid.compact();
-  }catch(e){ console.warn('Layout restore failed:', e); }
-}
-
-function resetDashLayout(){
-  try{ localStorage.removeItem(GS_LAYOUT_KEY); }catch(e){}
-  try{ localStorage.removeItem('qgai_panels'); localStorage.removeItem('qgai_dash_cols'); localStorage.removeItem('qgai_panel_order'); }catch(e){}
-  location.reload();
-}
-function gsResetLayout(){ resetDashLayout(); }
-window.resetDashLayout = resetDashLayout;
-
-// ── CANVAS RESIZE OBSERVER ───────────────────────────────────
-var _gsResizeTimer = null;
-var _gsResizeObserver = new ResizeObserver(function(entries){
-  if(_gsResizeTimer) clearTimeout(_gsResizeTimer);
-  _gsResizeTimer = setTimeout(function(){
-    entries.forEach(function(entry){
-      var canvases = entry.target.querySelectorAll('canvas');
-      canvases.forEach(function(c){
-        if(c.id === 'sig_history_chart'){ try{ drawSigChart([]); }catch(e){} }
-        if(c.id === 'equity_sparkline'){ try{ drawSparkline(equityHistory, null); }catch(e){} }
-      });
-    });
-  }, 250);
-});
-function _gsObserveCanvases(){
-  document.querySelectorAll('.grid-stack-item-content').forEach(function(el){
-    if(el.querySelector('canvas')) _gsResizeObserver.observe(el);
-  });
-}
-
-// ── INIT ON DOM READY ─────────────────────────────────────────
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', function(){ gsInitDashboard(); _gsObserveCanvases(); });
-} else {
-  gsInitDashboard(); _gsObserveCanvases();
-}
-
 
 </script>
 </body>

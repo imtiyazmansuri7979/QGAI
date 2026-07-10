@@ -1,6 +1,7 @@
 @echo off
 title QGAI - Dashboard Server
 color 0B
+chcp 65001 >nul
 set "PY=C:\Users\user\AppData\Local\Programs\Python\Python312\python.exe"
 set "PYTHONIOENCODING=utf-8"
 set "PYTHONUTF8=1"
@@ -9,7 +10,7 @@ echo ============================================================
 echo   QGAI - DASHBOARD SERVER  (serve.py, port 8000)
 echo ------------------------------------------------------------
 echo   Keep this window OPEN while watching the dashboard.
-echo   If closed, the page shows "Failed to fetch".
+echo   If closed, the page shows Failed to fetch.
 echo ============================================================
 echo.
 echo Opening browser: http://localhost:8000/dashboard.html
