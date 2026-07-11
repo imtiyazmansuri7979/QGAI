@@ -224,7 +224,9 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
   width:100%;
 }
 /* ── GRIDSTACK OVERRIDES ── */
-.grid-stack{min-height:200px;margin-top:0!important;align-content:start}
+.grid-stack{min-height:0;margin-top:0!important;margin-bottom:0!important;align-content:start;row-gap:0!important}
+.grid-stack>.grid-stack-item{margin-block:0!important}
+.grid-stack>.grid-stack-item>.grid-stack-item-content{margin-block:0!important}
 .grid-stack-item-content{background:transparent;overflow:auto;border-radius:10px}
 .grid-stack-item-content>.tcard,.grid-stack-item-content>.sig-card,.grid-stack-item-content>[id]{height:100%;overflow:auto;box-sizing:border-box}
 .grid-stack-item-content>.tcard{margin-bottom:0}
@@ -616,7 +618,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 #equity_sparkline{display:block;width:100%;height:28px;margin-top:4px}
 
 /* ── IMPROVEMENT 3: SIGNAL HISTORY CHART ── */
-#signal_history_panel{height:auto!important;min-height:0!important;margin:2px 12px!important;overflow:hidden!important}
+#signal_history_panel{height:auto!important;min-height:0!important;margin:0 12px!important;overflow:hidden!important}
 #signal_history_panel .tcard-hdr{position:absolute;left:8px;top:4px;z-index:3;height:18px;min-height:0;padding:0!important;border:0!important;background:transparent!important;font-size:0.62rem!important;line-height:18px;pointer-events:none}
 #signal_history_panel .tcard-hdr span:not(.panel-drag-handle){display:none!important}
 #signal_history_panel .sig-history-body{position:relative;padding:2px 6px 2px 118px!important;min-height:36px;display:flex;align-items:center}
@@ -3741,6 +3743,7 @@ async function load(){
       else if(!_isCur&&_nEl){_nEl.remove();}
     });
     }}
+    try { if(typeof _fitPanelToGrid==='function'){ _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_open_trades'); _fitPanelToGrid('panel_closed_trades'); } } catch(e){}
 
         // ── OVERNIGHT REPLAY ─────────────────────────────────────
     // Show ALL signals from signal_history (both REPLAY and regular mode signals from overnight)
@@ -4070,7 +4073,7 @@ const PANEL_CONFIG = {
 var _gsGrid = null;
 var _gsEditMode = false;
 var _gsLayoutBeforeEdit = null;
-var GS_LAYOUT_KEY = 'quantGoldDashboardLayout_v9_compact_outer_gaps';
+var GS_LAYOUT_KEY = 'quantGoldDashboardLayout_v11_external_vertical_gaps';
 var _gsCurrentTab;
 
 // ── AI+MARKET PANEL — content-based auto-fit height (2026-07-10) ──
@@ -4085,7 +4088,7 @@ function _fitAiMarketPanel(){
   if(!panel) return;
   var wrap = panel.closest('.grid-stack-item');
   if(!wrap) return;
-  var cellH = 60, marginPx = 2;
+  var cellH = 56, marginPx = 1;
   var contentH = panel.scrollHeight;
   var neededH = Math.max(1, Math.ceil((contentH + marginPx) / (cellH + marginPx)));
   if(neededH === _aiMarketLastH) return;
@@ -4096,6 +4099,51 @@ function _fitAiMarketPanel(){
   var y = parseInt(wrap.getAttribute('gs-y'), 10) || 0;
   var w = parseInt(wrap.getAttribute('gs-w'), 10) || 12;
   var minW = parseInt(wrap.getAttribute('gs-min-w'), 10) || 4;
+  _gsGrid.removeWidget(wrap, false);
+  _gsGrid.addWidget(wrap, {x:x, y:y, w:w, h:neededH, minW:minW, minH:1, autoPosition:false});
+  _gsGrid.compact();
+}
+
+// ── SIGNAL HISTORY / HOURS HEATMAP — same content-based auto-fit (2026-07-11) ──
+// Imtiyaz-reported: visible gaps above Signal History, above Hours Heatmap, and
+// below Hours Heatmap — same root cause as panel_ai_market: each panel's own box
+// shrinks to its actual content (height:auto), but its GridStack row allocation
+// (gs-h) stayed at a fixed size that didn't match, leaving dead space in the grid
+// slot before the next panel starts. Generic version of _fitAiMarketPanel so both
+// panels can reuse the same logic without duplicating it.
+var _panelFitLastH = {};
+function _fitPanelToGrid(panelId){
+  if(!_gsGrid || _gsEditMode) return;
+  var panel = document.getElementById(panelId);
+  if(!panel) return;
+  var wrap = panel.closest('.grid-stack-item');
+  if(!wrap) return;
+  var cellH = 56, marginPx = 1;
+  // Measure the panel's TRUE content height. The global rule
+  // `.grid-stack-item-content>.tcard{height:100%}` (line ~229) stretches these
+  // panels to fill their GridStack slot, so panel.scrollHeight would just echo
+  // the current (too-tall) allocated height and the panel could never shrink —
+  // which is exactly why Open Trades / Closed Trades / Hours kept their dead
+  // space. Temporarily release the height (inline style beats the stylesheet
+  // rule, no !important there) so scrollHeight reflects real content, then
+  // restore. (panel_ai_market / signal_history_panel already have a CSS
+  // height:auto override so they measured fine; this makes the rest work too.)
+  var _prevInlineH = panel.style.height;
+  panel.style.height = 'auto';
+  var contentH = panel.scrollHeight;
+  panel.style.height = _prevInlineH;
+  var neededH = Math.max(1, Math.ceil((contentH + marginPx) / (cellH + marginPx)));
+  if(neededH === _panelFitLastH[panelId]) return;
+  _panelFitLastH[panelId] = neededH;
+  var curH = parseInt(wrap.getAttribute('gs-h'), 10);
+  if(neededH === curH) return;
+  var x = parseInt(wrap.getAttribute('gs-x'), 10) || 0;
+  var y = parseInt(wrap.getAttribute('gs-y'), 10) || 0;
+  var w = parseInt(wrap.getAttribute('gs-w'), 10) || 12;
+  var minW = parseInt(wrap.getAttribute('gs-min-w'), 10) || 4;
+  // Lower the element's min-h attribute too, else GridStack clamps the shrink
+  // back up to the panel's original config minH (e.g. Open Trades minH:2).
+  wrap.setAttribute('gs-min-h', '1');
   _gsGrid.removeWidget(wrap, false);
   _gsGrid.addWidget(wrap, {x:x, y:y, w:w, h:neededH, minW:minW, minH:1, autoPosition:false});
   _gsGrid.compact();
@@ -4116,7 +4164,7 @@ function _syncSignalLogToSignalHeight(){
   if(!sigH) return;
   log.style.height = sigH + 'px';
 
-  var cellH = 60, marginPx = 2;
+  var cellH = 56, marginPx = 1;
   var neededH = Math.max(4, Math.ceil((sigH + marginPx) / (cellH + marginPx)));
   if(neededH === _signalRowLastH) return;
   _signalRowLastH = neededH;
@@ -4200,8 +4248,8 @@ function gsInitDashboard(){
   // Initialize GridStack
   _gsGrid = GridStack.init({
     column: 12,
-    cellHeight: 60,
-    margin: 2,
+    cellHeight: 56,
+    margin: 1,
     animate: true,
     float: false,
     disableResize: true,
@@ -4217,6 +4265,7 @@ function gsInitDashboard(){
   _gsApplyTabFilter(_gsCurrentTab);
   try { _fitAiMarketPanel(); } catch(e){}
   try { _syncSignalLogToSignalHeight(); } catch(e){}
+  try { _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_open_trades'); _fitPanelToGrid('panel_closed_trades'); } catch(e){}
 
   // Canvas resize observer
   if('ResizeObserver' in window){
@@ -4259,6 +4308,7 @@ function gsInitDashboard(){
     _gsResizeRAF = requestAnimationFrame(function(){
       _gsResponsiveColumns();
       try { _syncSignalLogToSignalHeight(); } catch(e){}
+      try { _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_open_trades'); _fitPanelToGrid('panel_closed_trades'); } catch(e){}
     });
   });
   _gsResponsiveColumns();
