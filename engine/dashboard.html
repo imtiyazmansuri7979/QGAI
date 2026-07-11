@@ -36,7 +36,7 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
 .hidden{display:none!important}
 
 /* HEADER */
-.hdr{display:flex;align-items:stretch;background:var(--panel2);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:5px}
+.hdr{display:flex;align-items:stretch;background:var(--panel2);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:3px}
 .hdr-logo{padding:7px 14px;border-right:1px solid var(--border);min-width:170px;display:flex;flex-direction:column;justify-content:center}
 .logo{font-family:var(--orb);font-size:1.3rem;font-weight:900;color:var(--gold);letter-spacing:3px}
 .logo .g{color:var(--blue)}
@@ -224,7 +224,7 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
   width:100%;
 }
 /* ── GRIDSTACK OVERRIDES ── */
-.grid-stack{min-height:200px}
+.grid-stack{min-height:200px;margin-top:0!important;align-content:start}
 .grid-stack-item-content{background:transparent;overflow:auto;border-radius:10px}
 .grid-stack-item-content>.tcard,.grid-stack-item-content>.sig-card,.grid-stack-item-content>[id]{height:100%;overflow:auto;box-sizing:border-box}
 .grid-stack-item-content>.tcard{margin-bottom:0}
@@ -247,7 +247,12 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 .lc-panel>div:first-child b{font-size:0.58rem!important;letter-spacing:1.8px!important;color:var(--cyan)!important}
 /* Signal log rows */
 #liveSigRows{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent}
-#panel_signal,#panel_signal_log{height:100%;box-sizing:border-box;display:flex;flex-direction:column}
+#panel_signal,#panel_signal_log{box-sizing:border-box;display:flex;flex-direction:column;min-height:0}
+#panel_signal{height:auto!important;overflow:hidden!important}
+#panel_signal_log{height:100%;overflow:hidden!important}
+#panel_signal .sig-hero-card{flex:0 0 auto}
+#panel_signal .sig-hero-reason{flex:0 0 auto;min-height:0}
+#panel_lifecycle{flex:0 0 auto;margin-top:0!important}
 #liveSigRows .replay-row{height:26px;min-height:26px;padding:0 10px;overflow:hidden}
 /* ── RISK & SESSION — compact single-line status strip / ticker (2026-07-10) ── */
 .risk-strip{width:100%;overflow-x:auto;overflow-y:hidden;position:relative;background:var(--panel2,#0d1e2e);border-bottom:1px solid rgba(0,212,255,.22);height:auto;min-height:0;scrollbar-width:none;-ms-overflow-style:none}
@@ -261,6 +266,24 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 .rs-val{font-family:var(--orb);font-weight:700;font-size:0.68rem;color:var(--fg,#e6ebf2)}
 .rs-sub{color:var(--dim);font-size:0.54rem;opacity:.8}
 .rs-div{width:1px;align-self:stretch;background:rgba(0,212,255,.18);flex-shrink:0;margin:2px 0}
+/* .rs-embed = same ticker mechanics as risk-strip, but flush/borderless so it drops
+   inline inside a card (AI Decision Summary / Market Intelligence) instead of acting
+   as a page-wide bar. */
+.risk-strip.rs-embed{border-bottom:none;background:transparent}
+.risk-strip.rs-embed .risk-strip-track{padding:1px 0}
+/* ── NESTED BUBBLES — AI Summary / Market Intelligence ticker items (2026-07-11) ──
+   Each .bb-item is one bordered rounded segment (a "main bubble"); inside it, the
+   group label is its own small outlined mini-bubble and the value(s) sit in a
+   second, dark-filled mini-bubble — nested pill-in-pill, per spec. */
+.bb-item{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap;border:1px solid rgba(0,212,255,.32);border-radius:9px;padding:2px 6px;margin:0 4px;background:rgba(0,212,255,.02);box-shadow:inset 0 0 6px rgba(0,212,255,.05)}
+.bb-item.gold{border-color:rgba(232,200,74,.32);background:rgba(232,200,74,.02);box-shadow:inset 0 0 6px rgba(232,200,74,.05)}
+.bb-item.title{border-width:1px;padding:2px 9px;background:rgba(232,200,74,.06)}
+.bb-item.warn{border-color:rgba(255,107,107,.5);background:rgba(255,23,68,.07)}
+.bb-label{display:inline-flex;align-items:center;font-size:0.5rem;font-weight:700;letter-spacing:.3px;color:var(--cyan);border:1px solid rgba(0,212,255,.4);border-radius:6px;padding:1px 6px;text-transform:uppercase;white-space:nowrap;background:rgba(0,212,255,.05);flex-shrink:0}
+.bb-item.gold .bb-label{color:var(--gold);border-color:rgba(232,200,74,.4);background:rgba(232,200,74,.05)}
+.bb-val{display:inline-flex;align-items:center;gap:6px;font-size:0.62rem;font-weight:700;padding:1px 7px;white-space:nowrap;color:var(--fg,#e6ebf2);border-radius:6px;background:rgba(0,0,0,.18)}
+.bb-val .sub{color:var(--dim);font-weight:600;font-size:0.56rem;margin-right:2px}
+.bb-msg{max-width:260px;overflow:hidden;text-overflow:ellipsis}
 /* ── SIGNAL LOG — compact institutional table (2026-07-10) ── */
 .sl-titlebar{position:sticky;top:0;z-index:6}
 .sl-title{font-weight:800;letter-spacing:1px;color:var(--cyan);text-transform:uppercase}
@@ -295,34 +318,15 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
    rule (which would otherwise stretch this panel to fill its full GridStack row
    allocation regardless of actual content). #panel_ai_market as an ID selector
    outranks that rule's specificity, so no !important needed. */
-#panel_ai_market{height:auto;min-height:0}
-.ai-market-grid{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;min-height:0}
-#ai_summary_box,#market_intel_box{min-width:0;overflow-wrap:break-word;min-height:0}
-#market_intel_box{border-top:1px solid var(--line,#2a2f38)}
-@container panel (min-width:640px){
-  .ai-market-grid{grid-template-columns:minmax(0,1.22fr) minmax(0,1fr)}
-  #ai_summary_box{padding-right:14px}
-  #market_intel_box{border-top:none;border-left:1px solid var(--line,#2a2f38);padding-left:14px}
-}
-.tsp-zone{container-type:inline-size;container-name:tspzone;display:grid;gap:5px;min-width:0;min-height:0;align-content:start}
-.tsp-row2{display:grid;grid-template-columns:1fr 1fr;gap:5px;min-width:0}
-.tsp-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;min-width:0}
-.tsp-card{border:1px solid rgba(0,212,255,.32);border-radius:8px;padding:3px 8px 4px;background:rgba(0,212,255,.02);box-shadow:inset 0 0 8px rgba(0,212,255,.04);min-width:0;display:flex;flex-direction:column;gap:2px;justify-content:center}
-.tsp-card.gold{border-color:rgba(232,200,74,.32);background:rgba(232,200,74,.02);box-shadow:inset 0 0 8px rgba(232,200,74,.04)}
-.tsp-card.horiz{flex-direction:row;align-items:baseline;gap:8px}
-.tsp-badge{align-self:flex-start;font-size:0.5rem;font-weight:700;letter-spacing:.4px;color:var(--cyan);border:1px solid rgba(0,212,255,.45);border-radius:9px;padding:0px 7px;background:rgba(0,212,255,.06);white-space:nowrap;flex-shrink:0}
-.tsp-badge.gold{color:var(--gold);border-color:rgba(232,200,74,.45);background:rgba(232,200,74,.06)}
-.tsp-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:2px 10px;min-width:0}
-.tsp-kv{white-space:nowrap;font-size:0.6rem;min-width:0}
-.tsp-kv .lbl{color:var(--dim)}
-.tsp-kv b{font-size:0.66rem}
-.tsp-ai-text{color:#7aa5c4;font-size:0.58rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
-@container tspzone (max-width:420px){
-  .tsp-row2{grid-template-columns:1fr}
-}
-@container tspzone (max-width:560px){
-  .tsp-row3{grid-template-columns:1fr}
-}
+#panel_ai_market{width:calc(100% - 24px);height:auto!important;max-height:none;min-height:0;margin:2px 12px 2px!important;padding:0!important;background:transparent!important;border:0!important;border-color:transparent!important;outline:0!important;box-shadow:none!important;overflow:hidden!important}
+#panel_ai_market::before,#panel_ai_market::after{display:none!important;content:none!important}
+#dashboard_grid>.grid-stack-item[gs-id="ai_market"]>.grid-stack-item-content{overflow:hidden!important;display:flex;align-items:center}
+/* Two stacked full-width rows (ROW 1: Summary, ROW 2: Market Intelligence) —
+   always one-after-another, never side-by-side columns, per explicit request. */
+.ai-market-grid{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;align-items:center;width:100%;height:auto;min-height:0;gap:2px;padding:0;background:transparent;border:0;box-shadow:none;overflow:hidden}
+#ai_summary_box,#market_intel_box{min-width:0;overflow-wrap:break-word;min-height:0;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;padding:0!important}
+#ai_summary_box .risk-strip,#market_intel_box .risk-strip{height:auto;overflow:hidden;background:transparent!important;border:0!important}
+#ai_summary_box .risk-strip-track,#market_intel_box .risk-strip-track{height:auto;align-items:center;padding:0!important}
 /* ── CONTAINER QUERIES + FONT SCALING ── */
 .grid-stack-item-content{container-type:inline-size;container-name:panel}
 :root{
@@ -566,7 +570,7 @@ footer{text-align:center;color:var(--dim);font-size:0.69rem;padding:8px 0;border
 .g3-settings{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
 
 /* ── TAB SYSTEM ── */
-.tab-bar{display:flex;gap:3px;margin-bottom:5px;background:var(--panel2);padding:3px;border-radius:8px;border:1px solid var(--border)}
+.tab-bar{display:flex;gap:3px;margin-bottom:3px;background:var(--panel2);padding:3px;border-radius:8px;border:1px solid var(--border)}
 .tab-btn{flex:1;padding:5px 8px;border:none;background:transparent;color:var(--dim);font-family:var(--orb);font-size:0.69rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-radius:5px;transition:all 0.2s}
 .tab-btn:hover{color:var(--text);background:var(--panel)}
 .tab-btn.active{background:var(--panel);color:var(--cyan);border:1px solid var(--border)}
@@ -612,9 +616,11 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 #equity_sparkline{display:block;width:100%;height:28px;margin-top:4px}
 
 /* ── IMPROVEMENT 3: SIGNAL HISTORY CHART ── */
-#sig_history_chart{display:block;width:100%;height:58px;margin-bottom:2px}
-#signal_history_panel{margin-top:0}
+#signal_history_panel{height:auto!important;min-height:0!important;margin:2px 12px!important;overflow:hidden!important}
+#signal_history_panel .tcard-hdr{position:absolute;left:8px;top:4px;z-index:3;height:18px;min-height:0;padding:0!important;border:0!important;background:transparent!important;font-size:0.62rem!important;line-height:18px;pointer-events:none}
 #signal_history_panel .tcard-hdr span:not(.panel-drag-handle){display:none!important}
+#signal_history_panel .sig-history-body{position:relative;padding:2px 6px 2px 118px!important;min-height:36px;display:flex;align-items:center}
+#sig_history_chart{display:block;width:100%;height:34px;margin:0}
 .g2-bot > .tcard:first-child:not(#feedback_panel){display:none}
 .g2-bot > .tcard:last-child{grid-column:1 / -1}
 
@@ -771,40 +777,26 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   </div>
 
 </div>
-<!-- RISK & SESSION — compact single-line status strip (2026-07-10, converted from card panel) -->
+<!-- RISK & SESSION — compact single-line status strip, nested-bubble style (2026-07-11) -->
 <div class="risk-strip" id="risk_strip">
   <div class="risk-strip-track" id="risk_strip_track">
-    <span class="rs-item"><span class="rs-lbl">RISK/TRD</span><span class="rs-val" id="risk_per_trade2" style="color:var(--orange)">--</span><span class="rs-sub" id="risk_pct_lbl">-- equity</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">SL LEFT</span><span class="rs-val" id="daily_sl_left" style="color:var(--red)">--</span><span class="rs-sub" id="daily_sl_limit">$180 lim</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">TRADES</span><span class="rs-val" id="trades_today_lbl" style="color:var(--cyan)">0</span><span class="rs-sub" id="trades_today_sub">today</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">STREAK</span><span class="rs-val" id="streak_val">--</span><span class="rs-sub" id="streak_type">W/L</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">BEST</span><span class="rs-val" id="best_trade">--</span><span class="rs-sub">P&amp;L</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">AVG R</span><span class="rs-val" id="avg_r_today">--</span><span class="rs-sub">today</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">P&amp;L%</span><span class="rs-val" id="daily_pbl_pct">--</span><span class="rs-sub" id="daily_pbl_abs">--</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">T2 SL</span><span class="rs-val" id="t2_equity_sl">--</span><span class="rs-sub">2nd</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">EQUITY</span><span class="rs-val" id="equity" style="color:var(--green)">--</span><span class="rs-sub" id="equity_change_lbl">today</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">BALANCE</span><span class="rs-val" id="balance" style="color:var(--dim)">--</span><span class="rs-sub" id="leverage_lbl2">1:500</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">ACCT</span><span class="rs-val" id="account_id2" style="color:var(--cyan)">--</span><span class="rs-sub" id="leverage_lbl2b">1:500</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">MARGIN</span><span class="rs-val" id="free_margin" style="color:var(--dim)">--</span><span class="rs-sub" id="margin_used_lbl">--% used</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">TODAY W/L</span><span class="rs-val"><span id="sess_wins" style="color:var(--green)">0</span><span style="color:var(--dim)">W</span> <span id="sess_losses" style="color:var(--red)">0</span><span style="color:var(--dim)">L</span></span><span class="rs-sub">today</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">TODAY P&amp;L</span><span class="rs-val" id="sess_pnl" style="color:var(--dim)">--</span><span class="rs-sub">gross</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">SESS STREAK</span><span class="rs-val" id="sess_streak">--</span><span class="rs-sub">W/L</span></span>
-    <span class="rs-div"></span>
-    <span class="rs-item"><span class="rs-lbl">NEXT BAR</span><span class="rs-val" id="sess_nextbar" style="color:var(--orange)">--:--</span><span class="rs-sub">M15</span></span>
+    <span class="bb-item title gold"><span class="bb-label">💰 RISK &amp; SESSION</span></span>
+    <span class="bb-item"><span class="bb-label">RISK/TRD</span><span class="bb-val"><b id="risk_per_trade2" style="color:var(--orange)">--</b><span class="sub" id="risk_pct_lbl">-- equity</span></span></span>
+    <span class="bb-item"><span class="bb-label">SL LEFT</span><span class="bb-val"><b id="daily_sl_left" style="color:var(--red)">--</b><span class="sub" id="daily_sl_limit">$180 lim</span></span></span>
+    <span class="bb-item"><span class="bb-label">TRADES</span><span class="bb-val"><b id="trades_today_lbl" style="color:var(--cyan)">0</b><span class="sub" id="trades_today_sub">today</span></span></span>
+    <span class="bb-item"><span class="bb-label">STREAK</span><span class="bb-val"><b id="streak_val">--</b><span class="sub" id="streak_type">W/L</span></span></span>
+    <span class="bb-item"><span class="bb-label">BEST</span><span class="bb-val"><b id="best_trade">--</b><span class="sub">P&amp;L</span></span></span>
+    <span class="bb-item"><span class="bb-label">AVG R</span><span class="bb-val"><b id="avg_r_today">--</b><span class="sub">today</span></span></span>
+    <span class="bb-item"><span class="bb-label">P&amp;L%</span><span class="bb-val"><b id="daily_pbl_pct">--</b><span class="sub" id="daily_pbl_abs">--</span></span></span>
+    <span class="bb-item"><span class="bb-label">T2 SL</span><span class="bb-val"><b id="t2_equity_sl">--</b><span class="sub">2nd</span></span></span>
+    <span class="bb-item"><span class="bb-label">EQUITY</span><span class="bb-val"><b id="equity" style="color:var(--green)">--</b><span class="sub" id="equity_change_lbl">today</span></span></span>
+    <span class="bb-item"><span class="bb-label">BALANCE</span><span class="bb-val"><b id="balance" style="color:var(--dim)">--</b><span class="sub" id="leverage_lbl2">1:500</span></span></span>
+    <span class="bb-item"><span class="bb-label">ACCT</span><span class="bb-val"><b id="account_id2" style="color:var(--cyan)">--</b><span class="sub" id="leverage_lbl2b">1:500</span></span></span>
+    <span class="bb-item"><span class="bb-label">MARGIN</span><span class="bb-val"><b id="free_margin" style="color:var(--dim)">--</b><span class="sub" id="margin_used_lbl">--% used</span></span></span>
+    <span class="bb-item"><span class="bb-label">TODAY W/L</span><span class="bb-val"><b><span id="sess_wins" style="color:var(--green)">0</span><span style="color:var(--dim)">W</span> <span id="sess_losses" style="color:var(--red)">0</span><span style="color:var(--dim)">L</span></b><span class="sub">today</span></span></span>
+    <span class="bb-item"><span class="bb-label">TODAY P&amp;L</span><span class="bb-val"><b id="sess_pnl" style="color:var(--dim)">--</b><span class="sub">gross</span></span></span>
+    <span class="bb-item"><span class="bb-label">SESS STREAK</span><span class="bb-val"><b id="sess_streak">--</b><span class="sub">W/L</span></span></span>
+    <span class="bb-item"><span class="bb-label">NEXT BAR</span><span class="bb-val"><b id="sess_nextbar" style="color:var(--orange)">--:--</b><span class="sub">M15</span></span></span>
   </div>
 </div>
 <!-- TAB BAR (moved to top — above the AI summary) -->
@@ -830,10 +822,14 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 <div class="tcard" id="panel_ai_market" style="margin:0;padding:0;font-size:0.8rem;line-height:1.35">
   <div class="ai-market-grid">
     <div id="ai_summary_box" style="padding:4px 10px">
-      <div style="text-align:center"><b style="font-size:0.9rem;color:var(--gold);letter-spacing:1px">🧠 AI DECISION SUMMARY</b> <span style="color:var(--dim);font-size:0.65rem">— waiting for signal…</span></div>
+      <div class="risk-strip rs-embed" id="ai_ticker_strip"><div class="risk-strip-track" id="ai_ticker_track">
+        <span class="tk-orig" id="ai_ticker_orig" style="display:inline-flex;align-items:center"><span class="bb-item title gold"><span class="bb-label">🧠 AI SUMMARY</span></span><span class="bb-item gold"><span class="bb-label">STATUS</span><span class="bb-val">waiting for signal…</span></span></span>
+      </div></div>
     </div>
     <div id="market_intel_box" style="padding:4px 10px">
-      <div style="text-align:center"><b style="font-size:0.9rem;color:var(--cyan);letter-spacing:1px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.65rem">— context</span></div>
+      <div class="risk-strip rs-embed" id="market_ticker_strip"><div class="risk-strip-track" id="market_ticker_track">
+        <span class="tk-orig" id="market_ticker_orig" style="display:inline-flex;align-items:center"><span class="bb-item title"><span class="bb-label">📊 MARKET INTELLIGENCE</span></span><span class="bb-item"><span class="bb-label">STATUS</span><span class="bb-val">context</span></span></span>
+      </div></div>
     </div>
   </div>
 </div>
@@ -1115,7 +1111,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
         <span id="filter_reason" style="color:var(--cyan);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></span>
       </div>
       <!-- TRADE LIFECYCLE — merged into signal card (2026-07-10 Imtiyaz) -->
-      <div id="panel_lifecycle" style="border-top:1px solid var(--border);padding:4px 8px 2px;margin-top:auto">
+      <div id="panel_lifecycle" style="border-top:1px solid var(--border);padding:4px 8px 2px">
         <div class="lc-bar" id="lifecycle_bar">
           <div class="lc-step s-skip" id="lc_entry">
             <div class="lc-step-lbl">ENTRY</div>
@@ -1156,7 +1152,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
          Why This Signal / Market Intelligence panels removed → new 🧠 AI + 📊 Market boxes on top. -->
     <div class="tcard" id="signal_history_panel">
       <div class="tcard-hdr">Signal History <span>chart · full log in 📋 SIGNAL LOG above ↑</span></div>
-      <div style="padding:4px 6px 8px">
+      <div class="sig-history-body" style="padding:4px 6px 8px">
         <canvas id="sig_history_chart"></canvas>
       </div>
     </div>
@@ -2256,19 +2252,26 @@ function $t(id,val){const e=document.getElementById(id);if(e)e.textContent=val;}
 function $s(id,prop,val){const e=document.getElementById(id);if(e)e.style[prop]=val;}
 function $h(id,val){const e=document.getElementById(id);if(e)e.innerHTML=val;}
 function $c(id,cls){const e=document.getElementById(id);if(e)e.className=cls;}
-// ── RISK & SESSION STRIP — always runs as a continuous round-loop ticker
-// (builds a seamless-loop duplicate, ids stripped so the live data bindings
-// on the real copy stay unique — regardless of whether content overflows).
-function _riskStripSync(){
+// ── RISK & SESSION STRIP — continuous round-loop ticker ──────
+// _riskStripBuild() creates the seamless-loop clone (data-mirror attrs, not
+// ids — no duplicate-ID conflict) and starts the CSS animation. It only runs
+// once on init and on resize — NOT on every data poll, because re-adding an
+// animation-driving class restarts that animation from position 0. Calling
+// it every 2-15s (the poll interval) was exactly why the ticker looked like
+// it kept resetting/jumping instead of scrolling continuously.
+// _riskStripSync() runs on every poll instead: it just copies each field's
+// current text/color from the live (id-bound) original into its clone
+// mirror, without touching the DOM structure or animation state.
+function _riskStripBuild(){
   var strip=document.getElementById('risk_strip'), track=document.getElementById('risk_strip_track');
   if(!strip||!track) return;
   var oldClone=track.querySelector('.rs-clone'); if(oldClone) oldClone.remove();
   strip.classList.remove('rs-ticker');
-  var cloneHtml = track.innerHTML.replace(/\sid="[^"]*"/g,'');
+  var cloneHtml = track.innerHTML.replace(/\sid="([^"]*)"/g,' data-mirror="$1"');
   var cloneEl = document.createElement('span');
   cloneEl.className = 'rs-clone';
   cloneEl.style.cssText = 'display:inline-flex;align-items:center';
-  cloneEl.innerHTML = '<span class="rs-div"></span>' + cloneHtml;
+  cloneEl.innerHTML = cloneHtml;
   track.appendChild(cloneEl);
   var singleWidth = track.scrollWidth / 2;
   var pxPerSec = 42;
@@ -2276,17 +2279,67 @@ function _riskStripSync(){
   strip.style.setProperty('--rs-dur', dur+'s');
   strip.classList.add('rs-ticker');
 }
+function _riskStripSync(){
+  var track=document.getElementById('risk_strip_track'); if(!track) return;
+  var clone=track.querySelector('.rs-clone');
+  if(!clone){ _riskStripBuild(); clone=track.querySelector('.rs-clone'); if(!clone) return; }
+  clone.querySelectorAll('[data-mirror]').forEach(function(el){
+    var src=document.getElementById(el.getAttribute('data-mirror'));
+    if(src){ el.textContent=src.textContent; el.style.cssText=src.style.cssText; }
+  });
+}
+// ── GENERIC EMBEDDED TICKER (AI Decision Summary / Market Intelligence) ──
+// Unlike the risk strip (static structure, only text values change), AI/Market
+// content is genuinely rebuilt fresh each poll — conditional pills, votes,
+// blocked-banner etc. So the ORIGINAL copy's innerHTML is simply regenerated
+// by renderAISummary/renderMarketIntel as before; _tickerSync() then just
+// copies that (now-updated) content into the clone. This does not restart
+// the animation since only the clone's own children change, never the
+// animated track element's class/attributes — same principle as the risk
+// strip fix, applied without needing per-field ids for these two panels.
+function _tickerBuild(trackId){
+  var track=document.getElementById(trackId); if(!track) return;
+  var strip=track.closest('.risk-strip'); if(!strip) return;
+  var orig=track.querySelector('.tk-orig'); if(!orig) return;
+  var oldClone=track.querySelector('.rs-clone'); if(oldClone) oldClone.remove();
+  strip.classList.remove('rs-ticker');
+  var clone=document.createElement('span');
+  clone.className='rs-clone';
+  clone.style.cssText='display:inline-flex;align-items:center';
+  clone.innerHTML=orig.innerHTML;
+  track.appendChild(clone);
+  var singleWidth=track.scrollWidth/2;
+  var dur=Math.max(18, Math.round(singleWidth/42));
+  strip.style.setProperty('--rs-dur', dur+'s');
+  strip.classList.add('rs-ticker');
+}
+function _tickerSync(trackId){
+  var track=document.getElementById(trackId); if(!track) return;
+  var orig=track.querySelector('.tk-orig'); if(!orig) return;
+  var clone=track.querySelector('.rs-clone');
+  if(!clone){ _tickerBuild(trackId); return; }
+  clone.innerHTML=orig.innerHTML;
+}
 var _rsResizeT=null;
-window.addEventListener('resize', function(){ clearTimeout(_rsResizeT); _rsResizeT=setTimeout(function(){ try{_riskStripSync();}catch(e){} }, 250); });
+window.addEventListener('resize', function(){ clearTimeout(_rsResizeT); _rsResizeT=setTimeout(function(){
+  try{_riskStripBuild();}catch(e){}
+  try{_tickerBuild('ai_ticker_track');}catch(e){}
+  try{_tickerBuild('market_ticker_track');}catch(e){}
+}, 250); });
 // ── MAIN LOAD ─────────────────────────────────────────────────
 function renderMarketIntel(mi){
-  var box=document.getElementById('market_intel_box'); if(!box) return;
-  if(!mi || !mi.trend){ box.innerHTML='<div style="text-align:center"><b style="font-size:0.9rem;color:var(--cyan);letter-spacing:1px">📊 MARKET INTELLIGENCE</b> <span style="color:var(--dim);font-size:0.65rem">— context</span></div>'; return; }
-  function pill(lbl,val,vc,bc,tip){
-    return '<span class="tsp-kv"'+(tip?' title="'+tip+'"':'')+'><span class="lbl">'+lbl+' </span><b style="color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
-  }
-  function group(title,pills){
-    return '<div class="tsp-card"><span class="tsp-badge">'+title+'</span><div class="tsp-row">'+pills.join('')+'</div></div>';
+  // Target the ticker's inner .tk-orig content directly — NEVER replace box.innerHTML
+  // here, or the outer .risk-strip/.risk-strip-track/.rs-clone nodes get destroyed and
+  // recreated every poll, which makes _tickerSync() always find "no clone" and always
+  // call _tickerBuild(), restarting the CSS animation from 0 every 2-15s (looked like
+  // the ticker kept breaking/resetting — Imtiyaz-reported 2026-07-11).
+  var orig=document.getElementById('market_ticker_orig'); if(!orig) return;
+  if(!mi || !mi.trend){ orig.innerHTML='<span class="bb-item title"><span class="bb-label">📊 MARKET INTELLIGENCE</span></span><span class="bb-item"><span class="bb-label">STATUS</span><span class="bb-val">context</span></span>'; try{_tickerSync('market_ticker_track');}catch(e){} return; }
+  // sub(label,value,color) → one mini label:value pair inside a bubble's value area
+  function sub(lbl,val,vc){ return '<span class="sub">'+lbl+'</span><b style="color:'+(vc||'inherit')+'">'+val+'</b>'; }
+  // bb(groupLabel,[subParts],cls,tip) → one nested bubble: outline label mini-pill + dark value mini-pill
+  function bb(lbl,subs,cls,tip){
+    return '<span class="bb-item'+(cls?' '+cls:'')+'"'+(tip?' title="'+tip+'"':'')+'><span class="bb-label">'+lbl+'</span><span class="bb-val">'+subs.join(' <span style="color:var(--line,#2a2f38)">|</span> ')+'</span></span>';
   }
   function arr(v){return v>0?'<span style="color:var(--green)">▲</span>':v<0?'<span style="color:var(--red)">▼</span>':'<span style="color:var(--dim)">–</span>';}
   function adxc(v){return v>=25?'var(--green)':v>=20?'var(--orange,#e0a030)':'var(--dim)';}
@@ -2294,33 +2347,27 @@ function renderMarketIntel(mi){
   var agCol=Math.abs(t.agree)>=3?'var(--green)':Math.abs(t.agree)>=1?'var(--orange,#e0a030)':'var(--dim)';
   var imbCol=fl.imbalance==='Bullish'?'var(--green)':fl.imbalance==='Bearish'?'var(--red)':'var(--dim)';
   var diCol=s.di_dir==='BULL'?'var(--green)':s.di_dir==='BEAR'?'var(--red)':'var(--dim)';
-  var gTrend=group('MARKET',[
-    pill('M15',arr(t.m15)), pill('H1',arr(t.h1)), pill('H4',arr(t.h4)),
-    pill('AGREE',(t.agree>0?'+':'')+t.agree,agCol), pill('LINE %',t.line_dist)]);
-  var gStr=group('STRENGTH',[
-    pill('H1 ADX',s.h1_adx,adxc(s.h1_adx),null,'એન્જિન EWM-ADX(14) — MT5 ના Wilder ADX થી અલગ પદ્ધતિ (closed bars + forming bar, દર M15 update). Model આ જ ADX પર trained. MT5 પર match જોવા ADX Wilder મૂકો.'),
-    pill('H4 ADX',s.h4_adx,adxc(s.h4_adx),null,'એન્જિન EWM-ADX(14) — MT5 ના Wilder ADX થી અલગ પદ્ધતિ (closed bars + forming bar, દર M15 update). Model આ જ ADX પર trained. MT5 પર match જોવા ADX Wilder મૂકો.'),
-    pill('DI',s.di_dir,diCol)]);
-  var gStruct=group('STRUCTURE',[
-    pill('H4 R/S',(st.h4_resist!=null?st.h4_resist:'—')+'/'+(st.h4_support!=null?st.h4_support:'—')),
-    pill('H1 R/S',(st.h1_resist!=null?st.h1_resist:'—')+'/'+(st.h1_support!=null?st.h1_support:'—')),
-    pill('IN-OB',st.in_ob?'YES':'no',st.in_ob?'var(--green)':'var(--dim)')]);
-  var gFlow=group('FLOW',[
-    pill('PHASE',fl.phase,'var(--cyan)'), pill('IMBAL',fl.imbalance,imbCol),
-    pill('CORR',fl.corr_ratio!=null?fl.corr_ratio:'—')]);
+  var adxTip='એન્જિન EWM-ADX(14) — MT5 ના Wilder ADX થી અલગ પદ્ધતિ (closed bars + forming bar, દર M15 update). Model આ જ ADX પર trained. MT5 પર match જોવા ADX Wilder મૂકો.';
   var _newsTxt=cx.news||'clear';
-  var gCtx=group('CONTEXT',[
-    pill('VOL',cx.volatility), pill('SESSION',cx.session,cx.session==='NY'?'var(--green)':'var(--dim)'),
-    '<span class="tsp-kv" title="'+_newsTxt.replace(/"/g,"'")+'"><span class="lbl">NEWS </span><b style="overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:150px;vertical-align:bottom">'+_newsTxt+'</b></span>']);
-  box.innerHTML='<div class="tsp-zone">'
-    +'<div class="tsp-row2">'+gTrend+gStr+'</div>'
-    +'<div class="tsp-row2">'+gStruct+gFlow+'</div>'
-    +gCtx+'</div>';
+  var _newsShort=_newsTxt.split(' — ')[0].split(' - ')[0];
+  var bubbles=[
+    '<span class="bb-item title"><span class="bb-label" style="color:var(--cyan);border-color:rgba(0,212,255,.5)">📊 MARKET INTELLIGENCE</span></span>',
+    bb('MARKET',[sub('M15',arr(t.m15)), sub('H1',arr(t.h1)), sub('H4',arr(t.h4)), sub('AGREE',(t.agree>0?'+':'')+t.agree,agCol), sub('LINE%',t.line_dist)]),
+    bb('STRENGTH',[sub('H1 ADX',s.h1_adx,adxc(s.h1_adx)), sub('H4 ADX',s.h4_adx,adxc(s.h4_adx)), sub('DI',s.di_dir,diCol)],null,adxTip),
+    bb('STRUCTURE',[sub('H4 R/S',(st.h4_resist!=null?st.h4_resist:'—')+'/'+(st.h4_support!=null?st.h4_support:'—')), sub('H1 R/S',(st.h1_resist!=null?st.h1_resist:'—')+'/'+(st.h1_support!=null?st.h1_support:'—')), sub('IN-OB',st.in_ob?'YES':'no',st.in_ob?'var(--green)':'var(--dim)')]),
+    bb('FLOW',[sub('PHASE',fl.phase,'var(--cyan)'), sub('IMBAL',fl.imbalance,imbCol), sub('CORR',fl.corr_ratio!=null?fl.corr_ratio:'—')]),
+    bb('CONTEXT',[sub('VOL',cx.volatility), sub('SESSION',cx.session,cx.session==='NY'?'var(--green)':'var(--dim)'), sub('NEWS',_newsShort)],null,_newsTxt.replace(/"/g,"'"))
+  ];
+  orig.innerHTML=bubbles.join('');
+  try { _tickerSync('market_ticker_track'); } catch(e){}
 }
 
 function renderAISummary(a, isConfirmed, holdNow, openPos, exitNow, exitInfo, tradeAction){
-  var box=document.getElementById('ai_summary_box'); if(!box) return;
-  if(!a || !a.signal){ box.innerHTML='<div style="text-align:center"><b style="font-size:0.9rem;color:var(--gold);letter-spacing:1px">🧠 AI DECISION SUMMARY</b> <span style="color:var(--dim);font-size:0.65rem">— waiting for signal…</span></div>'; return; }
+  // Target the ticker's inner .tk-orig content directly — see renderMarketIntel() for
+  // why box.innerHTML must never be touched here (it would destroy/recreate the
+  // .risk-strip-track + .rs-clone nodes every poll and restart the CSS animation).
+  var orig=document.getElementById('ai_ticker_orig'); if(!orig) return;
+  if(!a || !a.signal){ orig.innerHTML='<span class="bb-item title gold"><span class="bb-label">🧠 AI SUMMARY</span></span><span class="bb-item gold"><span class="bb-label">STATUS</span><span class="bb-val">waiting for signal…</span></span>'; try{_tickerSync('ai_ticker_track');}catch(e){} return; }
   var _dSig = (!isConfirmed && (a.signal==='BUY'||a.signal==='SELL')) ? 'SKIP' : a.signal;
   var _aiBlocked = (tradeAction||'').indexOf('BLOCK_')===0;
   var _aiBlockLabels = {BLOCK_RANGE:'range-phase H4 chop',BLOCK_CTF:'counter-trend fade',BLOCK_PULLBACK:'pullback gate',BLOCK_SMMA:'SMMA MTF gate',BLOCK_ADX:'ADX strength gate',BLOCK_SLOT:'outside slot window'};
@@ -2335,61 +2382,39 @@ function renderAISummary(a, isConfirmed, holdNow, openPos, exitNow, exitInfo, tr
   var sigCol=_dSig==='BUY'?'var(--green)':_dSig==='SELL'?'var(--red)':_dSig.indexOf('HOLD')===0?'var(--cyan)':_dSig.indexOf('EXIT')===0?'var(--orange)':'var(--gold,#e8c84a)';
   var m=a.models||{}, h=a.history||{}, hr=a.history_regime||{};
   function pct(x){return x==null?'--':(x*100).toFixed(1)+'%';}
-  var dots=''; for(var i=0;i<(a.agreement_max||5);i++){dots+='<span style="color:'+(i<a.agreement?confCol:'#444')+'">●</span>';}
   function gr(g){return g?'var(--green)':'var(--red)';}          // good=green / bad=red
   function gyr(v,hi,mid){return v>=hi?'var(--green)':v>=mid?'var(--orange,#e0a030)':'var(--red)';}
   var regCol=a.regime==='Trending'?'var(--green)':a.regime==='Volatile'?'var(--orange,#e0a030)':a.regime==='Ranging'?'var(--red)':'var(--dim)';
-  // pill(label,value,...) → label + bold value, baseline-aligned inline
-  function pill(lbl,val,vc,bc,tip){
-    return '<span class="tsp-kv"'+(tip?' title="'+tip+'"':'')+'><span class="lbl">'+lbl+' </span><b style="color:'+(vc||'var(--fg,#e6ebf2)')+'">'+val+'</b></span>';
+  // sub(label,value,color) → one mini label:value pair inside a bubble's value area
+  function sub(lbl,val,vc){ return '<span class="sub">'+lbl+'</span><b style="color:'+(vc||'inherit')+'">'+val+'</b>'; }
+  // bb(groupLabel,[subParts],cls,tip) → one nested bubble: outline label mini-pill + dark value mini-pill
+  function bb(lbl,subs,cls,tip){
+    return '<span class="bb-item'+(cls?' '+cls:'')+'"'+(tip?' title="'+tip+'"':'')+'><span class="bb-label">'+lbl+'</span><span class="bb-val">'+subs.join(' <span style="color:var(--line,#2a2f38)">|</span> ')+'</span></span>';
   }
-  // group(title, [pills]) → bordered card, pill-badge title + evenly-justified pill row
-  function group(title,pills){
-    return '<div class="tsp-card gold"><span class="tsp-badge gold">'+title+'</span><div class="tsp-row">'+pills.join('')+'</div></div>';
-  }
-  var _confTag = isConfirmed ? ' <span style="font-size:0.6em;color:var(--green)">✅</span>' : ' <span style="font-size:0.6em;color:var(--orange)">⏳</span>';
-  var gDecision=group('DECISION',[
-    pill('SIGNAL',_dSig+_confTag,sigCol,sigCol),
-    pill('PROB',pct(a.final_prob)+' / '+pct(a.threshold), gr(a.final_prob>=a.threshold), gr(a.final_prob>=a.threshold)),
-    pill('REGIME',a.regime,regCol,regCol)]);
-  var gConf=group('CONFIDENCE',[
-    pill('AGREE',dots+' '+a.agreement+'/'+a.agreement_max,confCol,confCol),
-    pill('LEVEL',a.confidence,confCol,confCol)]);
+  var _confTag = isConfirmed ? ' ✅' : ' ⏳';
   // MODELS + VOTES combined: compact letter-code + ✓/✗, full label+% on hover
   function vcol(ok){return ok?'var(--green)':'var(--red)';}
   var V=a.votes||{};
-  function mk(code,fullLbl,prob,vkey){var ok=V[vkey]; return '<span class="tsp-kv" title="'+fullLbl+' '+pct(prob)+'"><span class="lbl">'+code+' </span><b style="color:'+vcol(ok)+'">'+(ok?'✓':'✗')+'</b></span>';}
+  function mk(code,prob,vkey){var ok=V[vkey]; return sub(code, (ok?'✓':'✗')+' '+pct(prob), vcol(ok));}
   var hmmOk=V['HMM actionable'];
-  var gModels=group('MODELS ('+a.agreement+'/'+a.agreement_max+')',[
-    mk('M',"Main (combined)",m.main,'Main (combined)'),
-    mk('S',"Regime (state)",m.state,'Regime (state)'),
-    mk('D',"Direction",m.direction,'Direction'),
-    mk('B',"BigWin",m.bigwin,'BigWin'),
-    '<span class="tsp-kv" title="HMM actionable: '+a.regime+'"><span class="lbl">H </span><b style="color:'+vcol(hmmOk)+'">'+(hmmOk?'✓':'✗')+'</b></span>']);
-  var gRisk=group('RISK',[
-    pill('EXP','$'+(a.expected_move_usd||0),'var(--cyan)'),
-    pill('SL','$'+(a.suggested_sl_usd||0),'var(--red)'),
-    pill('TP','$'+(a.suggested_tp_usd||0),'var(--green)')]);
   var _avg=a.history&&a.history.avg_r!=null? a.history.avg_r : null;
-  var histPills=[
-    pill('WR', h.n? h.wr+'%':'—', h.n? gyr(h.wr,55,45):'var(--dim)'),
-    pill('PF', h.pf!=null? h.pf : '—', h.pf!=null? gyr(h.pf,2,1.3):'var(--dim)'),
-    pill('AVG', _avg!=null? (_avg>0?'+':'')+_avg : '—', _avg!=null? gr(_avg>0):'var(--dim)'),
-    pill('n', h.n!=null? h.n : '—')];
-  var gHist=group('LIKE-THIS',histPills);
-  var _blkBanner = '';
+  var bubbles=[
+    '<span class="bb-item title gold"><span class="bb-label">🧠 AI SUMMARY</span></span>'
+  ];
   if(_aiBlocked && (_dSig==='BUY'||_dSig==='SELL')){
-    _blkBanner = '<div style="background:rgba(255,23,68,0.08);border:1px solid rgba(255,107,107,0.3);border-radius:6px;padding:4px 10px;margin-bottom:6px;font-size:0.78rem;color:#ff6b6b;font-weight:600">⛔ BLOCKED — '+_dSig+' signal blocked by <span style="color:#ffa07a">'+(_aiBlockLabels[tradeAction]||tradeAction)+'</span> filter</div>';
+    bubbles.push('<span class="bb-item warn"><span class="bb-label" style="color:#ff6b6b;border-color:#ff6b6b">⛔ BLOCKED</span><span class="bb-val">'+_dSig+' — '+(_aiBlockLabels[tradeAction]||tradeAction)+'</span></span>');
   }
-  var _invFull=(a.invalidation||'—')+(a.why?' | '+a.why:'');
-  var gAI='<div class="tsp-card gold horiz"><span class="tsp-badge gold">AI</span>'
-    +'<span class="tsp-ai-text" title="'+_invFull.replace(/"/g,"'")+'">'
-    +'<span style="color:var(--orange,#e0a030);font-weight:700">⚠</span> '+_invFull+'</span></div>';
-  box.innerHTML='<div class="tsp-zone">'
-    +gAI+_blkBanner
-    +'<div class="tsp-row2">'+gDecision+gConf+'</div>'
-    +'<div class="tsp-row3">'+gModels+gRisk+gHist+'</div>'
-    +'</div>';
+  bubbles.push(
+    bb('DECISION',[sub('SIGNAL',_dSig+_confTag,sigCol)]),
+    bb('PROB',[sub('',pct(a.final_prob)+' / '+pct(a.threshold), gr(a.final_prob>=a.threshold))]),
+    bb('REGIME',[sub('',a.regime,regCol)]),
+    bb('CONFIDENCE',[sub('AGREE',a.agreement+'/'+a.agreement_max,confCol), sub('LEVEL',a.confidence,confCol)]),
+    bb('MODELS',[mk('M',m.main,'Main (combined)'), mk('S',m.state,'Regime (state)'), mk('D',m.direction,'Direction'), mk('B',m.bigwin,'BigWin'), sub('H',(hmmOk?'✓':'✗'),vcol(hmmOk))]),
+    bb('RISK',[sub('EXP','$'+(a.expected_move_usd||0),'var(--cyan)'), sub('SL','$'+(a.suggested_sl_usd||0),'var(--red)'), sub('TP','$'+(a.suggested_tp_usd||0),'var(--green)')]),
+    bb('LIKE-THIS',[sub('WR', h.n? h.wr+'%':'—', h.n? gyr(h.wr,55,45):'var(--dim)'), sub('PF', h.pf!=null? h.pf : '—', h.pf!=null? gyr(h.pf,2,1.3):'var(--dim)'), sub('AVG', _avg!=null? (_avg>0?'+':'')+_avg : '—', _avg!=null? gr(_avg>0):'var(--dim)'), sub('n', h.n!=null? h.n : '—')])
+  );
+  orig.innerHTML=bubbles.join('');
+  try { _tickerSync('ai_ticker_track'); } catch(e){}
 }
 
 async function load(){
@@ -4027,11 +4052,10 @@ function fitDashboardText(){}
 
 // ── PANEL CONFIGURATION ──────────────────────────────────────
 const PANEL_CONFIG = {
-  ai_market:       { el:'#panel_ai_market',       title:'AI + Market',          w:12, h:2, minW:4, minH:1, tab:'live',  priority:1  },
   open_trades:     { el:'#panel_open_trades',     title:'Open Trades',          w:12, h:2, minW:6, minH:2, tab:'live',  priority:5  },
-  signal:          { el:'#panel_signal',          title:'Signal + Lifecycle',   w:7,  h:7, minW:3, minH:4, tab:'live',  priority:7  },
-  signal_log:      { el:'#panel_signal_log',      title:'Signal Log',           w:5,  h:7, minW:3, minH:3, tab:'live',  priority:9  },
-  signal_history:  { el:'#signal_history_panel',  title:'Signal History',       w:12, h:2, minW:4, minH:2, tab:'live',  priority:10 },
+  signal:          { el:'#panel_signal',          title:'Signal + Lifecycle',   w:6,  h:5, minW:3, minH:4, tab:'live',  priority:7  },
+  signal_log:      { el:'#panel_signal_log',      title:'Signal Log',           w:6,  h:5, minW:3, minH:4, tab:'live',  priority:9  },
+  signal_history:  { el:'#signal_history_panel',  title:'Signal History',       w:12, h:1, minW:4, minH:1, tab:'live',  priority:10 },
   hours_heatmap:   { el:'#hours_heatmap_wrap',    title:'Hours Heatmap',        w:12, h:2, minW:6, minH:1, tab:'live',  priority:11 },
   closed_trades:   { el:'#panel_closed_trades',   title:'Closed Trades',        w:12, h:3, minW:6, minH:2, tab:'live',  priority:13 },
   slot_timeline:   { el:'#panel_slot_timeline',   title:'Slot Timeline',        w:12, h:2, minW:6, minH:1, tab:'stats', priority:14 },
@@ -4046,7 +4070,7 @@ const PANEL_CONFIG = {
 var _gsGrid = null;
 var _gsEditMode = false;
 var _gsLayoutBeforeEdit = null;
-var GS_LAYOUT_KEY = 'quantGoldDashboardLayout_v1';
+var GS_LAYOUT_KEY = 'quantGoldDashboardLayout_v9_compact_outer_gaps';
 var _gsCurrentTab;
 
 // ── AI+MARKET PANEL — content-based auto-fit height (2026-07-10) ──
@@ -4061,7 +4085,7 @@ function _fitAiMarketPanel(){
   if(!panel) return;
   var wrap = panel.closest('.grid-stack-item');
   if(!wrap) return;
-  var cellH = 60, marginPx = 4;
+  var cellH = 60, marginPx = 2;
   var contentH = panel.scrollHeight;
   var neededH = Math.max(1, Math.ceil((contentH + marginPx) / (cellH + marginPx)));
   if(neededH === _aiMarketLastH) return;
@@ -4077,6 +4101,30 @@ function _fitAiMarketPanel(){
   _gsGrid.compact();
 }
 
+var _signalRowLastH = null;
+function _syncSignalLogToSignalHeight(){
+  if(!_gsGrid || _gsEditMode) return;
+  var sig = document.getElementById('panel_signal');
+  var log = document.getElementById('panel_signal_log');
+  if(!sig || !log) return;
+  var sigItem = sig.closest('.grid-stack-item');
+  var logItem = log.closest('.grid-stack-item');
+  if(!sigItem || !logItem) return;
+
+  log.style.height = '';
+  var sigH = Math.ceil(sig.getBoundingClientRect().height || sig.scrollHeight || 0);
+  if(!sigH) return;
+  log.style.height = sigH + 'px';
+
+  var cellH = 60, marginPx = 2;
+  var neededH = Math.max(4, Math.ceil((sigH + marginPx) / (cellH + marginPx)));
+  if(neededH === _signalRowLastH) return;
+  _signalRowLastH = neededH;
+  _gsGrid.update(sigItem, {h: neededH});
+  _gsGrid.update(logItem, {h: neededH});
+  _gsGrid.compact();
+}
+
 function gsInitDashboard(){
   if(!_gsCurrentTab) _gsCurrentTab = 'live';
   var gridEl = document.createElement('div');
@@ -4089,6 +4137,12 @@ function gsInitDashboard(){
   } else {
     var tabBar = document.querySelector('.tab-bar');
     if(tabBar) tabBar.after(gridEl);
+  }
+
+  var aiMarketPanel = document.getElementById('panel_ai_market');
+  if(aiMarketPanel){
+    aiMarketPanel.dataset.tab = 'live';
+    gridEl.parentNode.insertBefore(aiMarketPanel, gridEl);
   }
 
   // Move conditional bars (not GridStack items) just above the grid
@@ -4147,7 +4201,7 @@ function gsInitDashboard(){
   _gsGrid = GridStack.init({
     column: 12,
     cellHeight: 60,
-    margin: 4,
+    margin: 2,
     animate: true,
     float: false,
     disableResize: true,
@@ -4162,6 +4216,7 @@ function gsInitDashboard(){
   // Apply initial tab filter
   _gsApplyTabFilter(_gsCurrentTab);
   try { _fitAiMarketPanel(); } catch(e){}
+  try { _syncSignalLogToSignalHeight(); } catch(e){}
 
   // Canvas resize observer
   if('ResizeObserver' in window){
@@ -4201,7 +4256,10 @@ function gsInitDashboard(){
   var _gsResizeRAF = null;
   window.addEventListener('resize', function(){
     if(_gsResizeRAF) cancelAnimationFrame(_gsResizeRAF);
-    _gsResizeRAF = requestAnimationFrame(_gsResponsiveColumns);
+    _gsResizeRAF = requestAnimationFrame(function(){
+      _gsResponsiveColumns();
+      try { _syncSignalLogToSignalHeight(); } catch(e){}
+    });
   });
   _gsResponsiveColumns();
 
@@ -4214,6 +4272,8 @@ function gsInitDashboard(){
 // ── TAB FILTER ────────────────────────────────────────────────
 function _gsApplyTabFilter(tab){
   if(!_gsGrid) return;
+  var aiMarketPanel = document.getElementById('panel_ai_market');
+  if(aiMarketPanel) aiMarketPanel.style.display = (tab === 'live') ? '' : 'none';
   var items = document.querySelectorAll('#dashboard_grid > .grid-stack-item');
   items.forEach(function(item){
     var itemTab = item.dataset.tab;
@@ -4228,6 +4288,7 @@ function _gsApplyTabFilter(tab){
     }
   });
   _gsGrid.compact();
+  try { _syncSignalLogToSignalHeight(); } catch(e){}
 }
 
 // Override switchTab for GridStack
