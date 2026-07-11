@@ -619,7 +619,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 
 /* ── IMPROVEMENT 3: SIGNAL HISTORY CHART ── */
 #signal_history_panel{height:auto!important;min-height:0!important;margin:0 12px!important;overflow:hidden!important}
-#signal_history_panel .tcard-hdr{position:absolute;left:8px;top:4px;z-index:3;height:18px;min-height:0;padding:0!important;border:0!important;background:transparent!important;font-size:0.62rem!important;line-height:18px;pointer-events:none}
+#signal_history_panel .tcard-hdr{position:absolute;left:8px;top:4px;z-index:3;height:18px;min-height:0;padding:0!important;border:0!important;background:transparent!important;font-size:0.62rem!important;line-height:18px;pointer-events:auto;cursor:grab}
 #signal_history_panel .tcard-hdr span:not(.panel-drag-handle){display:none!important}
 #signal_history_panel .sig-history-body{position:relative;padding:2px 6px 2px 118px!important;min-height:36px;display:flex;align-items:center}
 #sig_history_chart{display:block;width:100%;height:34px;margin:0}
@@ -3743,7 +3743,7 @@ async function load(){
       else if(!_isCur&&_nEl){_nEl.remove();}
     });
     }}
-    try { if(typeof _fitPanelToGrid==='function'){ _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_open_trades'); _fitPanelToGrid('panel_closed_trades'); } } catch(e){}
+    try { if(typeof _fitPanelToGrid==='function'){ _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_open_trades'); _fitPanelToGrid('panel_closed_trades'); } if(typeof _tightenLowerOuterGaps==='function') setTimeout(_tightenLowerOuterGaps,50); } catch(e){}
 
         // ── OVERNIGHT REPLAY ─────────────────────────────────────
     // Show ALL signals from signal_history (both REPLAY and regular mode signals from overnight)
@@ -4073,7 +4073,7 @@ const PANEL_CONFIG = {
 var _gsGrid = null;
 var _gsEditMode = false;
 var _gsLayoutBeforeEdit = null;
-var GS_LAYOUT_KEY = 'quantGoldDashboardLayout_v11_external_vertical_gaps';
+var GS_LAYOUT_KEY = 'quantGoldDashboardLayout_v14_safe_external_gaps';
 var _gsCurrentTab;
 
 // ── AI+MARKET PANEL — content-based auto-fit height (2026-07-10) ──
@@ -4147,6 +4147,41 @@ function _fitPanelToGrid(panelId){
   _gsGrid.removeWidget(wrap, false);
   _gsGrid.addWidget(wrap, {x:x, y:y, w:w, h:neededH, minW:minW, minH:1, autoPosition:false});
   _gsGrid.compact();
+}
+
+// Signal History is a compact strip, while GridStack starts the next row on a
+// full cell boundary. Re-measure the actual preceding panel at each viewport
+// and subtract only the unused outer portion. Panel content is untouched.
+function _tightenLowerOuterGaps(){
+  if(!_gsGrid || _gsEditMode) return;
+  var items = {};
+  ['panel_signal_log','signal_history_panel','hours_heatmap_wrap','panel_closed_trades'].forEach(function(panelId){
+    var panel = document.getElementById(panelId);
+    var item = panel && panel.closest('.grid-stack-item');
+    if(!item) return;
+    var y = parseInt(item.getAttribute('gs-y'), 10);
+    if(!Number.isFinite(y)) return;
+    item.style.top = 'calc(' + y + ' * var(--gs-cell-height))';
+    items[panelId] = {panel:panel,item:item,y:y};
+  });
+  // Force the baseline row positions to resolve before measuring the gaps.
+  void document.getElementById('dashboard_grid').offsetHeight;
+  var gap = 3;
+  function pullAfter(previousId, nextId){
+    var prev = items[previousId], next = items[nextId];
+    if(!prev || !next) return;
+    var pr = prev.panel.getBoundingClientRect();
+    var nr = next.panel.getBoundingClientRect();
+    var pull = Math.max(0, Math.round(nr.top - pr.bottom - gap));
+    if(pull){
+      var currentTop = parseFloat(getComputedStyle(next.item).top) || 0;
+      next.item.style.top = (currentTop - pull) + 'px';
+    }
+    void document.getElementById('dashboard_grid').offsetHeight;
+  }
+  pullAfter('panel_signal_log','signal_history_panel');
+  pullAfter('signal_history_panel','hours_heatmap_wrap');
+  pullAfter('hours_heatmap_wrap','panel_closed_trades');
 }
 
 var _signalRowLastH = null;
@@ -4266,6 +4301,7 @@ function gsInitDashboard(){
   try { _fitAiMarketPanel(); } catch(e){}
   try { _syncSignalLogToSignalHeight(); } catch(e){}
   try { _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_open_trades'); _fitPanelToGrid('panel_closed_trades'); } catch(e){}
+  try { setTimeout(_tightenLowerOuterGaps,50); } catch(e){}
 
   // Canvas resize observer
   if('ResizeObserver' in window){
@@ -4309,6 +4345,7 @@ function gsInitDashboard(){
       _gsResponsiveColumns();
       try { _syncSignalLogToSignalHeight(); } catch(e){}
       try { _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_open_trades'); _fitPanelToGrid('panel_closed_trades'); } catch(e){}
+      try { setTimeout(_tightenLowerOuterGaps,50); } catch(e){}
     });
   });
   _gsResponsiveColumns();
