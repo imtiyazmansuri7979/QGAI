@@ -44,7 +44,7 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
 .hdr-pcell{flex:1;padding:5px 8px;text-align:center;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center}
 .hdr-pcell:last-child{border-right:none}
 .hdr-plbl{font-size:0.69rem;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:1px}
-.hdr-pval{font-family:var(--orb);font-size:1.38rem;font-weight:700;white-space:nowrap}
+.hdr-pval{font-family:var(--orb);font-size:1.15rem;font-weight:700;white-space:nowrap}
 .hdr-mid{padding:6px 12px;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;min-width:160px}
 .hdr-right{padding:6px 12px;font-size:0.78rem;color:var(--dim);text-align:right;line-height:1.7;display:flex;flex-direction:column;justify-content:center;min-width:170px}
 .hdr-right span{color:var(--cyan)}
@@ -286,6 +286,10 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 .bb-val{display:inline-flex;align-items:center;gap:6px;font-size:0.62rem;font-weight:700;padding:1px 7px;white-space:nowrap;color:var(--fg,#e6ebf2);border-radius:6px;background:rgba(0,0,0,.18)}
 .bb-val .sub{color:var(--dim);font-weight:600;font-size:0.56rem;margin-right:2px}
 .bb-msg{max-width:260px;overflow:hidden;text-overflow:ellipsis}
+/* The three dashboard ticker rows use a slightly larger, readable type scale. */
+#risk_strip .bb-label,#ai_ticker_strip .bb-label,#market_ticker_strip .bb-label{font-size:0.60rem}
+#risk_strip .bb-val,#ai_ticker_strip .bb-val,#market_ticker_strip .bb-val{font-size:0.74rem}
+#risk_strip .bb-val .sub,#ai_ticker_strip .bb-val .sub,#market_ticker_strip .bb-val .sub{font-size:0.67rem}
 /* ── SIGNAL LOG — compact institutional table (2026-07-10) ── */
 .sl-titlebar{position:sticky;top:0;z-index:6}
 .sl-title{font-weight:800;letter-spacing:1px;color:var(--cyan);text-transform:uppercase}
