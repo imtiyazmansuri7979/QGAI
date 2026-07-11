@@ -4150,38 +4150,28 @@ function _fitPanelToGrid(panelId){
 }
 
 // Signal History is a compact strip, while GridStack starts the next row on a
-// full cell boundary. Re-measure the actual preceding panel at each viewport
-// and subtract only the unused outer portion. Panel content is untouched.
+// full cell boundary. Use the measured row geometry for the normal layout and
+// the wider six-row Signal/Log layout. Panel content is untouched.
 function _tightenLowerOuterGaps(){
   if(!_gsGrid || _gsEditMode) return;
+  var ids = ['signal_history_panel','hours_heatmap_wrap','panel_closed_trades'];
   var items = {};
-  ['panel_signal_log','signal_history_panel','hours_heatmap_wrap','panel_closed_trades'].forEach(function(panelId){
+  ids.forEach(function(panelId){
     var panel = document.getElementById(panelId);
     var item = panel && panel.closest('.grid-stack-item');
     if(!item) return;
     var y = parseInt(item.getAttribute('gs-y'), 10);
     if(!Number.isFinite(y)) return;
-    item.style.top = 'calc(' + y + ' * var(--gs-cell-height))';
     items[panelId] = {panel:panel,item:item,y:y};
   });
-  // Force the baseline row positions to resolve before measuring the gaps.
-  void document.getElementById('dashboard_grid').offsetHeight;
-  var gap = 3;
-  function pullAfter(previousId, nextId){
-    var prev = items[previousId], next = items[nextId];
-    if(!prev || !next) return;
-    var pr = prev.panel.getBoundingClientRect();
-    var nr = next.panel.getBoundingClientRect();
-    var pull = Math.max(0, Math.round(nr.top - pr.bottom - gap));
-    if(pull){
-      var currentTop = parseFloat(getComputedStyle(next.item).top) || 0;
-      next.item.style.top = (currentTop - pull) + 'px';
-    }
-    void document.getElementById('dashboard_grid').offsetHeight;
-  }
-  pullAfter('panel_signal_log','signal_history_panel');
-  pullAfter('signal_history_panel','hours_heatmap_wrap');
-  pullAfter('hours_heatmap_wrap','panel_closed_trades');
+  var logItem = document.getElementById('panel_signal_log')?.closest('.grid-stack-item');
+  var wide = logItem && parseInt(logItem.getAttribute('gs-h'), 10) >= 6;
+  var pulls = wide ? {signal_history_panel:46, hours_heatmap_wrap:59, panel_closed_trades:59}
+                   : {signal_history_panel:0, hours_heatmap_wrap:13, panel_closed_trades:13};
+  ids.forEach(function(panelId){
+    var next = items[panelId];
+    if(next) next.item.style.top = 'calc(' + next.y + ' * var(--gs-cell-height) - ' + pulls[panelId] + 'px)';
+  });
 }
 
 var _signalRowLastH = null;
