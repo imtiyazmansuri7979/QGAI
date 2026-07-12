@@ -11,6 +11,7 @@ Example:
   ATR   = $8  → 8/4000  * 100 = 0.2000%
 """
 
+import os
 import numpy as np
 import pandas as pd
 from config import CFG
@@ -199,9 +200,18 @@ def load_news(path: str) -> pd.DataFrame:
     df["abs_dev"]   = df["deviation"].abs()
     df["dev_sign"]  = df["deviation"].apply(
         lambda x: 1.0 if x>0 else -1.0 if x<0 else 0.0 if pd.notna(x) else 0.0)
-    df["dev_norm"]  = df.groupby("event")["deviation"].transform(
-        lambda x: (x - x.mean()) / (x.std() + 1e-9)).clip(-3, 3).fillna(0)
     df = df.sort_values("datetime").reset_index(drop=True)
+    # P3 FIX 2026-07-12 (leakage audit): dev_norm used WHOLE-SAMPLE per-event
+    # mean/std (included FUTURE releases of the same event). Now EXPANDING over
+    # only PAST occurrences (shift(1) excludes the current row) → a z-score a
+    # signal at time t could actually compute live. Early events with <2 prior
+    # history → NaN → fillna(0). REVERT: restore the old .transform mean/std.
+    def _past_z(x):
+        m = x.expanding().mean().shift(1)
+        s = x.expanding().std().shift(1)
+        return (x - m) / (s + 1e-9)
+    df["dev_norm"]  = (df.groupby("event")["deviation"].transform(_past_z)
+                       .clip(-3, 3).fillna(0))
     # Pre-compute impact subsets — stored as module-level cache, not df attributes
     # (Pandas 2.0+ does not allow custom attributes on DataFrame)
     _news_cache = {
@@ -263,7 +273,15 @@ def build_ob_table(ohlc_df: pd.DataFrame, timeframe: str = "1h") -> pd.DataFrame
     # bar[i+1]'s timestamp. confirm_datetime = next bar's datetime.
     # get_ob_features filters on confirm_datetime (not datetime) so a
     # signal at time t never sees an OB whose impulse hasn't closed yet.
-    tf["confirm_datetime"] = tf["datetime"].shift(-1)
+    #
+    # P2 FIX 2026-07-12 (leakage audit): shift(-1) exposed the OB at the
+    # impulse candle's START, but ob_strength = range_pct.shift(-1) is the
+    # impulse candle's FULL range — not known until it CLOSES. So strength
+    # leaked up to ~1 HTF bar. shift(-2) = the bar AFTER the impulse (i.e.
+    # once the impulse has fully closed) → strength is honest. Slightly more
+    # conservative on zone availability (one candle later); no leak.
+    # REVERT: change shift(-2) back to shift(-1).
+    tf["confirm_datetime"] = tf["datetime"].shift(-2)
     # last row has no next bar → never confirmed (drop from availability)
     tf["confirm_datetime"] = tf["confirm_datetime"].fillna(pd.Timestamp.max)
 
@@ -383,8 +401,16 @@ def build_h4_range_table(ohlc_df: pd.DataFrame) -> pd.DataFrame:
     h4["big_move_size"]    = h4["cum3_move_pct"].abs().round(4)
     h4["big_move_dir"]     = h4["cum3_move_pct"].apply(lambda x: 1 if x > 0 else -1 if x < 0 else 0)
 
-    # Range phase: current H4 move < 0.5% = consolidating
-    h4["in_range_phase"]   = (h4["h4_move_pct"].abs() < 0.5).astype(int)
+    # Range phase: current H4 move < THRESHOLD% = consolidating.
+    # THRESHOLD SWEEP 2026-07-12: env QGAI_INRANGE_THRESH overrides the 0.5%
+    # cutoff (e.g. 0.3 / 0.4 / 0.6 / 0.7) so we can retrain+test which cutoff the
+    # model likes best — keep the clean BINARY, just tune WHERE the line sits.
+    # Default 0.5 = current. NOTE: changing it changes feature values → RETRAIN.
+    try:
+        _irt = float(os.environ.get("QGAI_INRANGE_THRESH") or 0.5)
+    except ValueError:
+        _irt = 0.5
+    h4["in_range_phase"]   = (h4["h4_move_pct"].abs() < _irt).astype(int)
 
     return h4.reset_index(drop=True)
 
@@ -396,10 +422,21 @@ def get_range_features(t: pd.Timestamp, h4_df: pd.DataFrame) -> dict:
     """
     # Only use COMPLETED H4 candles (end time <= t) to avoid lookahead.
     # H4 candle at dt covers [dt, dt+4h); it's complete when dt+4h <= t.
+    # LEGACY TOGGLE (2026-07-11, Imtiyaz): set env QGAI_INRANGE_LEGACY=1 to use the
+    # OLD pre-07-09 behaviour (index by start-time -> includes the CURRENT, still-
+    # forming H4 candle with its fully-formed future OHLC). This REINTRODUCES the
+    # lookahead the 07-09 fix removed and was what produced the +384.5R / +444.7R
+    # backtests. It is NOT live-realistic (live can't see the future of the current
+    # candle). Default (unset) = honest, leak-free. Only for reproducing old numbers.
     _t64    = t.to_datetime64() if hasattr(t, 'to_datetime64') else np.datetime64(t)
     if h4_df is not None:
-        _h4_end = h4_df['datetime'].values + np.timedelta64(4, 'h')
-        _h4_idx = int(np.searchsorted(_h4_end, _t64, side='right'))
+        if os.environ.get("QGAI_INRANGE_LEGACY") == "1":
+            # leaky: candle whose START <= t (current forming candle included)
+            _h4_idx = int(np.searchsorted(h4_df['datetime'].values, _t64, side='right'))
+        else:
+            # honest: only candles whose END <= t (fully completed)
+            _h4_end = h4_df['datetime'].values + np.timedelta64(4, 'h')
+            _h4_idx = int(np.searchsorted(_h4_end, _t64, side='right'))
     else:
         _h4_idx = 0
     past_h4 = h4_df.iloc[:_h4_idx].tail(12) if h4_df is not None else pd.DataFrame()
@@ -410,17 +447,28 @@ def get_range_features(t: pd.Timestamp, h4_df: pd.DataFrame) -> dict:
             "big_move_direction": 0,
             "big_move_size_pct":  0.0,
             "in_range_phase":     0,
+            # RAW continuous H4 move (2026-07-12): give the model the actual H4
+            # move % / cum-3-H4 move %, so it learns its OWN range/big-move cutoff
+            # instead of the hardcoded 0.5% / 2.0% binaries. "model over hard filters".
+            "h4_move_pct":        0.0,
+            "cum3_move_pct":      0.0,
         }
 
     # Find most recent big move in last 10 H4 candles
     big_move_rows = past_h4[past_h4["is_big_move"] == 1]
+
+    _last = past_h4.iloc[-1]
+    _h4mv = float(_last["h4_move_pct"]) if pd.notna(_last["h4_move_pct"]) else 0.0
+    _c3mv = float(_last["cum3_move_pct"]) if pd.notna(_last["cum3_move_pct"]) else 0.0
 
     if len(big_move_rows) == 0:
         return {
             "is_post_big_move":   0,
             "big_move_direction": 0,
             "big_move_size_pct":  0.0,
-            "in_range_phase":     int(past_h4.iloc[-1]["in_range_phase"]),
+            "in_range_phase":     int(_last["in_range_phase"]),
+            "h4_move_pct":        _h4mv,
+            "cum3_move_pct":      _c3mv,
         }
 
     # Most recent big move
@@ -430,7 +478,9 @@ def get_range_features(t: pd.Timestamp, h4_df: pd.DataFrame) -> dict:
         "is_post_big_move":   1,
         "big_move_direction": int(last_big["big_move_dir"]),
         "big_move_size_pct":  float(last_big["big_move_size"]),
-        "in_range_phase":     int(past_h4.iloc[-1]["in_range_phase"]),
+        "in_range_phase":     int(_last["in_range_phase"]),
+        "h4_move_pct":        _h4mv,
+        "cum3_move_pct":      _c3mv,
     }
 
 
@@ -875,7 +925,8 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
         rb = get_range_features(t, h4_df)
     else:
         rb = {"is_post_big_move":0,
-              "big_move_direction":0,"big_move_size_pct":0.0,"in_range_phase":0}
+              "big_move_direction":0,"big_move_size_pct":0.0,"in_range_phase":0,
+              "h4_move_pct":0.0,"cum3_move_pct":0.0}
     f.update(rb)
 
     # ── GROUP 8: TREND RATIO (3) ──
@@ -1149,7 +1200,11 @@ FEATURE_COLS = [
     "h1_ob_strength",        # H1 nearest resist OB strength ← NEW
     "price_pos",             # price position in range
     "body_pct",              # candle body conviction
-    "in_range_phase",        # range detection
+    "in_range_phase",        # range detection (binary; hardcoded H4 move<0.5%)
+    # RAW h4_move_pct + cum3_move_pct TESTED & REJECTED 2026-07-12: single-backtest
+    # B +6.8R vs A +8.9R AND WFO(~5wk) B +8.9R vs A +11.7R — raw added noise, not
+    # signal. Binary in_range_phase is cleaner for this model. (Computed in
+    # get_range_features but not fed to the model.) REVERT-of-revert: re-add here.
     "corr_imp_ratio",        # correction/impulse ratio ← NEW
     "is_post_big_move",      # post big move flag ← NEW
     "big_move_direction",    # big move direction ← NEW
@@ -1367,7 +1422,13 @@ _ZERO_IMP = {
 # (importance 0.0096-0.0129) — the model uses them a little, so watch the AUC
 # after retrain; if it drops, remove a name from this set to restore it.
 _MANUAL_PRUNE = {
-    "corr_imp_ratio",          # 12h+ swing lookahead leakage (Fable-5 review 2026-07-09)
+    "corr_imp_ratio",          # DROPPED 2026-07-12 (P1, leakage audit): confirmed DOUBLE leak
+                               # — swing detection reads 3 FUTURE H4 candles (build_trend_ratio_table
+                               # iloc[i+j]) + availability gate stamps the ratio ~16h too early.
+                               # Low importance (rank #28, 0.022; AUC -0.014) & redundant with honest
+                               # ts_trend_h4 / h4_ADX / in_range_phase. Gating it honestly would only
+                               # yield a 16h-stale near-useless value, so DROP not fix. WFO-gated vs
+                               # ~+80R honest baseline. REVERT: comment this line + retrain.
     "h1_in_ob_zone", "last_3star_dev_sign", "ts_trend_h1", "is_post_big_move",
     "session_score", "ts_adx_switch_trend", "move_2hr", "move_8hr",
     # round 2 — only useful in the main model (0.0158/0.0174), zero in BUY/SELL:
@@ -1397,11 +1458,18 @@ _MANUAL_PRUNE = {
     # .pkl still expects them until retrained. WFO-gate ≥ +393.7R before adopting.
     # REVERT: delete these 6 lines + retrain.
     "adx_trend_count",         # EA: count of TFs ADX>20 (0.0 — collinear w/ raw ADX)
-    "h4_trending_h1_aligned",  # EA: H4 ADX>30 + H1 confirm (0.0 — combo of DI diffs)
-    "h4_ranging_h1_neutral",   # EA: H4 ADX<20 + H1 neutral (0.0 — combo of in_range + DI)
-    "h4_h1_regime_score",      # EA: H4/H1 regime score (0.0 — combo of in_range + DI)
+    # 2026-07-12 individual A/B test: B3 (h4_h1_regime_score) = +14.8R (KEEP),
+    # B1/B2/B4 individually positive but B3+B4 combo = flat (interference).
+    # B3 already encodes B1+B2 info as gradient score. Keep ONLY B3.
+    "h4_trending_h1_aligned",  # B1: +10.6R alone but redundant with B3 score=+2
+    "h4_ranging_h1_neutral",   # B2: +10.2R alone but redundant with B3 score=+1
+    "trade_direction",         # B4: +12.3R alone but interferes with B3 in combo
     "h4_in_ob_zone",           # 0.0 — redundant with h4_resist_dist / h4_support_dist
-    "trade_direction",         # 0.0 — direction lives in DI_diffs + momentum_aligned
+    # 2026-07-12 ADX redundancy test: D1/D2/D3 all >= baseline when dropped.
+    # D3 (H1_ADX) = +18.0R vs baseline +14.8R (+22%). Overfeed confirmed.
+    "h4_ranging_h1_extended",  # D1: exactly =baseline (B3 score=-1 covers it)
+    "M30_ADX",                 # D2: +15.3R without (middle TF redundant)
+    "H1_ADX",                  # D3: +18.0R without (+22% gain, h1_slope+DI sufficient)
 }
 _ZERO_IMP = _ZERO_IMP | _MANUAL_PRUNE
 # Ablation toggle (for experiments only): set env QGAI_ABLATE="feat1,feat2,..." to

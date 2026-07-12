@@ -8,6 +8,88 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-12 — ADX redundancy prune: 3 features dropped (Imtiyaz)
+**What:** Dropped `h4_ranging_h1_extended`, `M30_ADX`, `H1_ADX` from model via `_MANUAL_PRUNE` (36→33 features).
+**Why:** Individual ablation A/B (1-month, retrain each):
+- D1 `h4_ranging_h1_extended`: +14.8R = exactly baseline (model uses it ZERO — `h4_h1_regime_score=-1` covers the same condition)
+- D2 `M30_ADX`: +15.3R (+0.5R better without — middle TF redundant when H4_ADX+M15_ADX present)
+- D3 `H1_ADX`: **+18.0R (+3.2R, +22% gain)** — WR 59.5%, PF 2.55, DD 0.5% (best). `h1_adx_slope` + `H1_DI_diff` already carry the H1 information; raw H1_ADX was overfeed/noise.
+**Reversible:** Remove lines from `_MANUAL_PRUNE` + retrain.
+**⚠️ NEEDS WFO GATE** (full-year confirm before live adoption).
+
+## 2026-07-12 — PART-1 feature restore: only B3 kept (Imtiyaz)
+**What:** Of the 4 PART-1-pruned features tested for restore, only `h4_h1_regime_score` (B3) kept in model. `h4_trending_h1_aligned` (B1), `h4_ranging_h1_neutral` (B2), `trade_direction` (B4) re-added to `_MANUAL_PRUNE`.
+**Why:** Individual 1-month A/B: B3 +14.8R, B4 +12.3R, B1 +10.6R, B2 +10.2R vs baseline +8.9R. BUT combo B3+B4 = +8.8R (flat — interference). B3 already encodes B1+B2 info as a gradient score (-1 to +2); B4 overlaps/interferes. Keeping only B3 = cleanest signal, no overfeed.
+**Net:** 35 → +B3 → −B1/B2/B4 = 36 feat (before ADX prune above → 33 feat final).
+**Reversible:** Remove B1/B2/B4 from `_MANUAL_PRUNE` + retrain.
+
+## 2026-07-12 — in_range_phase REGIME-AWARE cutoff applied (Imtiyaz)
+**What:** `in_range_phase` (rank #1 model feature) now uses a per-regime |H4 move| cutoff instead of one global 0.5%: **Trending 0.5%, Volatile 0.6%, Ranging 0.5%** (unchanged — noisy/small sample). Implemented in `inference.py` right after `hmm_state_name` is known, before model routing — overrides `feat_dict["in_range_phase"]` using the already-computed raw `h4_move_pct`. Applies identically to live and backtest (both use `LiveInferenceEngine.decide()`). No retrain needed — `in_range_phase` stays a binary model input, only WHERE the line sits changed per regime.
+**Why:** A 1-month sweep of the global threshold (0.3–0.7%) showed the per-regime optimum differs: Trending peaks at 0.5% (+5.2R), Volatile peaks at 0.6% (+8.5R) — a single global cutoff was averaging away real per-regime signal. Combined (Trending 0.5 + Volatile 0.6 + Ranging 0.5): **+13.8R (1-month) vs +8.9R global** — but small samples (13-46 trades/regime).
+**Reversible:** env `QGAI_REGIME_INRANGE=0` reverts to old global-0.5% behavior instantly (no retrain either way).
+**⚠️ NEEDS FULL-YEAR + WFO CONFIRM** before trusting live (1-month is directional only). Bat: `Run_InRange_RegimeSwap_AB_FullYear.bat` (A=off vs B=on).
+
+## 2026-07-12 — RAW H4-move features added (hidden-hard-filter fix) (Imtiyaz)
+**What:** Added raw continuous `h4_move_pct` + `cum3_move_pct` to the model (`features.py` get_range_features + FEATURE_COLS).
+**Why:** Audit of hardcoded thresholds inside features (user: "like ADX≥19") found most binary-cutoff features were already pruned WITH their raw continuous counterparts in the model — EXCEPT `in_range_phase` (rank #1): it exposes only a hardcoded `H4 move < 0.5%` binary and the raw `h4_move_pct` was NOT in the model. So the model was forced onto a human 0.5% cutoff. Same for `is_big_move` (2.0%). Now the raw H4 move % / cum-3-H4 move % are features → the model learns its OWN range/big-move threshold. "model over hard filters".
+**Verified:** compute_features returns h4_move_pct=0.0917 / cum3_move_pct=-0.2593 on real data; both in FEATURE_COLS, not pruned; syntax OK. Model +2 features.
+**⚠️ NEEDS RETRAIN + A/B GATE.** Bat: `Run_RawMove_AB_Retrain_Backtest_TEST.bat` (A=ablate raw vs B=with raw, 1-month). Keep raw only if B > A on R with healthy WR. REVERT: remove the 2 lines from FEATURE_COLS + get_range_features (backup `_backup_pre_rawmove_20260712`).
+
+**RESULT ❌ REJECTED (same day):** single-backtest B +6.8R/55tr/WR54.5% vs A +8.9R/63tr/WR60.3%; WFO ~5wk B +8.9R vs A +11.7R. The model did NOT learn/improve from the raw values even with weekly WFO retraining — they added noise, not signal. Binary `in_range_phase` is cleaner for this model. Removed h4_move_pct/cum3_move_pct from FEATURE_COLS (get_range_features still computes them, just unused); restored the 35-feat +8.9R baseline model to data/models/final. Good hypothesis, negative result — recorded so it isn't re-tried blindly.
+
+## 2026-07-12 — Filter CODE removed: range + #2 pre-news + #4 early-discount (Imtiyaz)
+**What:** Deleted the filter code (not just flags) for the 3 removed entry filters — per Imtiyaz, without waiting for the range full-year confirm. Net −87 lines across 4 files, all git-reversible:
+- **RANGE** — `backtest_replay.py`: range-detection block → `_range_block = False` constant; `--no-range-skip` arg deleted. `bridge_main.py`: BLOCK_RANGE compute block → constant. Config keys `skip_range_phase_entry`/`range_phase_min_prob` KEPT (read by `bridge_main` startup banner + `bridge_dashboard` display).
+- **#2 PRE-NEWS** — `inference.py`: pre-news penalty branch collapsed to the plain regime threshold; `QGAI_PRENEWS_PENALTY` env removed.
+- **#4 EARLY-DISCOUNT** — `inference.py`: whole early_entry_discount block deleted (`_ed_disc = 0.0` kept for the downstream export); config keys `early_entry_discount`/`ed_*` removed; `QGAI_EARLY_DISCOUNT`/`QGAI_ED_*` env gone.
+**Design:** kept `_range_block`/`_ed_disc` as harmless constants so the shared downstream compound conditions (`not _range_block and ...`) and the `blocked_by`/CSV/dashboard schema are untouched — minimal-risk removal.
+**Bug-check (code-level PASS):** all 4 files syntax OK, imports OK, no dangling refs (only REVERT comments), range cfg-key still present (dashboard safe), early_entry_discount key gone.
+**Parity smoke (pending):** `Run_FilterRemoval_Parity_TEST.bat` must reproduce +8.9R/63tr (identical to range_ab_TEST_OFF) — since the filters were already functionally off, removing the code must not change results. Any diff = a removal bug.
+**⚠️ Live effect on next bridge restart.** Demo first.
+
+## 2026-07-12 — H4 Range-phase entry filter REMOVED (Imtiyaz)
+**What:** `config.py` `skip_range_phase_entry` **True → False**. The range filter (skip BUY/SELL when `in_range_phase==1`) is now OFF in live.
+**Why:** It was added post-hoc for a small profit bump WITHOUT a proper WFO/OOS test ("Demo/WFO confirm" TODO never closed). On the honest 34-feat model it blocks ~63% of actionable BUY/SELL (30d smoke: 121 BUY + 41 SELL blocked, only 96 through) — the dominant entry-stopper by far. Prior A/B (2026-07-03) showed keeping = +10R, but that was IN-SAMPLE on the leaky pre-fix model. Removing now; re-add only if an honest A/B/WFO proves it raises TOTAL R.
+**Measurement (rule: judge by profit):** `Run_Range_AB_Backtest_TEST.bat` (30d ON vs OFF) + `Run_Range_AB_Backtest.bat` (1yr). Uses env `QGAI_SKIP_RANGE=1/0` to A/B regardless of config. If OFF R ≥ ON R → removal confirmed; if OFF much lower → reconsider revert.
+**Reversible:** `skip_range_phase_entry=True` or env `QGAI_SKIP_RANGE=1`. FILTERS_MASTER #3 updated (status + change log).
+**⚠️ Live effect on next bridge restart.** Test on demo first.
+
+## 2026-07-12 — Leakage-audit fixes P1+P2+P3 applied (Imtiyaz)
+**What (all HONEST, no lookahead — reversible):**
+- **P1 — DROP `corr_imp_ratio`** (`features.py` `_MANUAL_PRUNE`, 35→34 feat): confirmed double leak (swing detection reads 3 future H4 candles via `iloc[i+j]` + availability gate stamps ~16h early). Low importance (rank #28, AUC −0.014), redundant with honest `ts_trend_h4`/`h4_ADX`/`in_range_phase`. Gating honestly would only yield a 16h-stale near-useless value → drop, not fix.
+- **P2 — `ob_strength` confirm timing** (`build_ob_table:267`): `confirm_datetime = datetime.shift(-1)` → `shift(-2)`. Old exposed the OB at the impulse candle's START while `ob_strength` = that candle's FULL (not-yet-closed) range → strength leaked ~1 HTF bar. Now visible only after the impulse fully closes. Zone features (dist/in_zone) were already safe.
+- **P3 — news `dev_norm` expanding stats** (`load_news:203`): whole-sample per-event mean/std (included FUTURE releases) → EXPANDING past-only z-score (`shift(1)` excludes current; <2 history → 0). Verified in isolation (row0-1 = 0, then real, no future).
+**Status:** code done, syntax OK, past-only z-score unit-checked. **⚠️ NEEDS RETRAIN + WFO GATE.**
+**Gate:** honest baseline ~+80R (W13 corr_imp-out = +80.5R). PASS if Total R ≥ ~+78R (within noise). Big drop ⇒ a fix cut real signal → investigate.
+**Bats:** `Run_LeakFix_P1P2P3_Retrain_WFO_TEST.bat` (2-wk smoke) + `_FULL.bat` (53-wk, backup→retrain→WFO).
+**REVERT:** each fix has an inline REVERT note; restore model from `_backup_pre_leakfix_p1p2p3_20260712`.
+
+## 2026-07-12 — Full leakage audit (all timeframes) — report only (Imtiyaz)
+**What:** Audited every feature path in `features.py` across M15/M30/H1/H4 + swing/OB/news for lookahead. Report: `docs/LEAKAGE_AUDIT_20260712.md`.
+**Findings:** Only real leak left = `corr_imp_ratio` (double leak: swing reads 3 future H4 candles + availability gate ~16h early; but LOW profit impact — currently restored/in-model). Minor: `h4/h1_ob_strength` (partial-candle), news `dev_norm` (global-stats). **Verified SAFE:** all M15/M30/H1/H4 ADX/DI/band (drift vs as-of = 0.0000 over 97,632 rows), rolling adx_slope, all ts_* trend-signal features, in_range_phase (honest), OB zones, M15 OHLC.
+**Bottom line:** honest ~+80R baseline is trustworthy (no big hidden leak). The old +444R/+384R were inflated by the in_range_phase (pre-07-09) + ADX (pre-07-03) leaks, both now fixed. Raising R must come from genuine signal, not un-fixing leaks.
+
+## 2026-07-11 — in_range_phase LEGACY toggle added (Imtiyaz decision)
+**What:** Added env toggle `QGAI_INRANGE_LEGACY=1` in `features.py:get_range_features()`. Default (unset) = honest leak-free behaviour (07-09 fix, only COMPLETED H4 candles). `=1` = old pre-07-09 behaviour (indexes by start-time → includes the current forming H4 candle with its fully-formed future OHLC = lookahead).
+**Why:** Investigation of the +444.7R→+80.5R WFO gap proved the dominant cause was NOT the corr_imp_ratio removal but the **07-09 in_range_phase leak-fix**. Partial WFO evidence (same 30 weeks): W1 leaky = +237.8R/316tr vs restore honest = +46.3R/208tr. Imtiyaz wants the +384.5R CTF-OFF Path-A backtest result reproduced, so the old leaky behaviour is now reachable via toggle.
+**⚠️ Honesty note:** The +384.5R / +444.7R numbers come partly from lookahead (training/backtest sees the fully-formed future H4 candle). **Live trading cannot reproduce this** — at time t the current H4 candle is only partially formed. Live default stays honest (toggle unset). The toggle is for reproducing old backtest numbers only.
+**⚠️ Train/infer parity correction (same day):** inference-only legacy (backtest toggle without a matching retrain) does NOT reproduce +384.5R — the current model was retrained 07-11 23:22 on HONEST in_range_phase, so a leaky-inference backtest feeds it feature values it never trained on (mismatch). Correct reproduction needs leaky TRAINING too. Superseded the inference-only bats with:
+- `Run_Legacy_Retrain_CTFOFF_TEST.bat` (backup → legacy retrain → 30d backtest → restore honest)
+- `Run_Legacy_Retrain_CTFOFF_FULL.bat` (same, full year, expect ~+384.5R)
+Both BACKUP the honest model → retrain with `QGAI_INRANGE_LEGACY=1` → backtest leaky → **RESTORE the honest model** so the LIVE model never keeps the leaky one.
+**REVERT:** delete the `QGAI_INRANGE_LEGACY` branch; the honest path is the `else`.
+
+## 2026-07-11 — Master Results Index created (Imtiyaz)
+**What:** Created `backtest/results/RESULTS_INDEX.md` — a single reference document listing ALL WFO, backtest, and training results with date, config, total R, trades, feature count, purpose, and verdict (ADOPTED/REJECTED/RETIRED/BASELINE). Also documents the feature-count timeline and pending runs.
+**Why:** Too many result folders were causing confusion about which run was which, what config each used, and whether a result is current or retired.
+
+## 2026-07-11 — corr_imp_ratio RESTORED in features.py (Imtiyaz)
+**What:** Uncommented `corr_imp_ratio` from `_MANUAL_PRUNE` set — feature is back in model (35 features).
+**Why:** Removal on 07-09 was done WITHOUT WFO profit gate (rule violation). WFO dropped from +444.7R → +80.5R (768→391 trades). The feature wasn't truly leaking in a way that hurt OOS — it was genuinely useful for model confidence. Restoring and will re-verify with full WFO.
+**Pending:** `Run_Restore_CorrImp_Retrain_WFO.bat` — expect ~+444R recovery.
+
+---
+
 ## 2026-07-10 — Dashboard layout overhaul: GridStack.js integration (Anisa)
 **What:** Replaced the fragile custom drag/resize/zoom layout system with GridStack.js v12.6.0 — a professional 12-column grid with drag, resize, snap, collision detection, and layout persistence.
 
