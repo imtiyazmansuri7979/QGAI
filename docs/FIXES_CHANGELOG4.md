@@ -8,6 +8,259 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-13 — Data-leakage guard: hard-blocks train/backtest overlap (Imtiyaz flagged, Claude fixed)
+**What happened:** Imtiyaz found that several 2026-07-12 "Stage-1 3-month retrain backtest" screens
+(OB redundancy, RemovedFeature top-10, RawMove, RegimeScore individual/combo A/B, InRange sweep,
+LeakFix P1P2P3, Legacy CTFOFF) called `train.py` with no `QGAI_TRAIN_CUTOFF`, then replayed a backtest
+starting `--from 2026-04-01` — but the labeled-trades training data (`Back_testing_data_final_cleaned_RELABELED.xlsx`)
+ends **2026-04-29 20:00**. So Apr 1→29 (164 trades) overlapped train and "test" — genuine in-sample
+leakage, not a clean 3-month OOS result. Worst-hit: the **B3-only feature prune (commit `10fad5f`,
+"keep only h4_h1_regime_score") was already committed to live models based on this in-sample evidence,
+with no WFO gate.** Separately found (independent of this fix): `run_wfo.py` had a 1-day-per-fold
+train/test boundary overlap too (`QGAI_TRAIN_CUTOFF=w_start` == the backtest's own `--from w_start`).
+**Fix (permanent, code-level, not a one-off rerun):**
+- **`engine/leakage_guard.py`** (NEW) — every model file gets a `<name>_meta.json` sidecar recording
+  its real data exposure (training/validation/calibration/test end dates). Before any backtest,
+  `assert_no_leakage()` takes the MAX exposure across every GATING model (main/buy/sell/state models/
+  HMM/slot-table) and hard-**raises** (not warns) if that date is on-or-after `--from`. BigWin/Duration
+  predictors are tracked but excluded from the blocking max (non-gating, deliberately not
+  retrained per WFO fold — would otherwise false-block all of WFO). Online/drift learners are
+  exempt (fresh, no historical fit at train time).
+- **`engine/train.py`** — writes the new sidecars for every model (hmm/slot_table/state models/
+  big_win/duration/online/drift — previously only main+buy+sell had any meta at all); `_cutoff_metadata()`
+  extended with `training_start`, `validation_end`, `model_created_at`, `data_hash`. Whole training run
+  now goes through `_run_training_atomically()` — writes to a temp `final_building_tmp` dir, only
+  swaps into `data/models/final` on full success (old version kept at `final_prev`); a crash/kill
+  mid-training leaves the live models untouched.
+- **`engine/backtest_replay.py`** — new `--allow-in-sample` flag (explicit opt-out only, prints a loud
+  "NOT valid OOS proof" banner, never a default) is the *only* way to run a knowingly in-sample sanity
+  backtest (e.g. current live model over full 2022→2026 history). Without it, an overlapping run now
+  hard-exits (`SystemExit(1)`) before touching any data.
+- **`engine/run_wfo.py`** — fixed the 1-day fold-boundary overlap: `QGAI_TRAIN_CUTOFF` is now
+  `week_start − 1 day` (strictly before the test week) instead of `week_start` itself, at all 3
+  subprocess call sites (trail sweep, PB-entry sweep, main WFO loop). Matches the file's own docstring
+  ("model on data < week_start") which the code hadn't actually implemented.
+- **`engine/tests/test_leakage_guard.py`** (NEW) — 9 automated tests: cutoff==start/after-start → FAIL,
+  cutoff-before-start → PASS, missing metadata → FAIL, one directional model newer → latest wins,
+  non-gating model's stale cutoff doesn't block, `--allow-in-sample` overrides but still reports FAIL,
+  no-exposure meta without the explicit flag is unsafe, plus a regression test for the
+  `in_range_phase`/big-move lookahead leak family this audit started from. All 9 pass.
+**Verified:** real (non-synthetic) smoke test — retrained with `QGAI_TRAIN_CUTOFF=2026-04-01`, confirmed
+`model_meta.json`/`hmm_meta.json` correctly recorded `training_end=2026-04-01` (HMM's own train-split
+cutoff even earlier, 2025-11-19) — then confirmed `leakage_guard.assert_no_leakage()` correctly BLOCKS
+`--from 2026-04-01` (same day) and correctly PASSES `--from 2026-04-02`.
+**Independently re-verified by Imtiyaz on his own PC (2026-07-13, `Run_LeakageGuard_Smoke_TEST.bat`):**
+9/9 unit tests pass; real retrain (cutoff 2026-04-01) → `--from 2026-03-25` (window starting BEFORE
+cutoff, genuine overlap) correctly **BLOCKED** with the full leakage report + `DATA LEAKAGE BLOCKED`
+error; `--from 2026-05-05` (clean, after cutoff) correctly **PASSED** and produced a real backtest
+report (+2.9R, 9 trades, PF 3.63); Step 5 correctly restored the original live models from
+`final_prev` afterward. Two bat-authoring bugs found and fixed along the way (both in the .bat only,
+not in the guard logic): (1) em-dash characters inside REM/echo lines broke cmd.exe's parser entirely
+(same mojibake class as the earlier heartbeat-emoji bug) — replaced with plain ASCII; (2) parentheses
+and `!` inside echo text nested INSIDE an `if (...) else (...)` block get misread by cmd.exe as
+block-structure characters, silently truncating output or aborting the whole script — rewritten to
+avoid parens/`!` inside any such block. Also caught and fixed a flawed first draft of the test
+scenario itself: it used `--from 2026-04-15` (14 days AFTER the 2026-04-01 cutoff — not actually
+overlapping) and expected a BLOCK, which the guard correctly refused to do; corrected to
+`--from 2026-03-25 --to 2026-04-10` (a window that genuinely starts before the cutoff).
+**Delivered as .bat (per house rule — long/real runs execute on the user's PC, not inline):**
+`backtest/_runners/Run_LeakageGuard_UnitTests.bat` (fast, synthetic, ~1s) and
+`Run_LeakageGuard_Smoke_TEST.bat` (real retrain + real backtest_replay.py block/pass check, auto-restores
+the original live models from `final_prev` afterward).
+**Known residual risk:** the ~30 already-existing 2026-07-12 result folders (`ob_redundancy_*`,
+`removed_feature_*`, `regimescore_*`, `rawmove_ab_*`, `individual_ab_*`, `combo_b3b4_*`, `inrange_sweep_*`)
+were produced BEFORE this guard existed and are still in-sample-contaminated — re-run them (now
+correctly blocked/fixed) before trusting any KEEP/REJECT decision drawn from them, especially the
+already-committed B3-only prune.
+**First-run note:** `big_win_model_meta.json`/`duration_model_meta.json` don't exist until one full
+(non-`QGAI_CORE_ONLY`) `python train.py` has run at least once — do that before the very first WFO run
+on a fresh checkout, or the guard's metadata scan will (correctly) fail on their absence.
+
+## 2026-07-13 — Root-cause fix: dedicated test_workspace, live model structurally unreachable
+**Imtiyaz's call after 3 same-day model-loss incidents (crash mid-swap, concurrent processes, sweep
+chain) — instead of another backup/restore variant, separate test model-building from the live model
+entirely.** `engine/config.py`'s `PathConfig.models_dir` now respects an env override
+`QGAI_MODELS_DIR` (unset = unchanged default, `data/models/final` — the live bridge is unaffected
+either way). `engine/run_feature_sweep.py` sets this to a dedicated `data/models/test_workspace/` for
+every retrain — the one-time "true-original backup" dance added earlier today is now unnecessary and
+removed entirely (nothing to back up when `final` is never touched). All 4 FeatureSweep `.bat` files
+(`_TEST`, `_Tier1_Active`, `_Tier2_HighProbability`, `_Tier3_Remaining`) updated: no more
+backup/restore step, no more "close the live bridge first" warning — the live bridge can now run
+*at the same time* as any of these with zero conflict. `Run_VolHTFGate_AB_WFO_FULL.bat` (not running
+at the time) updated the same way (`QGAI_MODELS_DIR=test_workspace` before both `run_wfo.py` calls).
+`Run_VolHTFGate_AB_WFO_TEST.bat` was mid-run at the time (actively read by a live cmd.exe process) —
+editing a running `.bat` file risks the interpreter's line-position tracking jumping to the wrong
+line, so that file's fix is deferred until its current run finishes.
+**This supersedes the two earlier fixes today** (the lock file and the `PRE_FEATURE_SWEEP_ORIGINAL`
+dedicated backup) for anything using `QGAI_MODELS_DIR` — those remain in place as defense-in-depth for
+any script that still points at `data/models/final` directly (e.g. the leakage-guard smoke-test bats,
+which intentionally exercise the real atomic-swap+backup mechanism as their whole point).
+
+## 2026-07-13 — 🔴 Feature-sweep restore bug (3rd model-loss incident, found + fixed)
+**What happened:** after `Run_FeatureSweep_TEST.bat` completed (2 features: `move_1hr`, `price_pos`),
+its "restore original live model" step used `final_prev` — but `final_prev` only ever holds the model
+from the IMMEDIATELY PRIOR retrain in `train.py`'s atomic swap. A sweep runs baseline -> feature1 ->
+feature2 -> ... in sequence; by feature #2, `final_prev` already held feature1's ablated model, not the
+true pre-sweep original. `data/models/final` was left holding `price_pos`-ablated model, and its
+"restore" silently put back `move_1hr`-ablated model instead of the real production model — the true
+original was gone from both locations (same failure shape as the two earlier incidents, different
+mechanism: a sequential-chain problem this time, not concurrent writes).
+**Recovery:** restored again from `data/models/backups/ACTIVE27_DROP_PRE_20260713_083334` (third use of
+this same known-good snapshot today) via `robocopy /MIR`; confirmed no `python.exe` running first.
+**Fix:** `engine/run_feature_sweep.py` now takes a ONE-TIME, dedicated backup of the real
+`data/models/final` to `data/models/backups/PRE_FEATURE_SWEEP_ORIGINAL/` at the very start of `main()`
+— created once (checked via `.exists()`), never overwritten by later retrains, shared across all
+tiers/nights so the true starting point is always recoverable regardless of how many features get
+swept in between. All 4 `.bat` files (`Run_FeatureSweep_TEST`, `_Tier1_Active`, `_Tier2_HighProbability`,
+`_Tier3_Remaining`) updated to restore from this dedicated backup instead of `final_prev` at the end.
+**Pattern across all 3 incidents today:** every one was a variant of "assume exclusive/simple ownership
+of `data/models/final`'s backup slot, get surprised by a longer chain of events than assumed" (crash
+mid-swap; two processes; one process but many sequential swaps). The lock file (2nd incident's fix)
+guards against concurrent runs; this fix guards against a single run's own multi-step chain. Recommend
+treating `final_prev` as purely "undo the very last retrain," never "get back to where I started."
+
+## 2026-07-13 — Feature aliases extended to all 67 (for the feature-sweep report)
+`engine/features.py`'s existing `FEATURE_ALIASES` table only covered 34 features (the 27 active +
+`hmm_state` + 6 already-aliased dropped OB features). Added alias + indicator-category entries for
+the remaining 34 (`H1_ADX`, `M30_ADX`, the whole `ts_*` SMMA-trend family, `corr_imp_ratio`,
+`trade_direction`, EMA200/news/session/volume variants, etc.) — all 67 known features now have a
+readable `(alias, indicator)` pair. `engine/run_feature_sweep.py` updated to print
+`feature [alias / indicator]` per candidate and include `feature`/`alias`/`indicator` columns in each
+tier's `_SUMMARY.csv`.
+
+## 2026-07-13 — 🔴 Concurrent-write corruption of data/models/final (2nd incident, found + recovered)
+**What happened:** while the new `run_feature_sweep.py` sanity test was retraining, Imtiyaz was
+independently running his own test bat (`Run_Active27_DropScan_TEST.bat` or similar) — BOTH processes
+were writing to `data/models/final` (and its atomic-swap partner `final_prev`) at the same time. Every
+`train.py` run assumes it has exclusive ownership of that directory during its atomic swap
+(`_run_training_atomically()`); with two independent runs interleaving, files ended up mixed from both:
+`buy_model_meta.json`/`sell_model_meta.json` showed `requested_training_cutoff=2026-03-31` (this
+session's feature-sweep test) while `model_meta.json`/`hmm_meta.json`/state-model metas in the SAME
+directory showed `requested_training_cutoff=2026-05-31` (Imtiyaz's concurrent run) — an internally
+inconsistent model set. `final_prev` was equally contaminated (same mixed-cutoff pattern), and
+`final_building_tmp` was left behind orphaned (an interrupted build, missing several files).
+**Recovery:** confirmed no `python.exe` process was still running (Imtiyaz closed his window), then
+restored AGAIN from the same known-good backup used in the first incident,
+`data/models/backups/ACTIVE27_DROP_PRE_20260713_083334/` (verified consistent, 28 files, all
+2026-07-13 05:07-05:09 timestamps) — via `robocopy /MIR`. Deleted the contaminated `final_prev` and the
+orphaned `final_building_tmp`. `hmm_meta.json` is absent from this backup (it predates today's
+leakage-guard metadata work) — this is fine and actually SAFE: `leakage_guard.py` will correctly
+hard-block any backtest against this model until a fresh retrain (with the current `train.py`)
+regenerates the missing sidecar, rather than silently running against an unverifiable model.
+**Rule going forward (no code enforces this yet — operational discipline only):** run only ONE
+train/backtest job against `data/models/final` at a time, whether it's Claude's or Imtiyaz's own —
+same discipline as "close the live bridge before retraining," now extended to "check nothing else is
+mid-retrain before starting a new one." **Open TODO:** consider a simple lock file
+(`data/models/.training_lock`, written at the start of `_run_training_atomically()` and removed at the
+end/on exception) that makes a second concurrent `train.py` invocation refuse to start instead of
+silently colliding — not yet implemented.
+
+## 2026-07-13 — Systematic 67-feature validation sweep (tool + bug fix)
+**Context:** Imtiyaz's own worry — since ANY past backtest could theoretically have a leakage or
+validation issue not yet caught, he wants every one of the 67 known features (27 currently active +
+40 historically dropped, `features.py` `FEATURE_COLS` + `_ZERO_IMP`) individually re-checked via a
+clean 3-month retrain+backtest, priority-ordered, over 3-4 overnight runs.
+**Built:** `engine/run_feature_sweep.py` (NEW) — orchestrates one retrain+backtest per feature
+(ablate an active feature via `QGAI_ABLATE`, or restore a dropped one via `QGAI_UNPRUNE`), all
+against a shared baseline, leakage-guard-safe (`QGAI_TRAIN_CUTOFF=2026-03-31`, backtest
+`2026-04-01→2026-06-29` — a full 3-month margin, not just the bare 1-day minimum). Resume-safe
+(cached `result.json` per feature, safe to stop/restart across nights) with ETA countdown (house
+rule). Produces a `_SUMMARY.csv` per tier with `total_r`/`pf`/`wr`/`delta_vs_baseline` per feature.
+**Priority tiers** (delivered as 4 `.bat`, one per night, per house rule — no heavy runs execute
+inline): `Run_FeatureSweep_TEST.bat` (2 features, sanity check first) → `Run_FeatureSweep_Tier1_Active.bat`
+(27 active, priority = current `feature_importance.csv` ranking) → `Run_FeatureSweep_Tier2_HighProbability.bat`
+(~20 dropped features most likely to matter — the SMMA-trend family + raw ADX + OB/SR + previously-
+flagged partial signals) → `Run_FeatureSweep_Tier3_Remaining.bat` (~19 remaining dropped features).
+**Bug found + fixed while sanity-testing the new tool (before handing it off):** `train.py`'s
+`_validation_end`/`_test_end` variables (added earlier today for the leakage-guard metadata work)
+were computed in Step 9, but Step 8 (BigWin/Duration meta) already referenced them — `UnboundLocalError`
+on every non-core-only retrain. Moved the computation up to right after the train/val/test split
+(Step 4), before Step 5 onward, removed the now-duplicate later definition. Caught by
+`Run_FeatureSweep_TEST.bat`'s own sanity run (a REAL retrain, not a synthetic test) before either
+tier bat was handed off — exactly the "test small first" pattern this project already follows for a
+reason. Verified fixed with a second real sanity run.
+
+## 2026-07-13 — BUY-signal audit fixes: model-version logging + Volatile counter-HTF gate (candidate, WFO pending)
+**Context:** root-cause audit of the 2026-07-13 04:30 BUY signal (see earlier entry / artifact) plus a
+Fable-5 second opinion produced two concrete, testable findings. Both implemented as reversible,
+default-safe changes — NOT yet adopted into live decision behavior.
+**#1 Model-version logging (DONE, live-safe, additive only):**
+- `engine/inference.py` — `LiveInferenceEngine.__init__` now reads `model_meta.json` once and builds
+  `self.model_version = f"{model_created_at}_{data_hash}"`; `_make_result()` includes it in every
+  returned signal dict.
+- `engine/bridge_data.py` — `log_signal()` writes a trailing `model_version` CSV column (same
+  migration pattern as the 2026-07-09 `trade_action` column) + a matching SQLite `ALTER TABLE`.
+- Verified via an isolated smoke test (scratch files only, real signals_all.csv/qgai.db untouched).
+- Closes exactly the gap the 04:30 audit hit: the exact live model snapshot that produced a past
+  signal can now always be traced.
+**#2 Volatile counter-HTF gate (CODE DONE, env-gated OFF by default, WFO test PENDING before any
+live adoption):**
+- Finding: on the honest 53-week WFO baseline (`wfo_adxdeath_novol_baseline_20260710`, +80.5R,
+  leak-free), Volatile-regime trades in the 42-48% win_prob band that go AGAINST the dominant H1/H4
+  DI direction (via `ts_htf_agreement`) are net-losing: n=38, total -1.9R, PF 0.88 — while the SAME
+  band aligned WITH the HTF direction is strongly profitable: n=48, +18.9R, PF 3.78.
+- Ruled out time/slot confound: `f_slot_win_rate` nearly identical between the losing (0.413) and
+  winning (0.420) buckets; losing bucket spread across 18 different hours, all 5 weekdays, 24
+  different weeks (not concentrated in a few bad episodes or a known-dead time slot). Controlling
+  for slot-quality tercile, the counter-HTF penalty holds at every tercile.
+- This is NOT a time-based filter (Imtiyaz's own stated principle: build the strategy first, keep
+  time-features soft/model-internal, no hard time-of-day blocks) — it's a directional-agreement +
+  confidence gate on already-existing features (`ts_htf_agreement`, `hmm_state`, `win_prob`).
+- Implemented in `engine/inference.py`, gated behind `QGAI_VOL_HTF_GATE` (default `"0"` = OFF, exact
+  no-op — matches the `QGAI_REGIME_INRANGE`/`QGAI_CTF_FADE` toggle convention). SKIPs a signal only
+  when: `hmm_state == "Volatile"` AND `0.42 <= final_prob < 0.48` AND the trade direction disagrees
+  with `ts_htf_agreement`'s sign.
+- Delivered as `.bat` per house rule: `Run_VolHTFGate_AB_WFO_TEST.bat` (5-week quick check) and
+  `Run_VolHTFGate_AB_WFO_FULL.bat` (full 53-week confirm) — both A (gate OFF) vs B (gate ON).
+  **Decision rule: adopt live ONLY if B total R >= A, DD not worse, and the improvement isn't
+  concentrated in 1-2 folds.** Not yet run as of this entry.
+- **⚠️ CAVEAT found same day (Imtiyaz asked "does this model not pay attention to ADX?"):** the gate's
+  "counter-HTF" check uses `ts_htf_agreement` (the SMMA/20-period-trend system), NOT the raw ADX-DI
+  system (`H1_DI_diff`/`H4_DI_diff`) that the original 04:30 signal audit actually flagged. Re-measured
+  the same Volatile 42-48% band using ADX-DI-based direction instead: **the "against" bucket flips to
+  PROFITABLE (+1.57R, n=38) instead of the SMMA-based -1.86R.** The two direction measures agree 89.5%
+  of the time overall, but within this band they diverge enough to matter — the entire SMMA-based
+  negative result traces to a tiny 6-trade subgroup ("SMMA says against, ADX-DI does NOT": -2.01R)
+  while the ADX-DI-against/SMMA-not-against subgroup (also n=6) is +1.42R. **This substantially weakens
+  confidence in the original finding — it looks fragile/possibly noise, not a robust pattern, once
+  measured a different (equally valid) way.** The `QGAI_VOL_HTF_GATE` code stays (default OFF, zero
+  live risk), but go into the WFO A/B test expecting it may well show B < A given this caveat — the
+  WFO run is now the real arbiter, not the bucket read.
+- **Bigger-picture note (Imtiyaz, same day): "need to rethink architecture of the model."** The
+  underlying issue this caveat surfaces: the system carries (at least) two parallel, independently-
+  computed HTF-trend-direction representations — the ADX/DI family (`H1_ADX/H4_ADX/H1_DI_diff/
+  H4_DI_diff`, used by the combined + directional models) and the SMMA/20-trend family (`ts_trend_h1/
+  h4`, `ts_htf_agreement`, used by `ts_*` features and now this gate) — and no part of the pipeline
+  reconciles them or flags when they disagree. Different sub-models (combined vs Volatile-state vs
+  directional) each see different SUBSETS of these two families (see the Volatile-state model's
+  17-feature list, which has neither raw ADX/DI). Worth a dedicated architecture review: which HTF-
+  direction signal is actually more predictive, whether they should be unified into one canonical
+  feature, and whether every regime/directional sub-model should have consistent access to it. Not
+  scoped or started — flagged for a future session.
+
+## 2026-07-13 — 🔴 Atomic-swap bug lost the true live model (found + recovered same session)
+**What happened:** During repeated `Run_LeakageGuard_Smoke_TEST.bat` runs (see the entry above), the
+NEW `_run_training_atomically()` backup mechanism ended up with **both** `data/models/final` and
+`data/models/final_prev` holding the SAME test model (`QGAI_TRAIN_CUTOFF=2026-04-01`, created
+`2026-07-13T12:46:32`) — the true pre-session live model (trained 2026-07-13 05:07, 28 features, no
+cutoff) was gone from both slots. Root cause of WHY `final_prev` also ended up wrong is not fully
+diagnosed (suspect: two back-to-back atomic swaps across two separate `train.py` process runs, the
+second one's own backup-then-swap overwriting `final_prev` with a copy of `final` at a moment `final`
+already held the first run's test model) — flagged as an open risk below, not fully root-caused.
+**Recovery:** found `data/models/backups/ACTIVE27_DROP_PRE_20260713_083334/` — a backup Imtiyaz's own
+`Run_Active27_DropScan_TEST.bat` made at 08:33:34 that morning (before any of today's leakage-guard
+testing), holding the exact model that generated the 04:30 BUY signal backfilled at 08:49:03 (verified:
+no retrain happened between 08:33 and 08:49). Confirmed no `python.exe` process was running (bridge was
+down), then `robocopy /MIR` restored this backup into BOTH `final` and `final_prev`. Verified:
+`model_meta.json` now shows `timestamp: 20260713_0507`, 28 features, `n_trades: 2743` (matches the
+pre-session state).
+**Open risk / TODO:** `_run_training_atomically()` (`train.py`) needs a safety improvement — it should
+refuse to silently overwrite `final_prev` if `final_prev` already exists and looks like it might still
+be needed (e.g. compare a hash/timestamp, or keep more than one generation of backup) rather than
+always doing a single blind `rmtree` + replace. Until that's added: **do not run back-to-back
+retrain/atomic-swap tests without an independent backup (git commit, or manual copy) of
+`data/models/final` first.**
+
 ## 2026-07-12 — ADX redundancy prune: 3 features dropped (Imtiyaz)
 **What:** Dropped `h4_ranging_h1_extended`, `M30_ADX`, `H1_ADX` from model via `_MANUAL_PRUNE` (36→33 features).
 **Why:** Individual ablation A/B (1-month, retrain each):

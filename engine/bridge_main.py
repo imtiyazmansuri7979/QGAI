@@ -593,14 +593,10 @@ def run():
 
             # â”€â”€ Range-phase entry filter (skip H4 chop entries â€” config-gated) â”€â”€
             _range_block = False
-            if signal in ("BUY", "SELL") and getattr(CFG.filters, "skip_range_phase_entry", False):
-                try: _irp = int(float(result.get("in_range_phase", 0) or 0))
-                except Exception: _irp = 0
-                _rmp = float(getattr(CFG.filters, "range_phase_min_prob", 0.0) or 0.0)
-                if _irp == 1 and (_rmp <= 0 or win_prob < _rmp):
-                    _range_block = True
-                    log.info(f"â­ SKIP (range-phase H4 chop) | prob={win_prob:.2%}")
-                    log_signal(bar_time, signal, result, float(live_ohlc["close"].iloc[-1]), "LIVE", trade_action="BLOCK_RANGE", equity=_cur_equity, trading_equity=_cur_trading_eq)
+            # H4 RANGE-PHASE ENTRY FILTER -- REMOVED 2026-07-12 (Imtiyaz):
+            # "model over hard filters". 1-month A/B OFF +8.9R vs ON +0.9R
+            # (blocked winners). _range_block kept False so downstream
+            # compound conditions are untouched. REVERT: git history.
 
             # â”€â”€ Counter-trend-FADE filter (block trade against a FADING dominant trend â€” config-gated) â”€â”€
             _ctf_block = False

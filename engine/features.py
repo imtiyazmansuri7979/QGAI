@@ -148,6 +148,10 @@ def engineer_ohlc(df: pd.DataFrame) -> pd.DataFrame:
     # BUY $0-30 below EMA: WR=29.7% ← 4 consecutive losses zone
     df["ema200"]          = df["close"].ewm(span=200, adjust=False).mean().round(2)
     df["price_vs_ema200"] = ((df["close"] - df["ema200"]) / df["close"] * 100).round(4)  # % signed (KEPT)
+    # Computed for debug/experiments; pruned from FEATURE_COLS unless QGAI_UNPRUNE restores them.
+    df["above_ema200"]    = (df["close"] > df["ema200"]).astype(int)
+    df["ema200_dist_abs"] = (df["close"] - df["ema200"]).abs().round(2)
+    df["near_ema200"]     = (df["ema200_dist_abs"] <= 10.0).astype(int)
     # 2026-06-30 (Anisa): above_ema200 / ema200_dist_abs / near_ema200 REMOVED — keep ONLY
     # price_vs_ema200. (ema200 raw stays as its intermediate.)
 
@@ -682,6 +686,9 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
 
         # ── EMA200 FEATURE (keep only price_vs_ema200 — Anisa 2026-06-30) ──
         f["price_vs_ema200"] = float(r["price_vs_ema200"]) if "price_vs_ema200" in r.index else 0.0
+        f["above_ema200"]    = _safe_int(r.get("above_ema200", 0)) if str(r.get("above_ema200","nan")) not in ("nan","NaN","") else 0
+        f["ema200_dist_abs"] = float(r["ema200_dist_abs"]) if "ema200_dist_abs" in r.index else 0.0
+        f["near_ema200"]     = _safe_int(r.get("near_ema200", 0)) if str(r.get("near_ema200","nan")) not in ("nan","NaN","") else 0
 
         # ── PRICE MOMENTUM FEATURES (data-proven, backtest analysis) ──
         # Key finding: BUY when 4hr price dropped → WR=31% (AVOID)
@@ -1173,6 +1180,110 @@ def get_trend_signal_features(t, trade_type, price_now, h4_adx, ts: dict) -> dic
 # ─────────────────────────────────────────────
 
 # ─────────────────────────────────────────────
+# FEATURE ALIASES — "રમેશ ઉર્ફે રામલો"
+# Current name → descriptive alias (indicator + logic clear from alias)
+# Code uses current names; alias is for display/understanding only.
+# ─────────────────────────────────────────────
+FEATURE_ALIASES = {
+    # feature_name:          (alias, indicator)
+    # TIMING
+    "15_min_slot":           ("time_15min_slot",          "Clock"),
+    "slot_win_rate":         ("time_hourly_winrate",      "Historical WR"),
+    "slot_cos":              ("time_cyclical_encoding",   "Clock (cosine)"),
+    "day_of_week":           ("time_weekday",             "Calendar"),
+    # ORDER BLOCK / S-R
+    "h4_resist_dist":        ("ob_h4_resistance_pct",     "Order Block H4"),
+    "h4_support_dist":       ("ob_h4_support_pct",        "Order Block H4"),
+    "h4_ob_strength":        ("ob_h4_strength",           "Order Block H4"),
+    "h1_resist_dist":        ("ob_h1_resistance_pct",     "Order Block H1"),
+    "h1_support_dist":       ("ob_h1_support_pct",        "Order Block H1"),
+    "h1_ob_strength":        ("ob_h1_strength",           "Order Block H1"),
+    # PRICE STRUCTURE
+    "price_pos":             ("bb_price_position",        "Bollinger Band"),
+    "body_pct":              ("candle_body_ratio",         "Candlestick"),
+    "in_range_phase":        ("h4move_is_ranging",        "H4 Price Move %"),
+    "range_pct":             ("candle_range_pct",          "Candlestick"),
+    # ADX / TREND STRENGTH
+    "M15_ADX":               ("adx_m15_strength",         "ADX"),
+    "H4_ADX":                ("adx_h4_strength",          "ADX"),
+    "M15_DI_diff":           ("di_m15_direction",         "DI+ / DI-"),
+    "M30_DI_diff":           ("di_m30_direction",         "DI+ / DI-"),
+    "H1_DI_diff":            ("di_h1_direction",          "DI+ / DI-"),
+    "H4_DI_diff":            ("di_h4_direction",          "DI+ / DI-"),
+    "h4_adx_slope":          ("adx_h4_momentum",          "ADX Slope"),
+    "h1_adx_slope":          ("adx_h1_momentum",          "ADX Slope"),
+    "h4_h1_regime_score":    ("adx_regime_quality_score", "ADX + DI Combo"),
+    # PRICE MOMENTUM
+    "move_1hr":              ("price_change_1hr_usd",     "Raw Price Move"),
+    "move_4hr":              ("price_change_4hr_usd",     "Raw Price Move"),
+    "momentum_aligned_1hr":  ("price_1hr_signal_agree",   "Price Move + Signal"),
+    "momentum_aligned_2hr":  ("price_2hr_signal_agree",   "Price Move + Signal"),
+    "momentum_aligned_4hr":  ("price_4hr_signal_agree",   "Price Move + Signal"),
+    # EMA
+    "price_vs_ema200":       ("ema200_distance_usd",      "EMA200"),
+    # NEWS
+    "mins_to_next_3star":    ("news_mins_until_next",     "Economic Calendar"),
+    "mins_since_last_3star": ("news_mins_since_last",     "Economic Calendar"),
+    # TREND SIGNAL (SMMA)
+    "ts_bars_since_flip":    ("smma_bars_since_flip",     "20-SMA Hybrid"),
+    "ts_htf_agreement":      ("smma_htf_agreement",       "20-SMA Hybrid"),
+    # REGIME
+    "hmm_state":             ("regime_hmm_label",         "HMM Regime Model"),
+
+    # ─────────────────────────────────────────────
+    # DROPPED / PRUNED FEATURES (2026-07-13) — aliases for the 67-feature
+    # validation sweep report (Imtiyaz), covering everything in _ZERO_IMP
+    # not already aliased above. Naming matches the active-feature
+    # convention (indicator_scope_detail); not currently in FEATURE_COLS.
+    # ─────────────────────────────────────────────
+    # ADX / TREND STRENGTH (raw, redundancy-pruned)
+    "H1_ADX":                ("adx_h1_strength",              "ADX"),
+    "M30_ADX":               ("adx_m30_strength",             "ADX"),
+    "adx_trend_count":       ("adx_multi_tf_trend_count",     "ADX + DI Combo"),
+    # REGIME COMPOSITES (superseded by h4_h1_regime_score)
+    "h4_ranging_h1_extended":("regime_h4ranging_h1extended",  "ADX + DI Combo"),
+    "h4_ranging_h1_neutral": ("regime_h4ranging_h1neutral",   "ADX + DI Combo"),
+    "h4_trending_h1_aligned":("regime_h4trending_h1aligned",  "ADX + DI Combo"),
+    # ORDER BLOCK / S-R (zone-flags, distances already aliased above)
+    "h1_in_ob_zone":         ("ob_h1_in_zone_flag",           "Order Block H1"),
+    "h4_in_ob_zone":         ("ob_h4_in_zone_flag",           "Order Block H4"),
+    # PRICE STRUCTURE / SWING
+    "corr_imp_ratio":        ("swing_correction_impulse_ratio","Price Structure (Swing)"),
+    "big_move_direction":    ("h4_bigmove_direction",         "H4 Price Move %"),
+    "is_post_big_move":      ("h4_is_post_bigmove_flag",      "H4 Price Move %"),
+    # EMA200 (superseded by price_vs_ema200)
+    "above_ema200":          ("ema200_above_flag",            "EMA200"),
+    "ema200_dist_abs":       ("ema200_distance_abs_usd",      "EMA200"),
+    "near_ema200":           ("ema200_near_flag",             "EMA200"),
+    # PRICE MOMENTUM (extra windows)
+    "move_2hr":              ("price_change_2hr_usd",         "Raw Price Move"),
+    "move_8hr":              ("price_change_8hr_usd",         "Raw Price Move"),
+    # TIMING (session/hour flags, superseded by slot_win_rate/slot_cos)
+    "is_dead_hour":          ("time_is_dead_hour_flag",       "Clock"),
+    "is_ny_session":         ("time_is_ny_session_flag",      "Clock"),
+    "session_score":         ("time_session_quality_score",   "Clock"),
+    # NEWS (extra windows/flags beyond mins_to/since_3star)
+    "before_eia":            ("news_before_eia_flag",         "Economic Calendar"),
+    "is_post_news":          ("news_is_post_news_flag",       "Economic Calendar"),
+    "last_3star_dev_sign":   ("news_last_deviation_sign",     "Economic Calendar"),
+    "upcoming_3star_count":  ("news_upcoming_count_2hr",      "Economic Calendar"),
+    # VOLUME (permanently excluded — see docs/TASKS.md volume study)
+    "tick_volume":           ("volume_tick_count_raw",        "Volume"),
+    "volume":                ("volume_normalized",            "Volume"),
+    # TREND SIGNAL / SMMA (dropped members of the ts_* family)
+    "ts_trend_m15":          ("smma_trend_m15",               "20-SMA Hybrid"),
+    "ts_trend_h1":           ("smma_trend_h1",                "20-SMA Hybrid"),
+    "ts_trend_h4":           ("smma_trend_h4",                "20-SMA Hybrid"),
+    "ts_line_dist_pct":      ("smma_line_distance_pct",       "20-SMA Hybrid"),
+    "ts_flip_recent":        ("smma_recent_flip_flag",        "20-SMA Hybrid"),
+    "ts_aligned":            ("smma_all_tf_aligned_flag",     "20-SMA Hybrid"),
+    "ts_aligned_htf":        ("smma_htf_aligned_flag",        "20-SMA Hybrid"),
+    "ts_adx_switch_trend":   ("smma_adx_switch_trend_flag",   "20-SMA Hybrid"),
+    # MISC / META
+    "trade_direction":       ("trade_direction_flag",         "Meta (Direction)"),
+}
+
+# ─────────────────────────────────────────────
 # FINAL 20 CLEAN FEATURES (Top 20 by importance)
 # 43 → 20 features → TEST win 66.1% → 74.4%!
 # Removed: low importance features (rank 21-43)
@@ -1470,12 +1581,30 @@ _MANUAL_PRUNE = {
     "h4_ranging_h1_extended",  # D1: exactly =baseline (B3 score=-1 covers it)
     "M30_ADX",                 # D2: +15.3R without (middle TF redundant)
     "H1_ADX",                  # D3: +18.0R without (+22% gain, h1_slope+DI sufficient)
+    # 2026-07-12 OB redundancy retrain test (3-month): D6 was best.
+    # Drop H1 support+strength as a pair: +34.7R vs baseline +31.8R (+2.9R).
+    # Single drops were weak, so keep this as a paired prune. Needs retrain to affect live .pkl.
+    "h1_support_dist",
+    "h1_ob_strength",
+    # 2026-07-12 OB redundancy retrain test: D5 was second best.
+    # Drop H4 resist+strength as a pair: +34.5R vs baseline +31.8R (+2.7R).
+    "h4_resist_dist",
+    "h4_ob_strength",
+    # 2026-07-12 Imtiyaz: remove remaining OB/SR model inputs too.
+    # This completes the OB/SR prune from FEATURE_COLS. Retrain required for live .pkl.
+    "h4_support_dist",
+    "h1_resist_dist",
 }
 _ZERO_IMP = _ZERO_IMP | _MANUAL_PRUNE
 # Ablation toggle (for experiments only): set env QGAI_ABLATE="feat1,feat2,..." to
 # ALSO drop those features for one test WFO — WITHOUT editing the committed lists,
 # so the production retrain is unaffected. Empty/unset = normal behaviour.
 import os as _os_abl
+_unprune_env = _os_abl.getenv("QGAI_UNPRUNE", "").strip()
+if _unprune_env:
+    _unprune_set = {x.strip() for x in _unprune_env.split(",") if x.strip()}
+    _ZERO_IMP = _ZERO_IMP - _unprune_set
+    print(f"  [UNPRUNE] features restored for this run: {sorted(_unprune_set)}")
 _abl_env = _os_abl.getenv("QGAI_ABLATE", "").strip()
 if _abl_env:
     _abl_set = {x.strip() for x in _abl_env.split(",") if x.strip()}

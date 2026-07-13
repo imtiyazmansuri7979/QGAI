@@ -24,6 +24,7 @@ _teq_col_checked = False
 # exactly once per run (signal/trade DECOUPLE — signal=pure engine, trade_action=what MT5 did).
 _ta_col_checked = False
 _ta_csv_checked = False
+_mv_col_checked = False
 
 
 def _ensure_teq_column(log_path):
@@ -81,6 +82,12 @@ def _ensure_signal_columns(log_path):
         # 2026-07-09: trailing trade_action column (blank for old rows).
         if "trade_action" not in header:
             header.append("trade_action")
+            changed = True
+        # 2026-07-13: trailing model_version column (blank for old rows) —
+        # signal-audit fix #1, lets a past signal be traced to the exact
+        # model snapshot that produced it.
+        if "model_version" not in header:
+            header.append("model_version")
             changed = True
         if not changed:
             return
@@ -165,9 +172,11 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
         result.get("reason", "")[:120],
     )
 
+    model_version = result.get("model_version", "")
+
     # Primary: SQLite
     try:
-        global _ta_col_checked
+        global _ta_col_checked, _mv_col_checked
         conn = db_conn()
         # 2026-07-09: one-time migration — add `trade_action` column if missing.
         if not _ta_col_checked:
@@ -180,13 +189,24 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
                     _ta_col_checked = True
             except Exception:
                 pass
+        # 2026-07-13: one-time migration — add `model_version` column (signal-audit fix #1).
+        if not _mv_col_checked:
+            try:
+                cols = [r[1] for r in conn.execute("PRAGMA table_info(signals)").fetchall()]
+                if cols:
+                    if "model_version" not in cols:
+                        conn.execute("ALTER TABLE signals ADD COLUMN model_version TEXT DEFAULT ''")
+                        conn.commit()
+                    _mv_col_checked = True
+            except Exception:
+                pass
         conn.execute("""
             INSERT OR IGNORE INTO signals
             (bar_time,mode,signal,win_prob,state_prob,dir_prob,big_win_prob,
              hmm_state,price,lot,sl,tp,atr20_pct,vol_spike,in_range_phase,
-             slot_wr,h4_bull_ob_dist,h4_bear_ob_dist,reason,outcome,trade_action)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'',?)
-        """, vals + (trade_action,))
+             slot_wr,h4_bull_ob_dist,h4_bear_ob_dist,reason,outcome,trade_action,model_version)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'',?,?)
+        """, vals + (trade_action, model_version))
         conn.commit()
         conn.close()
     except Exception as e:
@@ -207,9 +227,9 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
                     "dir_prob","big_win_prob","hmm_state","price","lot","sl","tp",
                     "atr20_pct","vol_spike","in_range_phase","slot_wr",
                     "h4_bull_ob_dist","h4_bear_ob_dist","reason","outcome","equity","move",
-                    "trading_equity","trade_action"
+                    "trading_equity","trade_action","model_version"
                 ])
-            w.writerow(list(vals) + ["", round(equity, 2), "", _teq_out, trade_action])
+            w.writerow(list(vals) + ["", round(equity, 2), "", _teq_out, trade_action, model_version])
     except Exception as e:
         log.debug(f"CSV signal log failed: {e}")
 

@@ -8,6 +8,22 @@ Tiers are inferred from the in-code "data-proven" annotations + domain reasoning
 
 ---
 
+## Current Update - 2026-07-12
+
+Do not delete the historical feature notes below. Current code status after the latest prune:
+
+- Current base `FEATURE_COLS`: 27
+- `hmm_state`: still used/appended by regime models
+- Regime lists: Ranging=22, Trending=23, Volatile=17
+- OB/SR model inputs currently pruned: `h4_resist_dist`, `h4_support_dist`, `h4_ob_strength`, `h1_resist_dist`, `h1_support_dist`, `h1_ob_strength`
+- Volume inputs remain pruned: `volume`, `tick_volume`
+- `in_range_phase` remains active
+- Live model files change only after retraining
+
+Full current active/regime list: `docs/FEATURES_MASTER.md`.
+
+---
+
 ## 1. Order-Flow / Timing (when to trade)
 
 | Feature | What it does | Imp |

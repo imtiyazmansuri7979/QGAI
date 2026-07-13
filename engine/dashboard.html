@@ -287,9 +287,9 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 .bb-val .sub{color:var(--dim);font-weight:600;font-size:0.56rem;margin-right:2px}
 .bb-msg{max-width:260px;overflow:hidden;text-overflow:ellipsis}
 /* The three dashboard ticker rows use a slightly larger, readable type scale. */
-#risk_strip .bb-label,#ai_ticker_strip .bb-label,#market_ticker_strip .bb-label{font-size:0.60rem}
-#risk_strip .bb-val,#ai_ticker_strip .bb-val,#market_ticker_strip .bb-val{font-size:0.74rem}
-#risk_strip .bb-val .sub,#ai_ticker_strip .bb-val .sub,#market_ticker_strip .bb-val .sub{font-size:0.67rem}
+#risk_strip .bb-label,#ai_ticker_strip .bb-label,#market_ticker_strip .bb-label{font-size:0.72rem}
+#risk_strip .bb-val,#ai_ticker_strip .bb-val,#market_ticker_strip .bb-val{font-size:0.89rem}
+#risk_strip .bb-val .sub,#ai_ticker_strip .bb-val .sub,#market_ticker_strip .bb-val .sub{font-size:0.80rem}
 /* ── SIGNAL LOG — compact institutional table (2026-07-10) ── */
 .sl-titlebar{position:sticky;top:0;z-index:6}
 .sl-title{font-weight:800;letter-spacing:1px;color:var(--cyan);text-transform:uppercase}
@@ -302,7 +302,7 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 .sl-table-header>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;text-align:center}
 .sl-table-header>span:first-child,.sl-table-header>span:nth-child(2){text-align:left}
 .sl-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent}
-.sl-row{display:grid;gap:6px;align-items:center;min-height:38px;position:relative;overflow:hidden;padding:0 10px 0 13px;border-bottom:1px solid rgba(0,210,255,.14)}
+.sl-row{display:grid;gap:6px;align-items:center;min-height:22px;position:relative;overflow:hidden;padding:0 10px 0 13px;border-bottom:1px solid rgba(0,210,255,.14)}
 .sl-row:nth-child(even){background:rgba(0,20,35,.22)}
 .sl-row:hover{background:rgba(0,212,255,.07)}
 .sl-row>*{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -982,7 +982,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
         +'<span class="sl-c-price">'+(r.price?Number(r.price).toFixed(2):'--')+'</span>'
         +'<span class="sl-c-prob" style="color:'+wc+'">'+wp+'%</span>'
         +'<span class="sl-c-regime"><span class="hmm-state hmm-'+(r.regime||'')+' sl-badge" style="padding:1px 6px;font-size:0.56rem">'+(r.regime||'--')+'</span></span>'
-        +'<span class="sl-c-h4">'+(r.range==='1'?'<span class="sl-badge" title="H4 in tight range (<0.5% move) — range-phase filter flag" style="border-color:var(--orange);color:var(--orange)">H4 RNG</span>':'<span style="color:var(--dim)">—</span>')+'</span>'
+        +'<span class="sl-c-h4">'+(r.range==='1'?'<span class="sl-badge" title="H4 in tight range (under 0.5% move). in_range_phase model feature/indicator only, NOT a trade filter -- the old range-skip filter was removed 2026-07-12; this badge is informational and does not block anything" style="border-color:var(--orange);color:var(--orange)">H4 RNG</span>':'<span style="color:var(--dim)">—</span>')+'</span>'
         +'<span class="sl-c-bw" title="Big-win probability — chance this becomes a large winner">'+(bwn>0?'BW '+bwn.toFixed(1)+'%':'—')+'</span>'
         +'<span class="sl-c-equity">'+(r.eq&&Number(r.eq)>0?'$'+Math.round(Number(r.eq)).toLocaleString():'—')+'</span>'
       +'</div>';
@@ -4401,6 +4401,12 @@ function switchTab(name){
   document.querySelectorAll('.tab-pane:not(#tab-ledger)').forEach(function(p){ p.classList.remove('active'); });
   _gsCurrentTab = name;
   _gsApplyTabFilter(name);
+  // BUG FIX 2026-07-13 (Imtiyaz): _gsApplyTabFilter() only shows/hides + compacts
+  // the SHARED grid -- it never re-applied THIS tab's own saved layout, so
+  // editing/saving panel positions on one tab (e.g. analysis) reshuffled what
+  // showed up on another tab (e.g. live) after switching back. Re-apply this
+  // tab's saved positions on every switch, same as the initial-load path does.
+  _gsRestoreLayout();
   try{ localStorage.setItem('qgai_tab', name); }catch(e){}
   if(name==='live'){
     try{ drawSparkline(equityHistory, null); drawSigChart([]); }catch(e){}

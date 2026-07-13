@@ -32,6 +32,19 @@ RESULTS = BT_RESULTS / "wfo_results"
 RESULTS.mkdir(parents=True, exist_ok=True)
 
 
+def _train_cutoff_before(week_start: str) -> str:
+    """Fix 2026-07-13 (leakage guard): QGAI_TRAIN_CUTOFF is INCLUSIVE through
+    the end of its calendar day (train.py:_get_training_cutoff). Passing
+    week_start itself made the cutoff equal week_start 23:59:59 while the
+    backtest for that same week ALSO starts at week_start 00:00 — a 1-day
+    train/test overlap on every fold. This docstring always said 'model on
+    data < week_start'; the code just didn't do it. Train cutoff = the day
+    BEFORE week_start closes the gap to zero, matching leakage_guard.py's
+    strict 'cutoff must predate backtest_start' check."""
+    d = datetime.strptime(week_start, "%Y-%m-%d") - timedelta(days=1)
+    return d.strftime("%Y-%m-%d")
+
+
 def week_ranges(start: str, end: str):
     """Yield (week_start, week_end) Mondays from start to end."""
     d0 = datetime.strptime(start, "%Y-%m-%d")
@@ -127,13 +140,13 @@ def do_trail_sweep(args):
         print(f"\n[{i}/{len(weeks)}] {w_start} -> {w_end}  (modes: {','.join(todo)})")
         _wk_t0 = _time.time()
         env = os.environ.copy()
-        env["QGAI_TRAIN_CUTOFF"] = w_start
+        env["QGAI_TRAIN_CUTOFF"] = _train_cutoff_before(w_start)
         if args.core_only:
             env["QGAI_CORE_ONLY"] = "1"
         env["PYTHONIOENCODING"] = "utf-8"
 
         # retrain ONCE for this week (shared by all modes)
-        print(f"    retraining (cutoff {w_start})...")
+        print(f"    retraining (cutoff {env['QGAI_TRAIN_CUTOFF']}, strictly before {w_start})...")
         r = subprocess.run([sys.executable, "train.py"], cwd=ENGINE, env=env,
                            capture_output=True, text=True, encoding="utf-8", errors="replace")
         if r.returncode != 0:
@@ -299,7 +312,7 @@ def do_pb_entry_sweep(args, mode="block"):
         print(f"\n[{i}/{len(weeks)}] {w_start} -> {w_end}  ({len(todo)} combos)")
         _wk_t0 = _time.time()
         base_env = os.environ.copy()
-        base_env["QGAI_TRAIN_CUTOFF"] = w_start
+        base_env["QGAI_TRAIN_CUTOFF"] = _train_cutoff_before(w_start)
         if args.core_only:
             base_env["QGAI_CORE_ONLY"] = "1"
         base_env["PYTHONIOENCODING"] = "utf-8"
@@ -516,7 +529,7 @@ def main():
         print(f"\n[{i}/{len(weeks)}] {w_start} → {w_end}")
         _wk_t0 = _time.time()
         env = os.environ.copy()
-        env["QGAI_TRAIN_CUTOFF"] = w_start
+        env["QGAI_TRAIN_CUTOFF"] = _train_cutoff_before(w_start)
         if args.core_only:
             env["QGAI_CORE_ONLY"] = "1"
         env["PYTHONIOENCODING"] = "utf-8"

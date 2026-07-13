@@ -307,6 +307,20 @@ class LiveInferenceEngine:
         if self.hmm is None or self.xgb is None:
             raise RuntimeError("❌ Critical models missing — run: python train.py")
 
+        # ── model_version (2026-07-13, signal-audit fix #1) ───────────────
+        # Every signal logged from here on carries this identifier (see
+        # _make_result + bridge_data.log_signal) so a past signal can always
+        # be traced back to the EXACT model snapshot that produced it — an
+        # audit of the 2026-07-13 04:30 BUY signal hit a dead end trying to
+        # reproduce the exact logged probability because the live model had
+        # moved on and the in-progress snapshot wasn't recoverable.
+        try:
+            import json as _json
+            _mm = _json.load(open(f"{cfg.models_dir}/model_meta.json", encoding="utf-8"))
+            self.model_version = f"{_mm.get('model_created_at') or _mm.get('timestamp') or '?'}_{_mm.get('data_hash') or '?'}"
+        except Exception:
+            self.model_version = "unknown"
+
         # Load directional BUY/SELL models — optional
         self.xgb_buy  = safe_load(WinProbabilityModel, f"{cfg.models_dir}/buy_model.pkl",  "BUY model")
         self.xgb_sell = safe_load(WinProbabilityModel, f"{cfg.models_dir}/sell_model.pkl", "SELL model")
@@ -716,6 +730,24 @@ class LiveInferenceEngine:
         # ── Inject hmm_state into feat_dict so models can find it ──
         feat_dict["hmm_state"] = hmm_state
 
+        # ── REGIME-AWARE in_range_phase (2026-07-12, Imtiyaz) ──────────────
+        # 1-month threshold sweep found the OPTIMAL |H4 move| cutoff differs
+        # by regime: Trending peaks at 0.5% (+5.2R), Volatile peaks at 0.6%
+        # (+8.5R), Ranging noisy/small-sample (kept at default). A single
+        # global cutoff (0.5%) hides this trade-off. h4_move_pct (raw, always
+        # computed in get_range_features) lets us recompute the binary AFTER
+        # the regime is known — applied to BOTH live and backtest since both
+        # go through this SAME LiveInferenceEngine.decide(). Master toggle:
+        # env QGAI_REGIME_INRANGE=0 disables (falls back to the original
+        # global-0.5% in_range_phase from compute_features). Default ON.
+        # ⚠️ 1-month evidence only — FULL-YEAR + WFO CONFIRM PENDING (TASKS.md).
+        # REVERT: delete this block (in_range_phase keeps its compute_features value).
+        if os.environ.get("QGAI_REGIME_INRANGE", "1") != "0":
+            _REGIME_INRANGE_THRESH = {"Trending": 0.5, "Volatile": 0.6, "Ranging": 0.5}
+            _rit = _REGIME_INRANGE_THRESH.get(hmm_state_name, 0.5)
+            _h4mv = feat_dict.get("h4_move_pct", 0.0) or 0.0
+            feat_dict["in_range_phase"] = int(abs(float(_h4mv)) < _rit)
+
         # Feature vectors built per-model using model.feature_names
         # (defined inside routing block below as _make_X_hybrid)
 
@@ -888,6 +920,15 @@ class LiveInferenceEngine:
         #   30-60 min AFTER news:  WR=44.0% (+6.8pp) ← BEST! Post-news = good!
         #   CONCLUSION: Post-news is BETTER than average — do NOT penalize it!
         _base_thresh = CFG.filters.min_win_prob  # 0.45 from config
+        # THRESHOLD A/B OFFSET (2026-07-12): env QGAI_THRESH_OFFSET subtracts a
+        # uniform amount from every regime threshold (e.g. 0.05 → lower the bar,
+        # take more trades, trust the model more — "model over hard filters").
+        # Default 0.0 = current behaviour. Positive = lower bar; negative = raise.
+        try:
+            _toff = float(os.environ.get("QGAI_THRESH_OFFSET") or 0.0)
+        except ValueError:
+            _toff = 0.0
+        _base_thresh = _base_thresh - _toff
         # Regime thresholds from signal replay analysis (644 trades):
         #   Volatile : 70.2% WR → lower bar slightly (more trades, best regime)
         #   Trending : 64.9% WR → standard
@@ -895,87 +936,23 @@ class LiveInferenceEngine:
         _state_thresh = {
             "Ranging":  _base_thresh + 0.03,   # 0.48 — weakest (WR 62.9%)
             "Trending": _base_thresh,           # 0.45 — standard (WR 64.9%)
-            "Volatile": max(0.42, _base_thresh - 0.03),  # 0.42 — best (WR 70.2%)
+            "Volatile": max(0.42 - _toff, _base_thresh - 0.03),  # 0.42 — best (WR 70.2%)
         }
 
         # Only PRE-news (0-15min before) needs caution — NOT post-news!
         _is_pre_news_now  = feat_dict.get("is_pre_news", 0)   # 1 = within 15min of news
         _is_post_news_now = feat_dict.get("is_post_news", 0)  # 1 = within 15min after
 
-        if _is_pre_news_now:
-            _threshold = _base_thresh + 0.05  # 0.57 — pre-news uncertainty ✅
-            _news_label = "|pre-news"
-        else:
-            # Post-news = GREAT (WR=41-44%)! Normal threshold — no penalty!
-            _threshold = _state_thresh.get(hmm_state_name, _base_thresh)
-            _news_label = "|post-news✅" if _is_post_news_now else ""
+        # Pre-news penalty REMOVED 2026-07-12 (Imtiyaz): pre-news now uses the plain
+        # regime threshold (was +0.05 bar-raise). "model over hard filters".
+        _threshold = _state_thresh.get(hmm_state_name, _base_thresh)
+        _news_label = ("|pre-news" if _is_pre_news_now
+                       else "|post-news" if _is_post_news_now else "")
 
-        # ── EARLY-ENTRY THRESHOLD DISCOUNT (2026-07-07, Fable #1 pick) ──────────
-        # Late-entry fix: within 3 bars of a fresh SMMA flip, if HTF agreement is
-        # already ≥2 and market state isn't ranging, LOWER the threshold by δ so
-        # marginal-confident signals fire at the START of the trend instead of
-        # after breakout confirmation (typical top-entry). Adds trades only —
-        # never blocks. Env-gated, default OFF, tune via config keys / env.
+        # EARLY-ENTRY THRESHOLD DISCOUNT -- REMOVED 2026-07-12 (Imtiyaz): nil impact
+        # under max_open=1 (1-month A/B identical +8.9R, like ET1). _ed_disc stays 0.0
+        # so the effective-threshold export below is unchanged. REVERT: git history.
         _ed_disc = 0.0
-        _ed_on = os.environ.get("QGAI_EARLY_DISCOUNT")
-        if _ed_on:  # non-empty string only
-            _ed_on = float(_ed_on) >= 0.5
-        else:
-            _ed_on = bool(getattr(CFG.filters, "early_entry_discount", False))
-        if _ed_on:
-            def _env_num(key, default, cast):
-                v = os.environ.get(key)
-                if not v:  # None or empty string → default
-                    return cast(default)
-                try:
-                    return cast(float(v))  # float() first to accept "1.0"; cast to int/float
-                except (TypeError, ValueError):
-                    return cast(default)
-            _ed_k     = _env_num("QGAI_ED_K",     getattr(CFG.filters, "ed_bars_since_flip_max", 3),    int)
-            _ed_delta = _env_num("QGAI_ED_DELTA", getattr(CFG.filters, "ed_threshold_discount",  0.05), float)
-            _ed_agree = _env_num("QGAI_ED_AGREE", getattr(CFG.filters, "ed_htf_agreement_min",   2),    int)
-            _ed_state_prob = _env_num("QGAI_ED_STATE_PROB_MIN",
-                                       getattr(CFG.filters, "ed_state_prob_min", 0.60), float)
-            _ed_htf_rule = os.environ.get("QGAI_ED_HTF_RULE") or "strict"  # "strict" | "adx_switch" | "dominant_2of3"
-            _ed_slope_guard_env = os.environ.get("QGAI_ED_ADX_SLOPE_GUARD")
-            _ed_slope_guard = True
-            if _ed_slope_guard_env is not None and _ed_slope_guard_env != "":
-                try:
-                    _ed_slope_guard = float(_ed_slope_guard_env) >= 0.5
-                except ValueError:
-                    _ed_slope_guard = True
-            # Robust feature cast: features may be int, float, numpy, or numeric-string.
-            # _fnum handles ""/None/bad values; int(float(...)) handles "1.0".
-            _flip_recent     = int(_fnum(feat_dict.get("ts_flip_recent", 0), 0))
-            _bars_since_flip = int(_fnum(feat_dict.get("ts_bars_since_flip", 999), 999))
-            _htf_agree       = int(_fnum(feat_dict.get("ts_htf_agreement", 0), 0))
-            _adx_switch      = _fnum(feat_dict.get("ts_adx_switch_trend", 0), 0.0)
-            _trend_h1        = _fnum(feat_dict.get("ts_trend_h1", 0), 0.0)
-            _trend_h4        = _fnum(feat_dict.get("ts_trend_h4", 0), 0.0)
-            _h1_slope        = _fnum(feat_dict.get("h1_adx_slope", 0), 0.0)
-            _h1_di_diff      = _fnum(feat_dict.get("H1_DI_diff", 0), 0.0)
-            _dir_sign = 1 if trade_type.upper() == "BUY" else -1
-            _sp = float(getattr(self, "_last_state_prob", 0.0) or 0.0)
-            # HTF-agreement rule (Fable-5 v2, 2026-07-07):
-            #   strict       → |ts_htf_agreement| ≥ agree AND agree * dir > 0  (was all-3-aligned)
-            #   adx_switch   → ts_adx_switch_trend * dir > 0  (dominant-TF direction only)
-            #   dominant_2of3 → ts_trend_h4*dir>0 AND ts_trend_h1*dir>0  (2/3, drops M15)
-            if _ed_htf_rule == "adx_switch":
-                _htf_ok = _adx_switch * _dir_sign > 0
-            elif _ed_htf_rule == "dominant_2of3":
-                _htf_ok = (_trend_h4 * _dir_sign > 0) and (_trend_h1 * _dir_sign > 0)
-            else:  # strict
-                _htf_ok = (abs(_htf_agree) >= _ed_agree) and (_htf_agree * _dir_sign > 0)
-            _slope_ok = (_h1_slope > 0) if _ed_slope_guard else True
-            if (_flip_recent == 1
-                    and _bars_since_flip <= _ed_k
-                    and _htf_ok
-                    and _slope_ok
-                    and _h1_di_diff * _dir_sign > 0
-                    and hmm_state_name != "Ranging"
-                    and _sp >= _ed_state_prob):
-                _ed_disc = _ed_delta
-                _threshold = max(0.0, _threshold - _ed_disc)
         # Expose the effective threshold used for THIS bar (regime + news adjusted +
         # early-entry discount), so downstream soft-gates (SMMA MTF, etc.) can layer
         # on top without re-deriving.
@@ -988,6 +965,33 @@ class LiveInferenceEngine:
                                      feat_dict,
                                      state_prob=getattr(self, "_last_state_prob", None),
                                      dir_prob=getattr(self, "_last_dir_prob", None))
+
+        # ── VOLATILE + LOW-CONFIDENCE + COUNTER-HTF GATE (2026-07-13, Imtiyaz) ──
+        # Signal-audit finding: on the honest 53-week WFO baseline, Volatile-regime
+        # trades in the 42-48% win_prob band that go AGAINST the dominant HTF
+        # direction (H1/H4 DI, via ts_htf_agreement) are net-LOSING (n=38,
+        # total -1.9R, PF 0.88) while the SAME band aligned WITH the HTF is
+        # strongly profitable (n=48, +18.9R, PF 3.78). Confirmed NOT a time/slot
+        # confound (slot_win_rate ~identical between both buckets, spread across
+        # 18 hours/5 weekdays/24 different weeks — see FIXES_CHANGELOG4.md
+        # 2026-07-13). This is a directional-agreement + confidence gate, not a
+        # time-based filter (Imtiyaz's own principle: build the strategy first,
+        # time-features stay soft/model-internal, no hard time filters).
+        # Env-gated, default OFF — a candidate for WFO A/B testing, NOT yet
+        # adopted live. REVERT: this whole block is a no-op when the env var
+        # is unset (matches the QGAI_REGIME_INRANGE / QGAI_CTF_FADE pattern).
+        if os.environ.get("QGAI_VOL_HTF_GATE", "0") == "1" and hmm_state_name == "Volatile":
+            _dir_sign  = 1.0 if trade_type.upper() == "BUY" else -1.0
+            _htf_agree = feat_dict.get("ts_htf_agreement", 0) or 0
+            _htf_against = (_dir_sign * _htf_agree) < 0
+            if _htf_against and 0.42 <= final_prob < 0.48:
+                return self._make_result("SKIP", final_prob, sl_mult, hmm_state_name,
+                                         f"prob={final_prob:.2%} in 42-48% band, Volatile, "
+                                         f"AND counter-HTF (ts_htf_agreement={_htf_agree}) — "
+                                         f"QGAI_VOL_HTF_GATE",
+                                         feat_dict,
+                                         state_prob=getattr(self, "_last_state_prob", None),
+                                         dir_prob=getattr(self, "_last_dir_prob", None))
 
         # ── Signal confirmed ──────────────────────────────────
         signal = trade_type.upper()
@@ -1179,6 +1183,7 @@ class LiveInferenceEngine:
                      state_prob=None, dir_prob=None):
         return {
             "signal":       signal,
+            "model_version":getattr(self, "model_version", "unknown"),
             "win_prob":     round(prob, 4),
             "state_prob":   round(state_prob, 4) if state_prob is not None else round(prob, 4),
             "dir_prob":     round(dir_prob, 4)   if dir_prob   is not None else round(prob, 4),

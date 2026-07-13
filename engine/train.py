@@ -13,6 +13,8 @@ import sys, io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
+import os
+import time
 import numpy as np
 import pandas as pd
 import joblib
@@ -25,6 +27,100 @@ from features import (load_trades, load_ohlc, load_adx, load_news,
 from hmm_model import MarketStateHMM, HMM_FEATURES
 from xgb_model import WinProbabilityModel
 from self_learning import OnlineLearner, DriftDetector
+
+
+def _get_training_cutoff():
+    """Return (raw_date, inclusive_end_timestamp) or (None, None)."""
+    raw = os.environ.get("QGAI_TRAIN_CUTOFF", "").strip()
+    if not raw:
+        return None, None
+    try:
+        day = pd.Timestamp(raw).normalize()
+    except Exception as exc:
+        raise RuntimeError(f"Invalid QGAI_TRAIN_CUTOFF={raw!r}; expected YYYY-MM-DD") from exc
+    # Treat YYYY-MM-DD as inclusive through the end of that calendar day.
+    inclusive_end = day + pd.Timedelta(days=1) - pd.Timedelta(microseconds=1)
+    return day.date().isoformat(), inclusive_end
+
+
+def _apply_training_cutoff(trades, ohlc_df, adx_df, news_df, context):
+    """Apply the same strict historical cutoff to every training pipeline."""
+    raw, cutoff_end = _get_training_cutoff()
+    if raw is None:
+        return trades, ohlc_df, adx_df, news_df, None
+
+    before = len(trades)
+    trades = trades[trades["datetime"] <= cutoff_end].copy()
+    ohlc_df = ohlc_df[ohlc_df["datetime"] <= cutoff_end].copy()
+    adx_df = adx_df[adx_df["datetime"] <= cutoff_end].copy()
+    if "datetime" in news_df.columns:
+        news_df = news_df[news_df["datetime"] <= cutoff_end].copy()
+
+    print(
+        f"  ⏳ WFO CUTOFF {raw} [{context}]: trades {before:,} → {len(trades):,} "
+        "(train on past only, cutoff date inclusive)"
+    )
+    if len(trades) < 200:
+        print(f"  ⚠️ Only {len(trades)} trades before cutoff — model may be weak")
+    return trades, ohlc_df, adx_df, news_df, raw
+
+
+def _data_hash(path, n_bytes=1_000_000):
+    """Cheap content fingerprint of a data file (first+last N bytes + size) —
+    good enough to detect 'this meta doesn't match what's on disk now',
+    without hashing multi-hundred-MB files in full on every train run."""
+    import hashlib
+    p = Path(path)
+    if not p.exists():
+        return None
+    size = p.stat().st_size
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        h.update(f.read(n_bytes))
+        if size > n_bytes:
+            f.seek(max(0, size - n_bytes))
+            h.update(f.read(n_bytes))
+    h.update(str(size).encode())
+    return h.hexdigest()[:16]
+
+
+def _cutoff_metadata(cutoff_raw, trades, ohlc_df, adx_df, news_df):
+    """Build auditable cutoff metadata shared by all saved model metadata.
+    Every field here is a real exposure date — a model is only leak-free
+    against a backtest window if ALL of these predate that window's start,
+    not just one of them (leakage_guard.py takes the max across all)."""
+    def min_date(df):
+        if df is None or len(df) == 0 or "datetime" not in df.columns:
+            return None
+        return pd.Timestamp(df["datetime"].min()).date().isoformat()
+
+    def max_date(df):
+        if df is None or len(df) == 0 or "datetime" not in df.columns:
+            return None
+        return pd.Timestamp(df["datetime"].max()).date().isoformat()
+
+    return {
+        "requested_training_cutoff": cutoff_raw,
+        "effective_training_cutoff": cutoff_raw,
+        "training_start": min_date(trades),
+        "training_end": max_date(trades),
+        "feature_data_end": max(filter(lambda x: x is not None, [
+            max_date(ohlc_df), max_date(adx_df), max_date(news_df)
+        ]), default=None),
+        "ohlc_data_end": max_date(ohlc_df),
+        "adx_data_end": max_date(adx_df),
+        "news_data_end": max_date(news_df),
+        "strict_cutoff_enabled": bool(cutoff_raw),
+        "model_created_at": pd.Timestamp.now().isoformat(timespec="seconds"),
+        "data_hash": _data_hash(CFG.paths.trades_file),
+    }
+
+
+def _write_meta(models_dir, fname, meta: dict):
+    """Write one model's *_meta.json sidecar (leakage_guard.py reads these)."""
+    import json as _json
+    with open(f"{models_dir}/{fname}", "w", encoding="utf-8") as f:
+        _json.dump(meta, f, indent=2, default=str)
 
 
 def main():
@@ -62,22 +158,10 @@ def main():
     print(f"  Trades : {len(trades):,} | {trades['datetime'].min().date()} → {trades['datetime'].max().date()}")
     print(f"  OHLC   : {len(ohlc_df):,} rows | {ohlc_df['datetime'].min().date()} → {ohlc_df['datetime'].max().date()}")
 
-    # ── WFO CUTOFF (walk-forward): train only on data BEFORE cutoff ──
-    # Set via env var QGAI_TRAIN_CUTOFF=YYYY-MM-DD. Filters trades+ohlc+adx
-    # so the model never sees data at/after the cutoff (true out-of-sample).
-    import os as _os
-    _cutoff = _os.environ.get("QGAI_TRAIN_CUTOFF", "").strip()
-    if _cutoff:
-        _cut = pd.Timestamp(_cutoff)
-        _tb = len(trades)
-        trades  = trades[trades["datetime"]  < _cut].copy()
-        ohlc_df = ohlc_df[ohlc_df["datetime"] < _cut].copy()
-        adx_df  = adx_df[adx_df["datetime"]   < _cut].copy()
-        news_df = news_df[news_df["datetime"] < _cut].copy() if "datetime" in news_df.columns else news_df
-        print(f"  ⏳ WFO CUTOFF {_cutoff}: trades {_tb:,} → {len(trades):,} "
-              f"(train on past only)")
-        if len(trades) < 200:
-            print(f"  ⚠️ Only {len(trades)} trades before cutoff — model may be weak")
+    # ── WFO CUTOFF: apply identical cutoff to every training component ──
+    trades, ohlc_df, adx_df, news_df, _cutoff_raw = _apply_training_cutoff(
+        trades, ohlc_df, adx_df, news_df, context="main"
+    )
     print(f"  ADX    : {len(adx_df):,} rows")
     print(f"  New features: h4_trending_h1_aligned, h4_ranging_h1_neutral,")
     print(f"                h4_ranging_h1_extended, h4_h1_regime_score,")
@@ -156,6 +240,14 @@ def main():
     X_va, y_va = X[tr_end:va_end], y[tr_end:va_end]
     X_te, y_te = X[va_end:],       y[va_end:]
     print(f"  Train: {len(X_tr):,} | Val: {len(X_va):,} | Test: {len(X_te):,}")
+
+    # Exposure-end dates shared by every model's meta sidecar (main, state
+    # models, big_win/duration) — computed once here (BUG FIX 2026-07-13: this
+    # used to be computed down in Step 9, after Step 8's BigWin/Duration meta
+    # already referenced it -> UnboundLocalError, caught by the feature-sweep
+    # smoke test before any long run relied on it).
+    _validation_end = pd.Timestamp(trades.iloc[va_end - 1]["datetime"]).date().isoformat()
+    _test_end = pd.Timestamp(trades.iloc[-1]["datetime"]).date().isoformat()
 
     # ── STEP 5: HMM Training ─────────────────────────────────
     print("\n► Step 5: Training HMM (market state)...")
@@ -246,6 +338,22 @@ def main():
         print(f"  BigWin AUC : {big_predictor.auc:.4f}")
         print(f"  Duration AUC: {dur_predictor.auc:.4f}")
 
+        # Non-gating (train.py comment above: "They don't gate entries") —
+        # cutoff tracked for audit, but leakage_guard.py excludes these from
+        # the blocking max so WFO's deliberate per-fold reuse still works.
+        _write_meta(cfg.models_dir, "big_win_model_meta.json", {
+            "model": "big_win", "auc": round(float(big_predictor.auc), 4),
+            **_cutoff_metadata(_cutoff_raw, trades, ohlc_df, adx_df, news_df),
+            "validation_end": _validation_end, "calibration_end": _validation_end,
+            "test_end": _test_end,
+        })
+        _write_meta(cfg.models_dir, "duration_model_meta.json", {
+            "model": "duration", "auc": round(float(dur_predictor.auc), 4),
+            **_cutoff_metadata(_cutoff_raw, trades, ohlc_df, adx_df, news_df),
+            "validation_end": _validation_end, "calibration_end": _validation_end,
+            "test_end": _test_end,
+        })
+
     # ── STEP 8b: Train state-specific models (Ranging/Trending/Volatile) ──
     print("\n► Step 8b: Training state-specific models...")
     from features import RANGING_FEATURES, TRENDING_FEATURES, VOLATILE_FEATURES, STATE_FEATURE_MAP
@@ -296,11 +404,51 @@ def main():
         "auc": round(auc, 4),
         "timestamp": pd.Timestamp.now().strftime("%Y%m%d_%H%M"),
         "n_trades": len(trades),
+        "feature_list": feat_full,
         "features": feat_full,
         "win_rate": round(float(y.mean()), 4),
+        **_cutoff_metadata(_cutoff_raw, trades, ohlc_df, adx_df, news_df),
+        "hmm_cutoff": pd.Timestamp(_hmm_cutoff).date().isoformat(),
+        "validation_end": _validation_end,
+        "calibration_end": _validation_end,
+        "test_end": _test_end,
     }
     with open(f"{cfg.models_dir}/model_meta.json", "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2)
+
+    # ── Sidecar metas for models that didn't have their own (leakage_guard.py
+    # requires ALL of these to exist and predate the backtest window) ──
+    _write_meta(cfg.models_dir, "hmm_meta.json", {
+        "model": "hmm", "n_trades": len(trades),
+        **_cutoff_metadata(_cutoff_raw, trades, ohlc_df, adx_df, news_df),
+        "training_end": pd.Timestamp(_hmm_cutoff).date().isoformat(),  # HMM fit cutoff is the TRAIN split only (stricter than full trades range)
+        "feature_list": list(hmm_model.features),
+    })
+    _write_meta(cfg.models_dir, "slot_table_meta.json", {
+        "model": "slot_table", "n_trades": _slot_tr_end,
+        **_cutoff_metadata(_cutoff_raw, trades.iloc[:_slot_tr_end], ohlc_df, adx_df, news_df),
+    })
+    for s_idx, s_name in [(0, "ranging"), (1, "trending"), (2, "volatile")]:
+        _mp = Path(f"{cfg.models_dir}/model_{s_name}.pkl")
+        if not _mp.exists():
+            continue  # skipped this run (too few samples) — leave old meta as-is
+        _write_meta(cfg.models_dir, f"model_{s_name}_meta.json", {
+            "model": f"model_{s_name}", "state": s_name,
+            **_cutoff_metadata(_cutoff_raw, trades, ohlc_df, adx_df, news_df),
+            "validation_end": _validation_end,
+            "calibration_end": _validation_end,
+            "test_end": _test_end,
+        })
+    _write_meta(cfg.models_dir, "online_model_meta.json", {
+        "model": "online_learner", "no_data_exposure": True,
+        "note": "freshly initialised at train time — populated only by live/replay-time online updates, not a historical fit.",
+        "model_created_at": pd.Timestamp.now().isoformat(timespec="seconds"),
+    })
+    _write_meta(cfg.models_dir, "drift_detector_meta.json", {
+        "model": "drift_detector", "no_data_exposure": True,
+        "note": "freshly initialised at train time — populated only by live/replay-time updates, not a historical fit.",
+        "model_created_at": pd.Timestamp.now().isoformat(timespec="seconds"),
+    })
 
     # ── DONE ─────────────────────────────────────────────────
     print(f"\n{'='*60}")
@@ -337,7 +485,13 @@ def train_directional_models():
     ohlc_df = ohlc_df[ohlc_df["datetime"] <= _today2].copy()
     adx_df  = adx_df[adx_df["datetime"]  <= _today2].copy()
 
-    # Training on ALL trades — slot+day filter at inference only
+    # Apply the SAME cutoff used by the main model. This prevents directional
+    # BUY/SELL models from seeing any date beyond the forward-test boundary.
+    trades, ohlc_df, adx_df, news_df, _dir_cutoff_raw = _apply_training_cutoff(
+        trades, ohlc_df, adx_df, news_df, context="directional"
+    )
+
+    # Training on cutoff-safe trades — slot+day filter at inference only
     print(f"  Training on ALL {len(trades):,} trades (full dataset)")
     print(f"  Win rate: {trades['win_bin'].mean()*100:.1f}%")
     print(f"  BUY: {(trades['Type']=='BUY').sum():,} | SELL: {(trades['Type']=='SELL').sum():,}")
@@ -456,6 +610,8 @@ def train_directional_models():
         import json
         proba_va = model.predict_proba_calibrated(X_va)
         auc      = roc_auc_score(y_va, proba_va)
+        _dir_validation_end = pd.Timestamp(trades_dir.iloc[va_end - 1]["datetime"]).date().isoformat()
+        _dir_test_end = pd.Timestamp(trades_dir.iloc[-1]["datetime"]).date().isoformat()
         meta = {
             "direction":  label,
             "auc":        round(auc, 4),
@@ -463,6 +619,11 @@ def train_directional_models():
             "n_trades":   int(mask.sum()),
             "win_rate":   round(float(y_dir.mean()), 4),
             "features":   feat_full,
+            "feature_list": feat_full,
+            **_cutoff_metadata(_dir_cutoff_raw, trades_dir, ohlc_df, adx_df, news_df),
+            "validation_end": _dir_validation_end,
+            "calibration_end": _dir_validation_end,
+            "test_end": _dir_test_end,
         }
         with open(f"{cfg.models_dir}/{label.lower()}_model_meta.json", "w", encoding="utf-8") as f:
             json.dump(meta, f, indent=2)
@@ -473,12 +634,77 @@ def train_directional_models():
     print("  sell_model.pkl — Use for SELL signals")
 
 
+def _run_training_atomically():
+    """Run main() + train_directional_models() against a TEMP models_dir,
+    then swap it in only on full success. A crash/failure mid-training
+    (or a killed process) never leaves data/models/final half-written —
+    the previous, complete model set stays live until the swap succeeds.
+    (Imtiyaz spec 2026-07-13, item 15: 'atomic temporary folder + final swap'.)
+    """
+    import shutil
+    real_dir = Path(CFG.paths.models_dir)
+    tmp_dir = real_dir.parent / f"{real_dir.name}_building_tmp"
+    backup_dir = real_dir.parent / f"{real_dir.name}_prev"
+    lock_file = real_dir.parent / ".training_lock"
+
+    # ── LOCK (2026-07-13, Imtiyaz — 2nd concurrent-write incident same day) ──
+    # Two train.py processes writing to the same models_dir at once corrupts
+    # it: each one's atomic swap assumes exclusive ownership, so interleaved
+    # runs produce a mixed model (some files from run A's cutoff, some from
+    # run B's) with no error raised. A stale lock (crashed process that never
+    # cleaned up) is treated as expired after 1 hour — generously longer than
+    # any observed real retrain — so it can't permanently wedge future runs.
+    if lock_file.exists():
+        try:
+            _lock_age = time.time() - lock_file.stat().st_mtime
+        except OSError:
+            _lock_age = 9e9
+        if _lock_age < 3600:
+            raise RuntimeError(
+                f"TRAINING LOCKED: {lock_file} exists and is only "
+                f"{_lock_age/60:.1f} min old — another train.py run appears to "
+                f"be in progress (same models_dir). Wait for it to finish, or "
+                f"if you're SURE nothing is running (check Task Manager for "
+                f"python.exe), delete {lock_file} and retry."
+            )
+        print(f"  ⚠️ Stale lock ({_lock_age/60:.0f} min old, from a crashed/killed run) — proceeding anyway.")
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+    lock_file.write_text(f"pid={os.getpid()} started={pd.Timestamp.now().isoformat()}", encoding="utf-8")
+
+    try:
+        if tmp_dir.exists():
+            shutil.rmtree(tmp_dir)
+        if real_dir.exists():
+            shutil.copytree(real_dir, tmp_dir)   # seed with existing files this run won't touch
+        else:
+            tmp_dir.mkdir(parents=True)
+
+        CFG.paths.models_dir = str(tmp_dir)
+        try:
+            main()
+            print("\n" + "="*60)
+            print("  Now training directional BUY/SELL models...")
+            print("="*60)
+            train_directional_models()
+        except Exception:
+            CFG.paths.models_dir = str(real_dir)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            print("\n  ❌ TRAINING FAILED — models_dir left UNCHANGED (atomic swap: nothing written).")
+            raise
+        else:
+            CFG.paths.models_dir = str(real_dir)
+            if backup_dir.exists():
+                shutil.rmtree(backup_dir)
+            if real_dir.exists():
+                real_dir.replace(backup_dir)
+            tmp_dir.replace(real_dir)
+            print(f"\n  ✅ Models swapped in atomically. Previous version kept at: {backup_dir}")
+    finally:
+        lock_file.unlink(missing_ok=True)
+
+
 if __name__ == "__main__":
-    main()
-    print("\n" + "="*60)
-    print("  Now training directional BUY/SELL models...")
-    print("="*60)
-    train_directional_models()
+    _run_training_atomically()
 
     # ── Save retrain date (works for both manual and scheduled runs) ──
     try:

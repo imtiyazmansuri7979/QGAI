@@ -1,0 +1,168 @@
+મારા QGAI training અને replay backtest systemનું data leakage audit કરો અને તેનો કાયમી ઉકેલ codeમાં લાગુ કરો.
+
+હાલની સમસ્યા:
+Model training data 29 April 2026 સુધીનું છે, પરંતુ replay backtest 1 April 2026થી શરૂ થાય છે. એટલે 1 Aprilથી 29 April સુધી training અને backtest overlap થાય છે. આ train-test overlap leakage છે. Warning બતાવવી પૂરતી નથી; overlap હોય તો scriptએ run જ બંધ કરી દેવો જોઈએ.
+
+આ કામ step-by-step કરો:
+
+1. Training cutoff ક્યાંથી આવે છે તે શોધો:
+
+   * maximum training trade timestamp
+   * feature-building data cutoff
+   * model fit cutoff
+   * calibration cutoff
+   * directional model cutoff
+   * state-specific model cutoff
+   * HMM fit cutoff
+   * slot/day table cutoff
+   * online learner cutoff
+
+2. Backtest શરૂ થતાં પહેલાં strict leakage guard ઉમેરો:
+
+```python
+if training_cutoff >= backtest_start:
+    raise ValueError(
+        f"DATA LEAKAGE BLOCKED: training_cutoff={training_cutoff} "
+        f"must be earlier than backtest_start={backtest_start}"
+    )
+```
+
+3. માત્ર એક metadata date પર વિશ્વાસ ન કરો. નીચેના તમામ cutoffsમાંથી latest timestamp શોધો:
+
+```python
+effective_training_cutoff = max(
+    main_model_cutoff,
+    buy_model_cutoff,
+    sell_model_cutoff,
+    state_model_cutoff,
+    hmm_cutoff,
+    calibration_cutoff,
+    feature_table_cutoff,
+    slot_day_table_cutoff
+)
+```
+
+અને પછી:
+
+```python
+assert effective_training_cutoff < backtest_start
+```
+
+4. દરેક saved model સાથે metadata save કરો:
+
+```json
+{
+  "training_start": "...",
+  "training_end": "...",
+  "validation_end": "...",
+  "test_end": "...",
+  "calibration_end": "...",
+  "feature_data_end": "...",
+  "model_created_at": "...",
+  "feature_list": [],
+  "data_hash": "..."
+}
+```
+
+5. Replay backtest વખતે તમામ model metadata load કરીને verify કરો:
+
+   * કોઈ modelનું cutoff backtest start પછીનું હોય તો run block કરો
+   * metadata missing હોય તો warning નહીં, hard failure કરો
+   * અલગ modelsના cutoff mismatch હોય તો latest cutoff લો
+
+6. Feature leakage audit ઉમેરો:
+
+   * signal time પછીની candle વાપરવી નહીં
+   * current candle close પર signal બને તો execution next bar પર રાખો
+   * rolling indicators માત્ર past dataથી ગણો
+   * centered rolling window ન હોવી જોઈએ
+   * backward fillથી future value pastમાં ન આવવી જોઈએ
+   * negative shift ન હોવો જોઈએ
+   * target-derived feature ન હોવી જોઈએ
+   * swing/order-block/range phase feature future confirmationથી બને તો તેને signal time પર ઉપલબ્ધ versionમાં convert કરો
+
+7. ખાસ કરીને નીચેના features audit કરો:
+
+   * `in_range_phase`
+   * order block distance features
+   * swing-based features
+   * `mins_to_next_3star`
+   * future-news related columns
+   * HMM state
+   * slot win rate
+   * online learner features
+
+`mins_to_next_3star` signal time પર known scheduled news પરથી આવે તો acceptable છે; actual future event outcome અથવા revised timestamp વાપરે તો leakage છે.
+
+8. Slot/day statistics અને historical win-rate tables માત્ર training period પરથી બનાવો. Backtest periodના trades tableમાં સામેલ ન થવા જોઈએ.
+
+9. Calibration validation period પર થઈ હોય તો replay start calibration period પછી હોવું જોઈએ. Calibration data પણ training exposure ગણો.
+
+10. Clean workflow enforce કરો:
+
+```text
+Train period
+→ Validation period
+→ Test period
+→ Completely unseen forward backtest period
+```
+
+ઉદાહરણ:
+
+```text
+Train:      2024-12-01 to 2025-12-31
+Validation: 2026-01-01 to 2026-02-28
+Test:       2026-03-01 to 2026-03-31
+Forward:    2026-04-01 onward
+```
+
+11. જો 1 April 2026થી 29 June 2026 full 3-month clean OOS test કરવો હોય તો training, validation, test અને calibrationમાં 1 April 2026 પછીનું કોઈ data ન હોવું જોઈએ.
+
+12. Backtest reportની શરૂઆતમાં સ્પષ્ટ print કરો:
+
+```text
+Training cutoff:
+Calibration cutoff:
+Effective model cutoff:
+Backtest start:
+Leakage check: PASS/FAIL
+Clean OOS period:
+```
+
+13. Reportમાં બે પ્રકારના results mix ન કરો:
+
+* in-sample/overlap
+* clean out-of-sample
+
+Overlap હોય તો performance report generate જ ન કરો.
+
+14. Automated tests બનાવો:
+
+* cutoff equal to backtest start → FAIL
+* cutoff after backtest start → FAIL
+* cutoff before backtest start → PASS
+* missing metadata → FAIL
+* one directional model newer than others → latest cutoff used
+* future-shifted feature detected → FAIL
+* slot table built using future trades → FAIL
+
+15. Existing model restore logic safe રાખો:
+
+* temporary retraining પછી original models restore થાય
+* restore થયેલા model metadata પણ verify થાય
+* failed run પછી half-updated model folder ન રહે
+* atomic temporary folder અને final swap વાપરો
+
+16. અંતે મને આ output આપો:
+
+* leakage ક્યાં હતું
+* કઈ files બદલાઈ
+* કયા code blocks ઉમેરાયા
+* before/after workflow
+* automated test results
+* clean OOS start date
+* unresolved leakage risks
+* final verdict: SAFE અથવા NOT SAFE
+
+મહત્વપૂર્ણ નિયમ:
+Warning બતાવીને backtest ચાલુ ન રાખવો. Training, calibration, feature statistics અથવા model cutoff અને backtest period વચ્ચે કોઈ overlap હોય તો execution તરત બંધ થવું જોઈએ.

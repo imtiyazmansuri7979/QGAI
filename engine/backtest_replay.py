@@ -305,6 +305,22 @@ def run(args):
     print(f"⚡ QGAI AI REPLAY BACKTEST  [trail={TRAIL_MODE}]")
     print("=" * 64)
 
+    # ── DATA-LEAKAGE GUARD (Imtiyaz, 2026-07-13) ────────────────────────────
+    # Hard-stop BEFORE any real work if the currently-trained models' data
+    # exposure (train+val+test+calibration, across EVERY gating model file)
+    # reaches args.date_from or later. A printed warning is not enough — see
+    # leakage_guard.py for why. --allow-in-sample is the only override, and
+    # it must be passed explicitly on the command line every time.
+    import leakage_guard
+    try:
+        leakage_guard.assert_no_leakage(
+            CFG.paths.models_dir, args.date_from,
+            allow_in_sample=getattr(args, "allow_in_sample", False),
+        )
+    except RuntimeError as _leak_err:
+        print(f"\n{_leak_err}\n")
+        raise SystemExit(1)
+
     # 1. Engine — the SAME brain as live ------------------------------------
     from inference import LiveInferenceEngine, trend_pullback_block, trend_pullback_generate, smma_mtf_soft_block, adx_strength_soft_block
     engine = LiveInferenceEngine()
@@ -677,27 +693,13 @@ def run(args):
                          or getattr(engine, "_last_features", {}) or {})
 
         # ── open trade at NEXT bar open ──────────────────────
-        # Range-phase entry filter: skip entries during an H4 range/chop phase.
-        # A/B: --no-range-skip (or env QGAI_SKIP_RANGE=0) FORCES it off to measure
-        # whether range trades are really net-negative (config claims -43R) — 2026-07-03.
-        _range_on = getattr(CFG.filters, "skip_range_phase_entry", False)
-        _env_sr = os.environ.get("QGAI_SKIP_RANGE")
-        if _env_sr not in (None, ""):
-            _range_on = (_env_sr == "1")
-        if getattr(args, "no_range_skip", False):
-            _range_on = False
+        # H4 RANGE-PHASE ENTRY FILTER — REMOVED 2026-07-12 (Imtiyaz): "model over
+        # hard filters". 1-month honest A/B: OFF +8.9R/63tr vs ON +0.9R/29tr — the
+        # filter was blocking WINNERS (WR 60.3% > 55.2%). The old -43R was in-sample
+        # on the leaky model. Kept as a False constant so downstream compound
+        # conditions (not _range_block ...) and the blocked_by taxonomy are untouched.
+        # REVERT: restore the _range_on / in_range_phase gate here (git history).
         _range_block = False
-        if _range_on:
-            try: _irp = int(float(sig.get("in_range_phase", 0) or 0))
-            except Exception: _irp = 0
-            _rmp = float(getattr(CFG.filters, "range_phase_min_prob", 0.0) or 0.0)
-            # Env override for range-soften A/B (Fable-5 Rank 2, 2026-07-07):
-            _rmp_env = os.environ.get("QGAI_RANGE_MIN_PROB")
-            if _rmp_env is not None and _rmp_env != "":
-                try: _rmp = float(_rmp_env)
-                except ValueError: pass
-            if _irp == 1 and (_rmp <= 0 or float(sig.get("win_prob", 1) or 1) < _rmp):
-                _range_block = True
         # Counter-trend-FADE filter: block a trade AGAINST the dominant timeframe's
         # momentum (H1/H4 — whichever ADX is higher) when that dominant ADX slope is
         # falling (trend real but fading = whipsaw zone). Data: in-sample +15R, PF 1.74→1.89.
@@ -1064,9 +1066,7 @@ if __name__ == "__main__":
                          "Overrides --tp-cap per trade. Unknown state falls back to --tp-cap/config.")
     ap.add_argument("--skip-counter-trend", action="store_true",
                     help="skip trades where ratchet line unavailable (no ATR fallback). Pure ratchet only.")
-    ap.add_argument("--no-range-skip", action="store_true",
-                    help="A/B: FORCE the H4 range-phase entry filter OFF (allow range trades) to measure "
-                         "whether range trades are really net-negative. Overrides config skip_range_phase_entry.")
+    # --no-range-skip REMOVED 2026-07-12 (range filter deleted; arg no longer used).
     ap.add_argument("--ctf-fade", action="store_true",
                     help="counter-trend-FADE filter: block a trade against the dominant TF (higher ADX) "
                          "momentum when that ADX slope is falling. Overrides config skip_counter_trend_fade=True.")
@@ -1100,4 +1100,11 @@ if __name__ == "__main__":
                     help="ignore any existing checkpoint for this exact config and start fresh "
                          "(checkpoint auto-saves every 500 bars + on Ctrl+C, so a stopped run "
                          "resumes automatically by default — use this flag to force a clean restart).")
+    ap.add_argument("--allow-in-sample", action="store_true",
+                    help="EXPLICIT override for the data-leakage guard (2026-07-13). By default, "
+                         "backtest_replay.py refuses to run if any model's training/validation/"
+                         "test/calibration exposure reaches --from or later (train-test overlap). "
+                         "Pass this ONLY for a known in-sample sanity check (e.g. current live model "
+                         "over full history, just to look) — the result is NOT valid OOS proof and "
+                         "must never be used for a keep/reject/profit decision.")
     run(ap.parse_args())

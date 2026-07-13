@@ -43,7 +43,13 @@ class PathConfig:
     adx_file    : str = str(_DATA_DIR / "merged"  / "adx_merged.csv")
     news_file   : str = str(_DATA_DIR / "news_all_2024_to_now_pure_cleaned.csv")
     surprise_csv: str = str(_DATA_DIR / "news_surprises.csv")
-    models_dir  : str = str(_DATA_DIR / "models"  / "final")
+    # 2026-07-13 (Imtiyaz): env override QGAI_MODELS_DIR lets tests/WFO/sweeps
+    # point at a completely SEPARATE folder so they never touch the live
+    # model at all — root-cause fix for 3 same-day incidents where a test's
+    # backup/restore dance around data/models/final went wrong (crash mid-
+    # swap, two concurrent processes, a multi-step sweep chain). Unset =
+    # unchanged default behavior (live bridge always uses this branch).
+    models_dir  : str = os.environ.get("QGAI_MODELS_DIR", str(_DATA_DIR / "models" / "final"))
     registry_dir: str = str(_DATA_DIR / "models"  / "registry")
     # ── Sub-directories used by merge_data / mt5_data_updater ─
     hist_dir    : str = str(_DATA_DIR / "historical")
@@ -59,10 +65,14 @@ class PathConfig:
 class FilterConfig:
     min_win_prob             : float = 0.45
     # 2026-06-23: skip entries during an H4 RANGE/CHOP phase (in_range_phase==1).
-    # Trend-following ratchet whipsaws in ranges. Baseline (in-sample): range trades
-    # net −43R / PF 0.76 vs trend PF 2.62; skipping them → PF 1.74→2.62, +43R. Demo/WFO confirm.
-    # in_range_phase is lookahead-free (last completed H4 bar). Set False to disable.
-    skip_range_phase_entry   : bool  = True
+    # Trend-following ratchet whipsaws in ranges. Old baseline (IN-SAMPLE only): range
+    # trades net −43R / PF 0.76 vs trend PF 2.62 — but that was never WFO/honest-model
+    # confirmed (the "Demo/WFO confirm" TODO stayed open). 2026-07-12 (Imtiyaz): this
+    # filter was added post-hoc for a small profit bump WITHOUT a proper test, and on
+    # the honest 34-feat model it blocks ~63% of actionable BUY/SELL. REMOVED (set to
+    # False) — re-add later only if a WFO/honest A/B proves it raises TOTAL R.
+    # in_range_phase is lookahead-free (last completed H4 bar). Set True to re-enable.
+    skip_range_phase_entry   : bool  = False
     range_phase_min_prob     : float = 0.0    # if >0: only skip range entries when win_prob < this (soft). 0 = always skip range.
     resume_prompt_on_start   : bool  = False  # 2026-06-30 (Anisa) REMOVED: bot now manages manual trades, so the user opens trades manually when wanted (bot handles them). No startup prompt — bot auto-trades its OWN signals. (Set True to re-enable the "trade the last signal? [y/N]" prompt.)
     resume_prompt_timeout_s  : float = 60.0   # how long the startup resume prompt waits for y/N before defaulting to NO (skip)
@@ -125,15 +135,8 @@ class FilterConfig:
     adx_strength_linear_target: float = 55.0    # target score → 0 penalty
     adx_strength_max_penalty  : float = 0.04    # max additive threshold penalty
     # ── EARLY-ENTRY THRESHOLD DISCOUNT (2026-07-07, Fable #1 pick for late-entry) ──
-    # Trend-birth window: within K=3 bars of a fresh SMMA flip, if HTF agreement ≥2,
-    # H1 ADX slope positive, H1 DI aligned, non-Ranging, state_prob≥0.60 → discount
-    # win_prob threshold by δ so marginal signals fire early (not after breakout top).
-    # ADDS trades only — never blocks — → prime directive safe. Env: QGAI_EARLY_DISCOUNT=1.
-    early_entry_discount      : bool  = False   # master switch
-    ed_bars_since_flip_max    : int   = 3       # K — must be within K bars of flip
-    ed_htf_agreement_min      : int   = 2       # |ts_htf_agreement| ≥ this in trade dir
-    ed_state_prob_min         : float = 0.60    # HMM state confidence floor
-    ed_threshold_discount     : float = 0.05    # δ — subtract from base threshold
+    # EARLY-ENTRY THRESHOLD DISCOUNT config keys REMOVED 2026-07-12 (Imtiyaz):
+    # feature deleted from inference.py (nil impact under max_open=1). REVERT: git.
     # ── FAB-S2 news staleness assertion (2026-07-07, Fable-5 audit fix) ──
     # bridge_main startup runs check_staleness() and logs ERROR banner if the
     # calendar's last event is > N days old. `pause_if_news_stale=True` will
