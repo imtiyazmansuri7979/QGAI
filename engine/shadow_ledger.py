@@ -27,15 +27,23 @@ from trend_signal import compute_trend
 try:
     from config import CFG
     F = CFG.filters
-    BUF      = float(getattr(F, "ratchet_buf_pct", 0.20))
-    SLMIN    = float(getattr(F, "ratchet_sl_min_pct", 0.18))
-    TPCAP    = float(getattr(F, "ratchet_tp_cap_pct", 10.0))
+    BUF        = float(getattr(F, "ratchet_buf_pct", 0.20))
+    SLMIN      = float(getattr(F, "ratchet_sl_min_pct", 0.18))
+    TPCAP      = float(getattr(F, "ratchet_tp_cap_pct", 10.0))
+    TP_REGIME  = bool(getattr(F, "ratchet_tp_regime", False))
+    # 2026-07-13 (night): regime-adaptive TP cap fix (see relabel_trades.py for
+    # the full writeup) -- single source of truth in config.py. shadow_ledger.py
+    # already has `hmm_state` logged per signal (bridge wrote it live) so no HMM
+    # retro-classification is needed here, unlike the offline relabel scripts.
+    TP_BY_REGIME = dict(getattr(F, "tp_by_regime", {"Ranging": 2.0, "Trending": 1.0, "Volatile": 0.8}))
     HTF_SL   = bool(getattr(F, "ratchet_htf_sl", True))
     HTF_FLIP = bool(getattr(F, "ratchet_htf_flip", True))
     RISK     = float(getattr(F, "risk_pct", 3.0))
     LOGS     = Path(CFG.paths.logs_dir)
 except Exception:
     BUF, SLMIN, TPCAP, HTF_SL, HTF_FLIP, RISK = 0.20, 0.18, 10.0, True, True, 3.0
+    TP_REGIME = False
+    TP_BY_REGIME = {"Ranging": 2.0, "Trending": 1.0, "Volatile": 0.8}
     LOGS = Path(__file__).resolve().parent / "logs"
 
 ENGINE  = Path(__file__).resolve().parent
@@ -154,7 +162,8 @@ def main():
         sl_dist = abs(entry - vsl)
         if sl_dist <= 0:
             continue
-        tp = entry + sgn * entry * TPCAP / 100.0
+        tp_pct = TP_BY_REGIME.get(str(s.get("hmm_state", "")), TPCAP) if TP_REGIME else TPCAP
+        tp = entry + sgn * entry * tp_pct / 100.0
 
         exit_px = exit_rsn = None
         exit_t = None

@@ -10,8 +10,7 @@ Quantifies "money left on the table" by the hard TP-cap vs a trail-only exit.
 
 Pure pandas + OHLC replay. No model, no retrain, no live/demo impact. Read-only.
 """
-import argparse, sys, io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+import argparse
 import numpy as np, pandas as pd
 from pathlib import Path
 

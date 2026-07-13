@@ -216,6 +216,11 @@ class FilterConfig:
     ratchet_htf_max_risk_pct : float = 2.5    # max SL distance (% of price) when using the HTF line
     ratchet_htf_forming      : bool  = True   # 2026-06-30 (Anisa) ENABLED: use the FORMING (current, not-yet-closed) HTF bar's line — MATCHES the chart indicator's live "SELL Line" value (e.g. 3979.55) instead of the last-closed bar (3988.03). vSL then trails the LIVE line (no hourly lag → less profit give-back). Recomputes per M15 bar. ⚠️ tighter = some premature-tighten on intra-hour noise; needs backtest_replay parity + WFO before live. Default OFF (= last-closed).
     ratchet_tp_regime        : bool  = True   # 2026-06-27 P3 ADOPTED: regime-adaptive TP cap — TP% switches by HMM state at entry (Ranging 2.0 / Trending 1.0 / Volatile 0.8). Won OOS on the live-faithful HTF WFO (+266R/PF3.35 vs global +255R). Reversible: set False = single ratchet_tp_cap_pct. DEMO-test first.
+    tp_by_regime : dict = field(default_factory=lambda: {"Ranging": 2.0, "Trending": 1.0, "Volatile": 0.8})
+    # 2026-07-13 (night): single source of truth for the regime-adaptive TP cap above —
+    # was duplicated as a literal dict in backtest_replay.py + relabel_trades.py +
+    # rebuild_trainset.py + shadow_ledger.py (a standing drift-bug risk: change one,
+    # forget the others). Everything now imports THIS. Change values here only.
     # STRUCT-H1 EXIT (2026 backtest: +258R vs ratchet +139R over 1yr). Exits a
     # trade when price closes beyond the 1h support/resistance structure.
     # Reversible: set enable_struct_h1_exit=False to fully restore old behaviour.

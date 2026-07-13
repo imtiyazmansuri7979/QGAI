@@ -22,9 +22,29 @@ import numpy as np, pandas as pd
 from pathlib import Path
 from trend_signal import compute_trend
 from analyze_capture import load_ohlc, htf_lines, BUF, SLMIN, TPCAP
+from features import load_adx
+from hmm_model import MarketStateHMM, STATE_NAMES
 from config import CFG
 
 OUT = Path(CFG.paths.trades_file).with_name("Back_testing_trainset_REBUILT.xlsx")
+
+# 2026-07-13 (night): regime-adaptive TP cap fix (see relabel_trades.py for the
+# full writeup) -- single source of truth in config.py, was a duplicated literal.
+TP_BY_REGIME = dict(CFG.filters.tp_by_regime)
+
+
+def regime_lookup_table(ohlc):
+    """Per-bar regime array (aligned to ohlc rows) via the EXISTING production
+    hmm_model.pkl (no refit) -- as-of the last closed ADX bar, no lookahead."""
+    adx_df = load_adx(CFG.paths.adx_file)
+    hmm = MarketStateHMM()
+    hmm.load(str(Path(CFG.paths.models_dir) / "hmm_model.pkl"))
+    states = hmm.predict_batch(adx_df)
+    adx_times = adx_df["datetime"].values.astype("datetime64[ns]")
+    ohlc_times = ohlc["time"].values.astype("datetime64[ns]")
+    idx = np.searchsorted(adx_times, ohlc_times, side="right") - 1
+    idx = np.clip(idx, 0, len(states) - 1)
+    return np.array([STATE_NAMES.get(int(states[i]), "Ranging") for i in idx])
 
 
 def simulate(ohlc):
@@ -37,6 +57,7 @@ def simulate(ohlc):
     buyL = m15["buy_line"].to_numpy(); sellL = m15["sell_line"].to_numpy()
     flip = m15["flip"].fillna(0).to_numpy()
     buyH1, sellH1, flipH1 = htf_lines(ohlc)
+    regimes = regime_lookup_table(ohlc) if CFG.filters.ratchet_tp_regime else None
 
     rows = []
     for i in range(n - 2):
@@ -61,7 +82,8 @@ def simulate(ohlc):
         sl_dist = abs(entry - vsl)
         if sl_dist <= 0:
             continue
-        tp = entry + sgn * entry * TPCAP / 100.0
+        tp_pct = TP_BY_REGIME.get(regimes[i0], TPCAP) if regimes is not None else TPCAP
+        tp = entry + sgn * entry * tp_pct / 100.0
 
         exit_px = exit_rsn = None; exit_t = None; trailing = False
         for j in range(i0 + 1, n):
@@ -107,7 +129,11 @@ def simulate(ohlc):
 def main():
     print("=" * 60)
     print("  REBUILD TRAINSET — 2-SMMA flips + live HTF exit (full history)")
-    print(f"  buffer {BUF}% | min-SL {SLMIN}% | TP cap {TPCAP}%")
+    if CFG.filters.ratchet_tp_regime:
+        print(f"  buffer {BUF}% | min-SL {SLMIN}% | TP cap: REGIME-ADAPTIVE {TP_BY_REGIME} "
+              f"(fallback {TPCAP}%)")
+    else:
+        print(f"  buffer {BUF}% | min-SL {SLMIN}% | TP cap {TPCAP}% (flat -- ratchet_tp_regime=False)")
     print("=" * 60)
     ohlc = load_ohlc()
     print(f"  OHLC: {len(ohlc):,} bars | {ohlc['time'].min().date()} -> {ohlc['time'].max().date()}")

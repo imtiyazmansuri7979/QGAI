@@ -343,7 +343,10 @@ def run(args):
     _TPCAP = args.tp_cap if args.tp_cap is not None else RATCHET_TP_CAP_PCT
     # REGIME-ADAPTIVE TP (2026-06-26): per-HMM-state TP cap from the 13-TP sweep.
     # Ranging wants wide TP, Volatile wants tight, Trending in the middle.
-    _TP_BY_REGIME = {"Ranging": 2.0, "Trending": 1.0, "Volatile": 0.8}
+    # 2026-07-13 (night): now reads the single source of truth in config.py
+    # (was a duplicated literal here + relabel_trades.py + rebuild_trainset.py +
+    # shadow_ledger.py — a drift-bug risk). Values unchanged, source centralized.
+    _TP_BY_REGIME = dict(CFG.filters.tp_by_regime)
     # FIX (2026-07-08): per-regime TP override for the TP-cap sweep. Env
     # QGAI_TP_REGIME_VALS="R,T,V" (e.g. "2.4,1.2,0.6") overrides the defaults
     # so a sweep can vary one regime while holding the others. Empty/unset = defaults.

@@ -24,11 +24,22 @@ from pathlib import Path
 from trend_signal import compute_trend
 # reuse the EXACT line construction + config the live-faithful capture tool uses
 from analyze_capture import load_ohlc, htf_lines, BUF, SLMIN, TPCAP
+from features import load_adx
+from hmm_model import MarketStateHMM, STATE_NAMES
 from config import CFG
 
 XLSX = Path(CFG.paths.trades_file)
 OUT  = XLSX.with_name(XLSX.stem + "_RELABELED.xlsx")
 DIFF = XLSX.with_name(XLSX.stem + "_RELABEL_DIFF.csv")
+
+# 2026-07-13 (night): regime-adaptive TP cap fix (Fable-5-reviewed, diagnostic
+# measured 0.62% total label flips / +46.4R on the current trades file --
+# real but small; fixed here anyway for label-vs-live-exit truth, not because
+# a retrain was judged necessary). Reads config.py's single source of truth
+# (was a duplicated literal here + backtest_replay.py + rebuild_trainset.py +
+# shadow_ledger.py). Toggle CFG.filters.ratchet_tp_regime=False to revert to
+# the old flat TPCAP behaviour for all regimes.
+TP_BY_REGIME = dict(CFG.filters.tp_by_regime)
 
 
 def load_entries():
@@ -39,8 +50,25 @@ def load_entries():
     return df
 
 
-def relabel(df, ohlc):
-    """Simulate every entry under the live HTF exit engine; return outcome columns."""
+def assign_regimes(df):
+    """Retro-classify each entry's regime using the EXISTING production
+    hmm_model.pkl (no refit) -- same approach as diagnose_tp_cap_regime_labels.py."""
+    adx_df = load_adx(CFG.paths.adx_file)
+    hmm = MarketStateHMM()
+    hmm.load(str(Path(CFG.paths.models_dir) / "hmm_model.pkl"))
+    states = hmm.predict_batch(adx_df)
+    times = adx_df["datetime"].values.astype("datetime64[ns]")
+    out = []
+    for t in df["datetime"]:
+        t64 = np.datetime64(t)
+        i = int(np.searchsorted(times, t64, side="right")) - 1   # last CLOSED bar, no lookahead
+        out.append(STATE_NAMES.get(int(states[i]), "Ranging") if i >= 0 else "Ranging")
+    return out
+
+
+def relabel(df, ohlc, tp_pcts):
+    """Simulate every entry under the live HTF exit engine; return outcome columns.
+    tp_pcts: one TP% per row, aligned to df by position (regime-adaptive or flat)."""
     n = len(ohlc)
     idx_of = {t: i for i, t in enumerate(ohlc["time"])}
     hi = ohlc["high"].to_numpy(); lo = ohlc["low"].to_numpy(); cl = ohlc["close"].to_numpy()
@@ -50,7 +78,7 @@ def relabel(df, ohlc):
 
     out, miss = [], 0
     BLANK = (np.nan, pd.NaT, np.nan, "", np.nan)
-    for _, r in df.iterrows():
+    for pos, (_, r) in enumerate(df.iterrows()):
         bt = r["datetime"].floor("15min")                # snap to the M15 grid
         i0 = idx_of.get(bt)
         if i0 is None or i0 + 1 >= n:
@@ -70,7 +98,7 @@ def relabel(df, ohlc):
         sl_dist = abs(entry - vsl)
         if sl_dist <= 0:
             miss += 1; out.append(BLANK); continue
-        tp = entry + sgn * entry * TPCAP / 100.0
+        tp = entry + sgn * entry * float(tp_pcts[pos]) / 100.0
 
         exit_px = exit_rsn = exit_t = None; trailing = False
         for j in range(i0 + 1, n):
@@ -105,15 +133,27 @@ def relabel(df, ohlc):
 def main():
     print("=" * 60)
     print("  RELABEL TRADES — closed-loop (live HTF exit engine)")
-    print(f"  buffer {BUF}% | min-SL {SLMIN}% | TP cap {TPCAP}%")
+    if CFG.filters.ratchet_tp_regime:
+        print(f"  buffer {BUF}% | min-SL {SLMIN}% | TP cap: REGIME-ADAPTIVE {TP_BY_REGIME} "
+              f"(fallback {TPCAP}%)")
+    else:
+        print(f"  buffer {BUF}% | min-SL {SLMIN}% | TP cap {TPCAP}% (flat -- ratchet_tp_regime=False)")
     print("=" * 60)
     df = load_entries()
     ohlc = load_ohlc()
     print(f"  Entries: {len(df):,} | {df['datetime'].min().date()} -> {df['datetime'].max().date()}")
     print(f"  OHLC   : {len(ohlc):,} bars | {ohlc['time'].min().date()} -> {ohlc['time'].max().date()}")
 
+    if CFG.filters.ratchet_tp_regime:
+        print("\n  Assigning entry-time regime via EXISTING production hmm_model.pkl (no refit)...")
+        df = df.assign(regime=assign_regimes(df))
+        print("  " + df["regime"].value_counts().to_string().replace("\n", "\n  "))
+        tp_pcts = df["regime"].map(TP_BY_REGIME).fillna(TPCAP).to_numpy()
+    else:
+        tp_pcts = np.full(len(df), TPCAP)
+
     old_win = (df["Win"] == "✓").astype(int) if "Win" in df.columns else None
-    res, miss = relabel(df, ohlc)
+    res, miss = relabel(df, ohlc, tp_pcts)
     ok = res["_win"].notna()
     print(f"\n  Relabeled OK: {int(ok.sum()):,} | unmatched/skipped: {miss:,}")
 
@@ -148,11 +188,13 @@ def main():
         outdf.loc[m, "Duration (min)"] = dur.round(0).values
     outdf.loc[m, "R"] = res.loc[m, "R"].values
     outdf.loc[m, "exit_reason"] = res.loc[m, "exit_reason"].values
-    # drop rows we could not relabel (keep the dataset clean / consistent)
-    outdf = outdf[m].drop(columns=["datetime"]).reset_index(drop=True)
+    # drop rows we could not relabel (keep the dataset clean / consistent -- "regime"
+    # was only a working column for this script, not part of the original schema)
+    outdf = outdf[m].drop(columns=["datetime", "regime"], errors="ignore").reset_index(drop=True)
 
     outdf.to_excel(OUT, index=False)
-    res.assign(Type=df["Type"], entry=df["Entry Price"], dt=df["datetime"]) \
+    res.assign(Type=df["Type"], entry=df["Entry Price"], dt=df["datetime"],
+               regime=df["regime"] if "regime" in df.columns else "") \
        .to_csv(DIFF, index=False)
     print(f"\n  ✅ Saved: {OUT}")
     print(f"     diff : {DIFF}")

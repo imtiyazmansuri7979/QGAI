@@ -8,6 +8,195 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-13 (night) — Training-label TP-cap bug found (Imtiyaz's hypothesis), Fable-5 corrects the causal direction
+**Trigger:** Imtiyaz watched a live ~29pt bearish move (2026-07-13, bar 16:00-17:00, price 4067→4038,
+ADX H1/H4 slope rising = strengthening trend, a separate SMMA trend signal also showing SELL) where
+win_prob stayed 30-42% the whole time — below the 45-48% regime entry threshold — despite what looked
+like a clear directional setup. He hypothesized: (1) maybe a hard-coded ADX number is blocking entries
+inside the buy/sell models, and (2) maybe the profit target (TP) itself is shaping what the model
+considers a "win," so setups that don't reach the TP fast enough get trained as losses regardless of
+direction correctness.
+**Investigation (code-read, no test run):** (1) confirmed no literal hard-coded ADX gate exists in
+`inference.py`'s entry-decision path (only the regime win_prob threshold + the env-gated, currently-OFF
+`QGAI_VOL_HTF_GATE`) — checked line-by-line. (2) Confirmed hypothesis 2 directly: `relabel_trades.py`
+(which generates the Win/Loss + R label for EVERY historical trade used to train all win-prob models)
+computes each trade's TP price via a single **flat** `TPCAP` (currently 1.00%, imported from
+`analyze_capture.py`). But the live system + `backtest_replay.py` have used a **regime-adaptive** TP cap
+since 2026-06-27 (`config.py:218`, `ratchet_tp_regime=True` → Ranging 2.0% / Trending 1.0% / Volatile
+0.8%, `backtest_replay.py:346`). This is a genuine, previously-undiscovered train-label-vs-live-exit
+parity gap.
+**Fable-5 opinion requested — and it corrected my causal-direction claim.** My first-pass read was that
+flat-1.0%-cap labels make Ranging training pessimistic and Volatile optimistic relative to the real
+regime caps. Fable-5 traced the actual exit-loop order in `relabel_trades.py` (checks SL/trail hit
+BEFORE checking TP hit, every bar) and showed the true direction is the OPPOSITE of what I claimed:
+- **Ranging** (label 1.0% vs live 2.0%, wider): a trade labeled "Loss" under the tight 1.0% cap
+  necessarily exited via SL/trail/flip BEFORE ever reaching 1.0% — a wider 2.0% cap changes nothing
+  about that same earlier exit, so **Loss→Win is mathematically impossible**. But a trade labeled "Win"
+  (hit 1.0%) would, under a 2.0% cap, keep running and could retrace into an SL/flip exit before
+  reaching 2.0% — **Win→Loss is possible**. Net effect: **current flat-cap Ranging labels are too
+  OPTIMISTIC** (overstate win-rate) — fixing this bug would make the Ranging model MORE conservative,
+  not less.
+- **Volatile** (label 1.0% vs live 0.8%, tighter): a trade labeled "Win" (hit 1.0%) must have already
+  crossed the nearer 0.8% level first (0.8% < 1.0%, same direction) — **Win→Loss is impossible** under
+  the tighter cap. But a trade labeled "Loss" that got close (reached ≥0.8% before its SL/trail/flip)
+  would have been a Win under the tighter live cap — **Loss→Win is possible**. Net effect: **current
+  flat-cap Volatile labels are too PESSIMISTIC** (understate win-rate) — the reverse of my original claim.
+- **Trending** has no gap at all (both are 1.00%).
+**Consequence — this bug does NOT explain the triggering observation.** The live bars in question were
+Ranging/Trending, not Volatile; Trending has no TP-cap gap, and the Ranging fix would push win_prob
+DOWN, not up. The live conservatism Imtiyaz observed is more likely explained by the existing
+[[project_htf_direction_architecture_rethink]] ADX-DI-vs-SMMA-trend divergence issue, not this TP-cap
+bug. The bug is real and worth fixing on truth-in-labels grounds, but it is a separate issue from what
+triggered the investigation.
+**Scope wider than first found:** the same flat-TP simulation pattern also exists in
+`rebuild_trainset.py:64` and `shadow_ledger.py:157` (fallback `TPCAP=10.0` if the config import fails)
+— fixing only `relabel_trades.py` would create a NEW mismatch against these other two tools (shadow
+ledger / trainset rebuild parity checks would then run on a different TP assumption than the actual
+training labels).
+**Fable-5's recommended sequence (nothing implemented yet):**
+1. **Cheap diagnostic first, no retrain:** re-run the relabel simulation with the regime-adaptive TP
+   cap and measure ONLY the label-flip % and ΔR per regime (a diff, not a training run — minutes, not
+   hours). Gate: only proceed to full retrain+WFO if flips exceed ~3% of rows overall or 5-7% in any
+   single regime.
+2. If the gate passes: reuse the EXISTING production `hmm_model.pkl` (do not fit a fresh HMM) to
+   retro-assign each historical trade's regime, persist it as a stored column so `train.py` doesn't
+   independently re-predict a possibly-inconsistent regime for the same trades, and validate the
+   retro-assigned regimes against already-logged live/backtest `hmm_state` values (need ≥85-90%
+   agreement before trusting the retro-classification).
+3. Centralize `_TP_BY_REGIME` into `config.py` as a single source of truth (currently a duplicated
+   literal across 3+ files — a standing drift-bug risk on its own, independent of this fix). This is a
+   config change — confirm with Imtiyaz first per house rule.
+4. Fix all 3 files (`relabel_trades.py`, `rebuild_trainset.py`, `shadow_ledger.py`) together, not
+   piecemeal.
+5. House process: TEST-run on a small slice first → full relabel → full retrain → WFO with
+   `--tp-regime` ON (live-faithful) → judge strictly on TOTAL R vs the current champion model → demo
+   before any live swap. Update `FILTERS_MASTER.md` + this changelog when done.
+**Priority placement:** after the in-progress 67-feature sweep and the built-but-not-yet-run post-cap
+continuation audit (both cheap, both already investigating "TP policy vs reality" from a different
+angle) — full retrain only if the cheap diagnostic clears the gate above. Not urgent: likely a small
+effect, and wrong-signed relative to the live-conservatism complaint that triggered the investigation.
+**Status:** bug confirmed real via code read, verified the additional 2 files independently
+(`grep -n "TPCAP" rebuild_trainset.py shadow_ledger.py` both hit). No code changed this entry — pure
+investigation + Fable-5 consultation.
+**Follow-up (same night): step 1 of Fable-5's sequence built.** `engine/diagnose_tp_cap_regime_labels.py`
+(NEW) — re-simulates every historical trade (`Back_testing_data_final_cleaned_RELABELED.xlsx` entries,
+2024-12-02 to 2026-04-29, 2,743 rows) TWICE on real M15 OHLC: once with the current flat 1.00% TP cap
+(matches what the models are actually trained on today) and once with the regime-adaptive cap
+(Ranging 2.0% / Trending 1.0% / Volatile 0.8%, matching live since 2026-06-27). Each trade's entry-time
+regime is classified using the EXISTING production `hmm_model.pkl` (loaded via `MarketStateHMM.load()` +
+`predict_batch()` on `adx_merged.csv` — no HMM refit, exactly Fable-5's recommendation to reuse the
+live classifier rather than introduce a second, possibly-inconsistent one), looked up as-of the last
+closed ADX bar before each entry (no lookahead). Reports, overall and per regime: label-flip count/%
+(Win↔Loss), total ΔR, and an exit-reason migration table (flat→regime) — everything needed to check
+Fable-5's decision gate (full retrain+WFO only justified if flips exceed ~3% of rows overall or ~5-7% in
+any single regime) before committing to the expensive fix. Pure pandas + OHLC/ADX replay, read-only, no
+training, no model-file writes. Delivered as `.bat` (house rule):
+`backtest/_runners/Run_TPCapRegimeLabelDiagnostic_TEST.bat`. Verified:
+`python -m py_compile diagnose_tp_cap_regime_labels.py` clean; bat checked for non-ASCII characters
+(none found). Not run — per house rule, Imtiyaz runs it on his own PC.
+**Bug found on first real run (Imtiyaz, same night):** crashed with
+`ValueError: I/O operation on closed file` inside `features.py`'s own import-time print. Root cause:
+my script did its own `sys.stdout = io.TextIOWrapper(sys.stdout.buffer, ...)` UTF-8 wrap AND then
+imported `analyze_capture`, which does the exact same wrap — the second wrap creates a new
+`TextIOWrapper` around the same underlying buffer; the first wrapper object then has zero references
+and gets garbage-collected, and `TextIOWrapper.__del__` closes the underlying buffer it was wrapping
+(shared with the second wrapper) — so the next `print()` call fails on a "closed file". Fixed by
+removing the redundant wrap from my script (importing `analyze_capture` already performs it once).
+Found the exact same latent double-wrap bug in `analyze_post_cap_continuation.py` (built earlier the
+same night, not yet run) — fixed identically before it could hit the same crash. Verified no other
+double-wrap risk exists in either script's import chain (`grep -l "sys.stdout = io.TextIOWrapper" *.py`
+— only `analyze_capture.py` itself wraps, among everything both scripts import). Both re-compiled clean.
+
+## 2026-07-13 (night) — TP-cap/regime label bug: diagnostic result + code fix (no retrain)
+**Diagnostic result (`Run_TPCapRegimeLabelDiagnostic_TEST.bat`, run by Imtiyaz):** 2,743/2,743 historical
+trades simulated OK. **Total label flips: 17 (0.62%)** — well under Fable-5's 3% gate.
+```
+Ranging  : 5/1340 (0.37%) flips — ALL Win->Loss, 0 Loss->Win  | delta-R +62.8
+Trending : 0/747  (0.00%) flips — no gap (both caps 1.00%)     | delta-R  +0.0
+Volatile : 12/656 (1.83%) flips — ALL Loss->Win, 0 Win->Loss   | delta-R -16.4
+```
+The 100%-directional flip pattern (Ranging only ever Win→Loss, Volatile only ever Loss→Win) exactly
+confirms Fable-5's earlier corrected mechanism — mathematically, a wider cap can only ever cost Ranging
+wins, and a tighter cap can only ever gift Volatile losses, never the reverse. This also validates the
+diagnostic script's own bar-by-bar trail simulation is behaving as designed (not a shortcut/approximation).
+Interesting nuance: Ranging's aggregate ΔR is net-POSITIVE (+62.8) despite its flips being all Win→Loss,
+because the ~1335 non-flipped Ranging "Win" trades rode the wider 2.0% cap further via the trail before
+exiting, gaining more R each. Volatile's aggregate ΔR is net-NEGATIVE (-16.4) despite its flips being all
+Loss→Win, because many non-flipped Volatile "Win" trades got cut short earlier at the tighter 0.8% cap.
+**2nd Fable-5 consult — decision: skip the full retrain, fix the code anyway.** Asked whether the
+measured result (well under the gate, but with a real +46.4R aggregate ΔR and a clean directional
+pattern) changed anything. Fable-5's answer: no — and gave a decisive extra reason found by re-reading
+`train.py`: **the win-prob models train on binary Win/Loss labels only; R never enters training as a
+target or sample weight** (`y_big = (trades["% Move"].abs() > 0.30)`, `y_dur = (...)` — both binary;
+main buy/sell/regime models are binary classifiers). So the +46.4R aggregate is informationally
+irrelevant to what the model actually learns — only the 17 flipped binary labels matter, and 17/2,743
+cannot move an XGBoost decision boundary in any measurable way. Also confirmed the `big_win` label
+(0.30% threshold) is structurally immune to this bug, since both TP caps (0.8-2.0%) sit above it — a
+cap-hit exit is always ≥0.8% move, so its label can never flip either way from this bug.
+**Fable-5's recommendation: fix the 3 files anyway (correctness/parity), skip retrain.** Especially
+`shadow_ledger.py`, since it's used for live-vs-shadow parity checks — a stale flat-cap assumption there
+would silently produce false "why did live and shadow disagree?" investigations (this project's
+BUG_LOG #F/#G/#H/#J class of incident). Root cause reframed: not really "flat vs regime," but "the same
+per-regime TP dict duplicated as a literal in 4 different files" — a structural drift-bug waiting to
+recur on the next TP-cap tuning.
+**Code fix implemented (no retrain triggered):**
+- **`engine/config.py`** — new `FilterConfig.tp_by_regime` field (`{"Ranging": 2.0, "Trending": 1.0,
+  "Volatile": 0.8}`) — the single source of truth. Change values here only, going forward.
+- **`engine/backtest_replay.py`** — `_TP_BY_REGIME` now reads `CFG.filters.tp_by_regime` instead of a
+  local literal dict. Values unchanged — pure refactor, no behavior change (still overridable via
+  `QGAI_TP_REGIME_VALS` for sweeps, unchanged).
+- **`engine/relabel_trades.py`** — new `assign_regimes()` retro-classifies each historical trade's
+  regime using the EXISTING production `hmm_model.pkl` (`MarketStateHMM.load()` + `predict_batch()` on
+  `adx_merged.csv`, no refit — exactly Fable-5's recommendation to reuse the live classifier), looked up
+  as-of the last closed ADX bar before entry (no lookahead). `relabel()` now takes a per-trade TP%
+  array instead of the flat module constant. Gated by `CFG.filters.ratchet_tp_regime` — set it False to
+  fully revert to old flat-cap behavior. The `regime` working column is dropped before writing the
+  output xlsx (schema unchanged, as the script's own docstring promises); added to the `_RELABEL_DIFF.csv`
+  diagnostic output for transparency.
+- **`engine/rebuild_trainset.py`** — same fix pattern (`regime_lookup_table()` precomputes a per-bar
+  regime array via the same production HMM, `simulate()` picks the per-candidate TP% from it). This
+  script is currently DORMANT (not wired to `config.trades_file` — an alternative/experimental
+  trainset generator per its own docstring), so this fix has zero live effect today, only correctness
+  for if/when it's adopted.
+- **`engine/shadow_ledger.py`** — simplest fix: this script already has `hmm_state` logged per signal
+  in `signals_all.csv` (the bridge wrote it live), so no HMM retro-classification is needed — just reads
+  `s["hmm_state"]` and looks up the matching regime TP% from the same `tp_by_regime` dict. Gated by
+  `CFG.filters.ratchet_tp_regime` (new `TP_REGIME` flag), same revert path.
+**Verified:** all 5 touched files (`config.py`, `backtest_replay.py`, `relabel_trades.py`,
+`rebuild_trainset.py`, `shadow_ledger.py`) re-compile clean (`python -m py_compile`). No retrain
+triggered — the fixed scripts will only affect model training the next time someone actually re-runs
+`relabel_trades.py` → `train.py`, which per this decision is not being scheduled now.
+**`docs/FILTERS_MASTER.md`** updated: current-value table note + dated §CHANGE LOG row (per house rule
+— any filter-adjacent code change gets both).
+
+## 2026-07-13 (night) — win_prob calibration diagnostic built (Fable-5 Step 1, original concern)
+**Purpose:** the TP-cap investigation above turned out to be a separate tangent (fixed, but doesn't
+explain the triggering observation). Fable-5's Step 1 for the ACTUAL concern — win_prob staying 30-42%
+during a clear ~29pt bearish move where ADX H1/H4 + a separate SMMA trend signal both agreed SELL —
+is a cheap calibration check, built as `engine/diagnose_win_prob_calibration.py`.
+**Design:** uses an ALREADY-EXISTING dataset — the 3-month VolHTFGate WFO OOS run's
+`ALL_OOS_trades.csv` (207 real executed trades, `volhtfgate_wfo_TEST_A_off/`). No new model inference
+needed: every row already carries the model's own predicted `win_prob` at entry, the REALIZED outcome
+(`r_achieved`), and the raw HTF-direction features (`f_H1_DI_diff`, `f_H4_DI_diff`, `f_ts_trend_h1`,
+`f_ts_trend_h4`). For each trade, counts how many of these 4 signals agree with the direction actually
+traded and buckets: `aligned_strong` (4/4 agree), `aligned_weak` (3/4), `mixed_disagree` (≤2/4). Reports
+avg predicted win_prob vs realized win-rate per bucket, plus the gap (realized − predicted).
+**Interpretation built into the report:** a clear positive gap in `aligned_strong` (realized notably
+above predicted) confirms systematic underconfidence exactly when ADX+SMMA agree — the concern that
+started this whole investigation. A gap near zero means the model IS well-calibrated there, and the
+"too conservative" read was a perception issue (or explained by something else already found, e.g. a
+specific bar's regime routing) — stop, don't build the bigger fix.
+**Explicit caveat (documented in the script's own output):** this dataset is EXECUTED trades only
+(already cleared the entry threshold) — it can prove/disprove whether the model is honest about trades
+it already takes, but cannot by itself prove that good trades were wrongly SKIPPED (no realized outcome
+exists for a bar that was never traded). If a real gap shows up, the next, more expensive step per
+Fable-5 is a full shadow-simulation across SKIPPED bars too (extending `analyze_capture.py`-style
+replay to bars below threshold) to quantify actual missed profit — not jumping straight to the bigger
+ADX-DI/SMMA-trend feature-consolidation fix.
+**Delivered as `.bat`** (house rule): `backtest/_runners/Run_WinProbCalibration_TEST.bat`. Verified:
+`python -m py_compile diagnose_win_prob_calibration.py` clean; bat checked for non-ASCII characters
+(none found). Not run — per house rule, Imtiyaz runs it on his own PC.
+
 ## 2026-07-13 (night) — Volatile counter-HTF gate: 3-month WFO A/B REJECTED the filter
 **Result:** `Run_VolHTFGate_AB_WFO_TEST.bat` (12-week/3-month WFO) completed both configs (12/12 weeks
 each, run by Imtiyaz on his own PC):
