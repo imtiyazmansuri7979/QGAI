@@ -8,6 +8,141 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-13 (night) — Volatile counter-HTF gate: 3-month WFO A/B REJECTED the filter
+**Result:** `Run_VolHTFGate_AB_WFO_TEST.bat` (12-week/3-month WFO) completed both configs (12/12 weeks
+each, run by Imtiyaz on his own PC):
+- **Config A (gate OFF, baseline):** +32.5R, 207 trades, 9/12 positive weeks, avg +2.71R/week.
+- **Config B (gate ON, `QGAI_VOL_HTF_GATE` active):** +17.1R, 183 trades, 8/12 positive weeks, avg
+  +1.43R/week.
+B is **-15.4R (-47%) worse than A**, and worse in every week from 2026-05-04 through the end of the
+window — not a one-week fluke.
+**Decision (per the bat's own pre-committed gate: B>=A required before running the 53-week FULL WFO):**
+**B < A → REJECTED.** `Run_VolHTFGate_AB_WFO_FULL.bat` does not need to run. `QGAI_VOL_HTF_GATE` stays
+OFF by default in `inference.py` (it was always env-gated — no code revert needed, zero live impact
+either way). This confirms the same-day caveat found during the original signal-audit: re-measuring the
+"against-HTF" bucket with raw ADX-DI instead of the SMMA-based `ts_htf_agreement` the gate actually
+uses flipped it from losing to profitable — the original 53-week-baseline finding (Volatile 42-48%
+win_prob band against dominant HTF direction is net-losing) was fragile/noise tied to the specific
+SMMA-based direction signal, not a real tradeable edge. Results:
+`backtest/results/volhtfgate_wfo_TEST_A_off/_WFO_SUMMARY.txt`,
+`backtest/results/volhtfgate_wfo_TEST_B_on/_WFO_SUMMARY.txt` (both `_WFO_SUMMARY.csv` also present, per
+the one-folder-per-run convention).
+**Closes:** the "Volatile counter-HTF gate" TASKS.md row, the 5-step Volatile-state-model architecture
+plan queued behind it (add H1/H4 DI + SMMA features to `model_volatile.pkl`) can now proceed without
+waiting further, though it remains a separate, larger, not-yet-started piece of work.
+
+## 2026-07-13 (night) — 4th Fable-5 opinion: smart Exit-AI model vs current rule-based exits
+**Question asked (Imtiyaz):** could a dedicated "exit-AI" ML model (separate from the entry classifier)
+be both smart (doesn't give back profit on reversals) and capture more of the available move than the
+current rule-based exit (HTF trailing-stop + HTF-flip exit + regime TP-cap)?
+**Fable-5's independent opinion (full text kept in session transcript; summary below):**
+1. **Pushback on the capture% metric itself** — "% of total bar-to-bar path length" is an ill-posed
+   denominator: it shrinks/grows purely with bar granularity (M15 vs M5) and isn't a real ceiling.
+   Recommends replacing it with **per-trade MFE-capture ratio** (realized profit ÷ Maximum Favorable
+   Excursion during the trade), and retiring the "10-20% of total path" framing entirely — capture% is
+   a diagnostic, not the actual objective (total $/R is, per the project's own PRIMARY OBJECTIVE rule).
+2. **Exit-AI is NOT the right next step — 3 cheaper things come first:**
+   - **Post-cap continuation audit** (pure measurement, no code/model change): for the 44 trades that
+     hit the TP-cap in the `active_baseline` report, measure how far price continued in the trade's
+     favor between the cap-touch and the eventual HTF-flip. This single number tells us whether there's
+     real money being left on the table or not — decides whether anything below is even worth doing.
+   - **Main recommendation: don't hard-close at the TP cap.** Either (a) partial-exit 50-70% of the
+     position at the cap and let the remainder ride on the existing HTF trail, or (b) keep the full
+     position but switch the trail to a much tighter line (e.g. M15-line + 0.05-0.08% buffer, vs the
+     current H1-line + 0.20%) at the cap-touch moment. Fable's reasoning: the TP-cap's real function is
+     "giveback insurance" (lock in some profit before a reversal), not "profit ceiling" — trail-tightening
+     provides the same insurance without capping the upside. This reframes the R/PF-vs-capture% conflict
+     found earlier today as an artifact of the current *binary* hard-close design, not a fundamental
+     trade-off — a third option (tighten, don't close) may recover both at once.
+   - **Re-check whether the TP-cap %s themselves are overfit** — the `config.py:198` comment says the
+     1.00% global cap was chosen on in-sample evidence; 34% of trades hitting a cap this tight, on a
+     131-trade sample, is a thin base for a parameter this sensitive.
+3. **If exit-AI is still pursued after the above:** keep it narrow. A binary gating classifier
+   (predicts p(continuation)) invoked ONLY at 2 fixed decision points — cap-touch and HTF-flip-moment —
+   never a free-running per-bar policy and never an RL agent (both flagged as over-engineered and
+   leakage-prone for this data size).
+4. **Biggest risk: sample size, called a "deal-breaker level" concern.** The entry model trains on
+   ~98k bars; an exit model's effective sample size ≈ trade count (131), since in-trade bars within one
+   trade are heavily autocorrelated. Fable's recommendation: do not start exit-AI training below
+   ~500-1000 trades (a longer replay window or expanded shadow-entry set, not more bars of the same
+   trades).
+5. **Label construction (if/when attempted):** triple-barrier method (López de Prado) — ATR-scaled
+   favorable/adverse barriers over a forward window (e.g. H=16 bars ≈ 4h), features strictly ≤ t using
+   the SAME feature pipeline + leakage guards as the entry model. Explicitly warned against
+   "distance-to-eventual-peak"-style labels (leak by construction, depend on the full future path).
+   CV must be trade-episode-level (never split one trade's own bars across train/test) with
+   purge+embargo at fold boundaries. Evaluate via OOS total $ replay, not classifier AUC (AUC can look
+   good while total $ is worse).
+**Status:** opinion only — nothing implemented yet. Queued in `docs/TASKS.md` with this exact priority
+order: (a) post-cap continuation audit → (b) TP-cap-as-trail-tighten redesign + WFO A/B → (c) switch
+the north-star metric to MFE-capture → (d) grow the trade sample → (e) only then consider exit-AI
+phase 1. No code changed this entry — pure investigation/consultation.
+**Follow-up (same night): step (a) tool built.** `engine/analyze_post_cap_continuation.py` (NEW) — for
+every TPCAP-exited trade in a given `backtest_trades_*.csv`, replays forward from the cap-touch bar
+using the SAME H1-line trail + HTF-flip exit logic already live for non-capped trades (reuses
+`analyze_capture.py`'s `load_ohlc()`/`htf_lines()`/`BUF`/`SLMIN`), until the trail is hit or the HTF
+flips (max 384 M15 bars / 4 days look-ahead). Reports, per capped trade and in aggregate: extra pts/R
+gained or given back after the cap, % of trades that would have continued favorably vs reversed, and
+average giveback (peak-vs-eventual-exit) — the exact numbers needed to decide whether the TP-cap is
+leaving real money on the table (worth the trail-tighten redesign) or already doing its job (giveback
+insurance, retire the capture% target instead). Pure pandas + OHLC replay, read-only, no model/retrain.
+Delivered as `.bat` (house rule): `backtest/_runners/Run_PostCapContinuationAudit_TEST.bat`, pointed at
+the existing `active_baseline` trades CSV (already on disk from the feature-sweep run) — runs in
+seconds. **Sequencing (Imtiyaz):** run this AFTER the 67-feature validation sweep's nightly runs finish
+— it kicks off a separate exit-side work stream, not blocking the feature-sweep. Verified:
+`python -m py_compile analyze_post_cap_continuation.py` clean; bat file checked for non-ASCII characters
+(the em-dash bug class from earlier this session) — none found. Not run — per house rule, Imtiyaz runs
+it on his own PC.
+
+## 2026-07-13 (night) — Feature-sweep: capture-efficiency tracking added (Fable-5 profit-focus opinion)
+**Context:** Imtiyaz asked Fable-5 (independent 3rd opinion) how to find genuinely profitable features
+from the 67-feature list without overfitting, given the real goal is not just a positive R number but
+capturing more of the AVAILABLE market move (target: 10-20% of available move captured). Fable-5's
+top recommendation: track a capture/efficiency metric per feature test, not just Total R — a feature
+that raises R while capturing LESS of the available move (e.g. via fewer, larger cherry-picked trades)
+is a red flag, not a win. Fable-5's second point — that HTF H1-flip exit logic is the bigger lever than
+any single feature — was checked against `config.py` and found **already live**: `ratchet_htf_sl=True`
+(06-23), `ratchet_htf_flip=True` (06-26), `ratchet_htf_forming=True` (06-30). No new implementation
+needed there; it's a status clarification, not a pending action.
+**Implemented in `engine/run_feature_sweep.py`:**
+- `parse_report()` now also parses the backtest report's `captured X pts | available Y pts (all swings)
+  / Z net | efficiency W% of path` line into `captured_pts`/`available_pts`/`available_net_pts`/
+  `efficiency_pct` (None-safe if the line format doesn't match).
+- `_auto_verdict()` takes a new `baseline_captured_pts` param; the shared `_stability_flags()` guard-rail
+  set now also flags **captured points DOWN >10% vs baseline even when Total R improved** — catches the
+  "R went up but we're capturing less of the move" false-positive Fable-5 warned about.
+- `main()` prints captured-pts + efficiency-% for baseline and every feature test, and the per-tier
+  `*_SUMMARY.csv` gained 3 columns: `captured_pts`, `delta_captured_pts`, `efficiency_pct`.
+**Verified:** `python -m py_compile run_feature_sweep.py` clean. No retrain/backtest run (per house rule —
+Imtiyaz runs all real tests on his own PC).
+
+### ✅ RESOLVED same day — capture-audit refresh: 2.9% vs 5.7% explained (NOT a bug, a known trade-off)
+**Question:** why does the current feature-sweep baseline (3-month, `active_baseline`) show only ~2.9%
+capture efficiency when STRATEGY.md §7b's 06-23 shadow-sim (`analyze_capture.py`, 18-month/738-signal
+window) measured ~5.7% for the same HTF-flip exit?
+**Root cause found (code-read, no test run needed):** the `available path` denominator calculation is
+IDENTICAL in both places (`close.diff().abs().sum()` over the window — `backtest_replay.py:964` and
+`analyze_capture.py:117`), so it is not a methodology inconsistency in the metric itself. The real
+cause is a **TP-cap config change made AFTER the 06-23 shadow-sim**:
+- 06-23 shadow-sim ran with `ratchet_tp_cap_pct` still at its old default **10.0%** (effectively
+  unconstrained — HTF-flip was the dominant exit).
+- **06-26**: `ratchet_tp_cap_pct` tightened to **1.00%** (config.py:198) — chosen because it gave the
+  best in-sample R/PF (+287R/PF1.74), a deliberate profit-optimization choice, not an oversight.
+- **06-27**: `ratchet_tp_regime=True` adopted (config.py:218) — TP now regime-adaptive and even tighter
+  in Volatile: Ranging 2.0% / Trending 1.0% / **Volatile 0.8%**.
+**Proof:** `active_baseline/backtest_report.txt` (2026-04-01→06-29, 131 trades) exit-reason mix =
+`{'FLIP': 59, 'TPCAP': 44, 'TRAIL': 22, 'SL': 5, 'EOD': 1}` — **44/131 (34%) of trades exit via the TP
+cap**, locking profit at 0.8-2.0% of entry price regardless of how far the market keeps moving after.
+The other 59 (45%) exit via HTF-flip and capture the move fine — the TPCAP-exited third of trades is
+what drags the aggregate efficiency % down from the old 5.7% to the current 2.9%.
+**Conclusion — real trade-off, not a bug:** higher path-capture-% and higher R/PF pulled in opposite
+directions in the 06-26/06-27 data (wide/no TP cap → more path captured but worse R/PF; tight
+regime-TP → less path captured but better R/PF), and the team knowingly chose R/PF. Recovering
+10-20% capture would require re-widening `ratchet_tp_cap_pct` and/or disabling `ratchet_tp_regime`,
+which the existing 06-26/06-27 evidence says would cost total R/PF — a new dedicated wide-TP-vs-tight-TP
+A/B (not yet run) would be needed before touching this, since "maximize capture %" and "maximize R/PF"
+are not the same objective on this data. No code changed — this was a read-only investigation.
+
 ## 2026-07-13 — Data-leakage guard: hard-blocks train/backtest overlap (Imtiyaz flagged, Claude fixed)
 **What happened:** Imtiyaz found that several 2026-07-12 "Stage-1 3-month retrain backtest" screens
 (OB redundancy, RemovedFeature top-10, RawMove, RegimeScore individual/combo A/B, InRange sweep,
@@ -118,6 +253,35 @@ of `data/models/final`'s backup slot, get surprised by a longer chain of events 
 mid-swap; two processes; one process but many sequential swaps). The lock file (2nd incident's fix)
 guards against concurrent runs; this fix guards against a single run's own multi-step chain. Recommend
 treating `final_prev` as purely "undo the very last retrain," never "get back to where I started."
+
+## 2026-07-13 — Fable-5 review of the feature-sweep design + 4 fixes applied
+Imtiyaz asked for a Fable-5 second opinion on `run_feature_sweep.py`'s redesigned methodology (3-stage
+priority plan, auto-verdict heuristic). Findings and fixes:
+1. **Duplicate retrains (biggest concrete bug):** `priority_batch`'s 4 features that also appear in the
+   full `active` tier (`H4_DI_diff`, `h4_adx_slope`, `move_4hr`, `momentum_aligned_2hr`) were cached under
+   TIER-PREFIXED labels (`priority_batch_06_H4_DI_diff` vs `active_23_H4_DI_diff`) — each would retrain
+   TWICE for identical information, and worse, every tier's own `{tier}_baseline` (which changes nothing)
+   was ALSO being recomputed from scratch per tier (4x waste). **Fixed:** cache keys are now
+   tier-independent (`baseline`, `ablate_<feat>`, `unprune_<feat>`) — any tier reusing the same
+   feature+mechanism gets an instant cache hit.
+2. **Verdict asymmetry:** the stability guard-rails (week-consistency, single-trade-share, BUY/SELL and
+   regime concentration) only applied to "looks good" verdicts (`CORE_KEEP`, `NEEDS_1YEAR_CONFIRMATION`)
+   — a `DROP_CANDIDATE` verdict (recommending removal of an active feature) got NO red-flag check, despite
+   being at least as risky a decision. **Fixed:** same guard-rails now apply to `DROP_CANDIDATE` too,
+   downgrading to `REVIEW` when triggered.
+3. **Unused parameter:** `_auto_verdict()` accepted `baseline_trades` but never used it. **Fixed:** added
+   a stability-flag check — if a feature's trade count moved more than 30% vs baseline, the comparison
+   isn't apples-to-apples and gets flagged.
+4. **Noise-floor not calibrated (flagged, not fully solved):** the ±0.5R "flat" threshold is a fixed
+   constant, not measured against this system's actual retrain-to-retrain variance. Documented as an open
+   caveat — a future improvement would be comparing repeated baseline reruns (different seeds) to measure
+   the real noise floor before trusting any verdict near the ±0.5R boundary.
+Also flagged (open, not yet acted on): LOCO (leave-one-out) ablation can't see feature *combinations* or
+correlated-feature masking (dropping one of two correlated features can look "redundant" only because its
+correlated twin absorbed the signal); the whole 3-month screen is a SINGLE market-regime sample, so a
+`DROP_CANDIDATE` verdict should also pass the 1-year gate before actually being dropped, not just
+`NEEDS_1YEAR_CONFIRMATION` re-adds — consistent with the project's own "don't block profitable trades"
+philosophy.
 
 ## 2026-07-13 — Feature aliases extended to all 67 (for the feature-sweep report)
 `engine/features.py`'s existing `FEATURE_ALIASES` table only covered 34 features (the 27 active +
