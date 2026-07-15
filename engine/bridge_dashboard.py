@@ -178,6 +178,20 @@ def _health_file(path: Path, label: str, stale_h: float, old_h: float) -> dict:
         return {"label": label, "status": "UNKNOWN", "age_h": None, "modified": "--"}
 
 
+def _check_autotrading() -> dict:
+    """Direct read of the MT5 terminal's AutoTrading toggle (mt5.terminal_info().trade_allowed).
+    2026-07-15 (Anisa): added after an AutoTrading-off test showed the bridge only discovers
+    this REACTIVELY -- after a close/hedge order already failed with retcode 10027 -- rather
+    than proactively. terminal_info() is a cheap read-only call (no order sent), safe every poll."""
+    try:
+        ti = mt5.terminal_info()
+        allowed = bool(getattr(ti, "trade_allowed", False)) if ti else False
+        return {"status": "OK" if allowed else "ERROR", "trade_allowed": allowed}
+    except Exception as e:
+        log.warning(f"autotrading check failed: {e}")
+        return {"status": "UNKNOWN", "trade_allowed": None}
+
+
 def build_system_health() -> dict:
     """File-age health: data CSVs (legend: OK <25h, STALE 25-72h),
     model PKLs (weekly retrain: OK <8d, STALE 8-14d), last retrain."""
@@ -187,6 +201,7 @@ def build_system_health() -> dict:
         logs_dir   = Path(CFG.paths.logs_dir)
 
         h = {
+            "autotrading": _check_autotrading(),
             # Data files — thresholds match the panel legend (<25h OK, 25-72h STALE)
             "ohlc_live":   _health_file(Path(CFG.paths.live_dir)  / "ohlc_live.csv",   "OHLC live",   25, 72),
             "adx_live":    _health_file(Path(CFG.paths.live_dir)  / "adx_live.csv",    "ADX live",    25, 72),
@@ -215,7 +230,7 @@ def build_system_health() -> dict:
         # Overall: ERROR only if something is really missing/dead,
         # WARNING if stale/overdue, otherwise OK.
         statuses = [v.get("status") for v in h.values()]
-        if any(s in ("MISSING", "OLD") for s in statuses):
+        if any(s in ("MISSING", "OLD", "ERROR") for s in statuses):
             overall = "ERROR"
         elif any(s in ("STALE", "OVERDUE") for s in statuses):
             overall = "WARNING"
@@ -732,6 +747,7 @@ def write_dashboard(session, virtual_trades, current_price, last_signal=None,
             risk_grade = "F"; risk_grade_label = "Avoid"
         daily_limit = round(session.day_open_bal * DAILY_SL / 100, 2)
         daily_left  = round(max(0, daily_limit - session.daily_loss), 2)
+        _sys_health = build_system_health()
 
         dash = {
             # Header
@@ -826,7 +842,12 @@ def write_dashboard(session, virtual_trades, current_price, last_signal=None,
             "today_slots":        get_today_slots(tick.time),
             "last_trade_loss":    session.last_trade_was_loss,
             # FIX #B3: SYSTEM HEALTH panel data — was never sent before
-            "system_health":      build_system_health(),
+            "system_health":      _sys_health,
+            # 2026-07-15 (Anisa): top-level flag so the dashboard can show an
+            # immediate banner the moment AutoTrading is toggled off in the
+            # MT5 terminal, instead of only discovering it reactively after a
+            # close/hedge order already failed (retcode 10027).
+            "autotrading_enabled": _sys_health.get("autotrading", {}).get("trade_allowed"),
             # FIX #B5: SIGNAL LOG / HISTORY + real NEWS FILTER numbers
             "signal_history":     get_signal_history(40),
             "news_status":        _news_state,

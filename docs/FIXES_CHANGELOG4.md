@@ -8,6 +8,94 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-15 — Slave manual-trade vSL never ratcheted (wrong symbol on secondary accounts) (Imtiyaz reported)
+**Symptom:** Imtiyaz added a manual trade on a SECONDARY (slave) account (TradeQuo, symbol
+`XAUUSDs`). `bridge.log` showed the manual manager picking it up every ~5s
+(`[multi-manual] TradeQuo-001: managing 1 manual position(s) on XAUUSDs`) but ALSO logged
+`⚡ ratchet HTF(H1): copy_rates failed — no state` on every cycle.
+**Root cause:** `bridge_ratchet.get_htf_state()` / `get_state()` hard-coded the PRIMARY `SYMBOL`
+(`XAUUSD`) in `mt5.copy_rates_from_pos(...)`. When `bridge_manual.manage()` runs on a slave whose
+symbol differs (`XAUUSDs`), it was connected to the slave but asked for the PRIMARY symbol's bars —
+the slave broker has no `XAUUSD`, so `copy_rates` returned None → ratchet line = None → the slave
+manual trade's **vSL never trailed**. Its hard 3%-floor still protected it (confirmed:
+`🛡 [XAUUSDs] COMBINED manual 0.04 lot @ avg 4048.37 → VIRTUAL vSL ON, 3% floor @ 3926.92`), but it
+could give back all profit down to that wide floor because the profit-locking ratchet was dead.
+Impact was limited to secondary accounts whose symbol ≠ the primary's; the primary itself was fine.
+**Fix:** made `get_state()` / `get_htf_state()` symbol-aware — added an optional `symbol=None` param
+(defaults to primary `SYMBOL`, so all existing primary callers in `bridge_core.py` are byte-for-byte
+unchanged), and converted the module's single `_cache` / `_htf_cache` to PER-SYMBOL dicts so a slave
+line can't collide with the primary's cached line. `bridge_manual.manage()` now passes its own `sym`
+through to both calls.
+**Verified:** offline test (mocked MT5, 6 assertions) all PASS — symbol-less call still defaults to
+primary; `symbol="XAUUSDs"` routes to XAUUSDs; HTF variant likewise; an unknown symbol returns None
+(no cross-symbol leak); primary and slave states are cached as separate objects. Python syntax OK on
+both edited files.
+**Takes effect on next bridge restart** (Python modules load once). Until then the slave manual
+trade stays floor-protected but non-ratcheting.
+
+## 2026-07-15 — DD brake counted a WITHDRAWAL as drawdown → wrongly halved TradeQuo risk (Imtiyaz reported)
+**Symptom:** Imtiyaz noticed the smaller secondary account VantageCentLive ($3,640) was trading a
+LARGER lot (0.05) than the bigger TradeQuo-001 ($5,046, lot 0.04) — inverted from risk-proportional
+sizing.
+**Trace:** the live DD brake (`dd_brake.py`, FAB-S3) was scaling TradeQuo's risk ×0.5 — confirmed in
+`bridge.log` (`🛡️ DD brake active: risk scaled ×0.5 (balance $5046)`) and `logs/dd_peak.json`
+(TradeQuo login 125961163 peak $5917.37 vs current $5046 = 14.7% "drawdown" → ½-size band). Lot math
+verified exact: Vantage `(3640.78×3%)/1866pts×1.0 = 0.05`; TradeQuo `(5046.04×3%)/1866pts×0.5 = 0.04`.
+**Root cause (Imtiyaz clarified, MT5 history screenshot confirmed):** the $5917→$5046 drop was NOT a
+trading loss — it was a **$814 WITHDRAWAL** of trading profit (account history: Deposit $5,046,
+lifetime trading Profit **+$814.04**, Withdrawal −$814.00, Balance $5,046.04 — i.e. zero net trading
+drawdown, the account only ever made money). `risk_scale()` compared current equity to a persisted
+equity peak and had NO awareness of deposits/withdrawals, so a withdrawal looked identical to a loss.
+**Immediate fix (live, no restart needed):** reset TradeQuo's stale peak in `logs/dd_peak.json`
+($5917.37 → current equity); the running bridge re-anchored it to $5053.12 on the next connect →
+drawdown ~0% → ×1.0 full risk, matching Vantage. VantageCentLive left untouched (Imtiyaz: "keep as
+is vantage").
+**Permanent fix (`dd_brake.py`, takes effect on next bridge restart):** made `risk_scale()`
+deposit/withdrawal-aware. Added `_balance_ops()` — reads the connected account's `DEAL_TYPE_BALANCE`
+(+ CREDIT/CORRECTION/BONUS/CHARGE) deals from MT5 history (120-day rolling window) — and each sizing
+call now shifts the stored peak by any NEW balance operation (withdrawal ↓ peak by the exact amount
+withdrawn, deposit ↑ peak), so only genuine trading losses can move equity below the peak. Idempotent:
+each balance deal is applied at most once, tracked by ticket in a new `applied_balance_deals` list in
+the state file. Existing state migrates safely one-time (baselines current ops as already-accounted,
+never retroactively double-subtracts). Protective-only contract preserved (can only reduce size).
+**Verified:** offline logic test (mocked MT5 history, 5 scenarios) all PASS — withdrawal → no brake
+(×1.0, peak lowered by exactly the withdrawal); real 15% trading loss → still brakes (×0.5); deposit
+→ no brake (peak raised); withdrawal-then-real-12%-loss → brakes only on the real loss; same
+withdrawal seen twice → peak adjusted once (idempotent). Python syntax check passed.
+
+## 2026-07-15 — Proactive AutoTrading-off detection + dashboard banner (Anisa)
+**Context:** Anisa intentionally disabled AutoTrading in the MT5 terminal to test system behavior
+under that condition (not a bug report). Investigating `bridge.log` surfaced the full mechanics of
+a prior real incident from this same cause: ticket #1550707233 (BUY 11.34 lot, opened 2026-07-07
+17:15) had its virtual SL breach correctly detected by the bot starting 2026-07-08 14:02, but
+EVERY close attempt was rejected by the broker with retcode 10027 ("AutoTrading disabled by
+client") — including the existing STUCK-TRADE MANUAL-PROTECT hedge fallback (`bridge_session.py`,
+2026-07-01 spec), since a hedge is also a new order and hits the same restriction. The position sat
+open and unprotected for ~31 hours (15,923+ consecutive close failures logged) until AutoTrading
+was re-enabled around 2026-07-09 21:15, when it finally closed for **-$25,424.96**, triggering a
+daily-SL halt for the rest of that day.
+**Root gap identified:** the bridge only discovers "AutoTrading is off" REACTIVELY -- after an
+order already failed -- inferring it from retcode 10027 in a log message ("likely AutoTrading is
+OFF"). A direct, definitive check (`mt5.terminal_info().trade_allowed`) already existed in the
+standalone `diag_mt5.py` diagnostic script but was never wired into the live loop or the dashboard.
+**Fix (monitoring/alerting addition, not a change to trading/risk logic):**
+- `bridge_dashboard.py`: added `_check_autotrading()` -- a cheap, read-only `mt5.terminal_info()`
+  call (no order sent) -- as a new `"autotrading"` row inside `build_system_health()`, and folded
+  its `"ERROR"` status into the panel's existing overall-status rollup.
+- Added a top-level `"autotrading_enabled"` boolean to the main `dash` dict in `write_dashboard()`
+  (computed once via a new `_sys_health` local, reused for both the health panel and this flag --
+  avoids calling `build_system_health()` twice).
+- `dashboard.html`: added a new `#autotrading_banner` bar (same visual language/CSS as the existing
+  `#danger_banner` -- red, flashing) that shows immediately when `d.autotrading_enabled === false`,
+  independent of the daily-loss-driven banner. Added to the same conditional-bars list as
+  `danger_banner`/`sl_progress_wrap` so it renders as a plain sibling above the GridStack grid.
+**Verified:** Python syntax check passed; live browser test confirmed the banner element exists
+(hidden by default, `display:none`), and manually toggling its class to `show` renders it correctly
+(red text/border, flashing animation, correct message) with no console errors.
+**Net effect:** a future AutoTrading-off event (accidental or intentional) now surfaces on the
+dashboard within one poll cycle, instead of only being discoverable via `bridge.log` after a
+position already needed (and failed) an emergency close.
+
 ## 2026-07-15 — SIGNAL + SIGNAL LOG equal-height fix: root-caused GridStack transition bug (Imtiyaz reported)
 **What:** Imtiyaz wanted SIGNAL and SIGNAL LOG panels to be EXACTLY the same height with no dead
 space and no scrollbar, resize handle ("↘") removed, and the fix done WITHIN GridStack (not by

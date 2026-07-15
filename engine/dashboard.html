@@ -539,6 +539,9 @@ footer{text-align:center;color:var(--dim);font-size:0.69rem;padding:8px 0;border
 #danger_banner{display:none;background:rgba(255,34,85,0.18);border:1px solid var(--red);border-radius:8px;padding:6px 14px;margin-bottom:5px;font-family:var(--orb);font-size:0.72rem;letter-spacing:2px;color:var(--red);text-align:center}
 @keyframes flash{0%,100%{opacity:1}50%{opacity:0.35}}
 #danger_banner.show{display:block;animation:flash 1s infinite}
+/* 2026-07-15: AUTOTRADING BANNER — same visual language as danger_banner */
+#autotrading_banner{display:none;background:rgba(255,34,85,0.18);border:1px solid var(--red);border-radius:8px;padding:6px 14px;margin-bottom:5px;font-family:var(--orb);font-size:0.72rem;letter-spacing:2px;color:var(--red);text-align:center}
+#autotrading_banner.show{display:block;animation:flash 1s infinite}
 
 /* ── IMPROVEMENT 7: P&L FLASH ── */
 @keyframes flashGreen{0%,100%{background:transparent}40%{background:rgba(0,255,136,0.25)}}
@@ -889,6 +892,10 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 
 <!-- DANGER BANNER -->
 <div id="danger_banner">⚠ DAILY LOSS LIMIT WARNING — TRADING HALTED SOON ⚠</div>
+
+<!-- AUTOTRADING BANNER (2026-07-15, Anisa: surface AutoTrading-off immediately,
+     not only after a close/hedge order already failed with retcode 10027) -->
+<div id="autotrading_banner">🚫 AUTOTRADING DISABLED IN MT5 TERMINAL — BOT CANNOT CLOSE OR PROTECT OPEN TRADES 🚫</div>
 
 <!-- SL PROGRESS BAR -->
 <div class="sl-progress-wrap" id="sl_progress_wrap">
@@ -2892,6 +2899,12 @@ async function load(){
       else banner.textContent = '⚠ DAILY LOSS WARNING — '+pct.toFixed(2)+'% OF LIMIT USED ⚠';
     }
 
+    // ── 2026-07-15: AUTOTRADING BANNER — proactive alert (Anisa) ─────
+    const atBanner = document.getElementById('autotrading_banner');
+    if(atBanner){
+      atBanner.className = (d.autotrading_enabled === false) ? 'show' : '';
+    }
+
     // ── IMPROVEMENT 1: EQUITY SPARKLINE ──────────────────────
     const curEq = parseFloat(d.equity||0);
     if(curEq>0){
@@ -4287,7 +4300,7 @@ function gsInitDashboard(){
   // GridStack panel), so it can shrink to its true content height instead of
   // being bound to the grid's 56px row quantization, and sits right above the
   // grid next to the vSL/TP bar it's conceptually paired with.
-  ['danger_banner','sl_progress_wrap','panel_open_trades'].forEach(function(eid){
+  ['danger_banner','autotrading_banner','sl_progress_wrap','panel_open_trades'].forEach(function(eid){
     var el = document.getElementById(eid);
     if(el) gridEl.parentNode.insertBefore(el, gridEl);
   });

@@ -16,7 +16,20 @@ Protective only — can only REDUCE size in drawdown, never increase → never b
 a profitable trade (prime-directive safe). Config-gated by
 `CFG.filters.enable_live_dd_brake` (default False).
 
-State file: logs/dd_peak.json  ->  {"<login>": {"peak_equity": float, "updated": iso}}
+DEPOSIT/WITHDRAWAL-AWARE (2026-07-15 fix, Imtiyaz-reported): the brake compares
+current equity to a persisted peak, but a DEPOSIT or WITHDRAWAL moves equity
+without any trading gain/loss. A real case: TradeQuo peaked at ~$5917 equity,
+the owner WITHDREW $814 of trading profit → equity fell to $5046, and the brake
+wrongly read that as a 14.7% drawdown and halved the account's risk even though
+there was ZERO trading loss (the account's lifetime trading result was +$814).
+Fix: each sizing call reads the account's balance-operation deals
+(`DEAL_TYPE_BALANCE` etc. — deposits/withdrawals) from MT5 history and shifts the
+stored peak by the SAME amount (withdrawal ↓ peak, deposit ↑ peak), so only
+genuine trading losses can ever move equity below the peak. Idempotent: each
+balance deal is applied at most once, tracked by its ticket in the state file.
+
+State file: logs/dd_peak.json  ->
+  {"<login>": {"peak_equity": float, "updated": iso, "applied_balance_deals": [ticket,...]}}
 """
 from __future__ import annotations
 import json
@@ -68,10 +81,39 @@ def _save(d: dict) -> None:
         pass  # sizing must never crash on a persist failure
 
 
+def _balance_ops() -> list[tuple[int, float]]:
+    """[(ticket, profit)] for the CURRENTLY-CONNECTED account's non-trading
+    balance operations (deposits +, withdrawals −, credits/corrections) from MT5
+    deal history. Empty on any error — sizing must never crash. A 120-day rolling
+    window bounds the query cost; a genuinely new deposit/withdrawal is always
+    recent, and anything older is already baked into the historical peak."""
+    try:
+        import MetaTrader5 as mt5
+        from datetime import timedelta
+        date_from = datetime.utcnow() - timedelta(days=120)
+        date_to   = datetime.utcnow() + timedelta(days=1)
+        deals = mt5.history_deals_get(date_from, date_to)
+        if not deals:
+            return []
+        bal_types = {getattr(mt5, "DEAL_TYPE_BALANCE", 2)}
+        for extra in ("DEAL_TYPE_CREDIT", "DEAL_TYPE_CORRECTION", "DEAL_TYPE_BONUS", "DEAL_TYPE_CHARGE"):
+            v = getattr(mt5, extra, None)
+            if v is not None:
+                bal_types.add(v)
+        return [(int(dl.ticket), float(dl.profit)) for dl in deals if dl.type in bal_types]
+    except Exception:
+        return []
+
+
+def _now_iso() -> str:
+    return datetime.utcnow().isoformat(timespec="seconds") + "Z"
+
+
 def risk_scale(current_equity: float, account_id: str | None = None) -> float:
     """Lot-size multiplier ∈ {1.0, 0.5, 0.25, 0.0} from drawdown vs THIS
-    account's persisted peak. Updates that account's peak on a new high.
-    Returns 1.0 when brake disabled or peak not yet established."""
+    account's persisted peak. Deposits/withdrawals shift the peak by the same
+    amount (so they are NOT mistaken for trading drawdown); a new equity high
+    advances the peak. Returns 1.0 when brake disabled or peak not established."""
     if not bool(getattr(CFG.filters, "enable_live_dd_brake", False)):
         return 1.0
     try:
@@ -80,19 +122,45 @@ def risk_scale(current_equity: float, account_id: str | None = None) -> float:
         return 1.0
     if eq <= 0:
         return 1.0
+
     key = str(account_id) if account_id is not None else _current_login()
     d = _load()
     rec = d.get(key, {})
     peak = float(rec.get("peak_equity", 0.0) or 0.0)
+    has_field = "applied_balance_deals" in rec
+    applied = set(rec.get("applied_balance_deals", []))
+
+    ops = _balance_ops()                       # [(ticket, profit), ...]
+
+    if peak <= 0 or not has_field:
+        # First establishment OR one-time migration of a pre-existing peak:
+        # baseline ALL existing balance ops as "already accounted" so we never
+        # retroactively subtract historical deposits/withdrawals. Peak starts at
+        # the higher of any existing peak and current equity.
+        peak = max(peak, eq)
+        applied = {t for t, _ in ops}
+    else:
+        # Neutralise NEW balance operations since last check (idempotent by
+        # ticket): a withdrawal (profit<0) lowers the peak by exactly the amount
+        # withdrawn so it is NOT read as trading drawdown; a deposit (profit>0)
+        # raises it. Only genuine trading losses now move equity below the peak.
+        for t, p in ops:
+            if t not in applied:
+                peak = max(0.0, peak + p)
+                applied.add(t)
+
+    # New trading high → advance the peak.
     if eq > peak:
-        d[key] = {"peak_equity": round(eq, 2),
-                  "updated": datetime.utcnow().isoformat(timespec="seconds") + "Z"}
-        _save(d)
-        return 1.0
+        peak = eq
+
+    d[key] = {
+        "peak_equity": round(peak, 2),
+        "updated": _now_iso(),
+        "applied_balance_deals": sorted(applied)[-500:],   # cap growth
+    }
+    _save(d)
+
     if peak <= 0:
-        d[key] = {"peak_equity": round(eq, 2),
-                  "updated": datetime.utcnow().isoformat(timespec="seconds") + "Z"}
-        _save(d)
         return 1.0
     dd = (peak - eq) / peak
     t_half = float(getattr(CFG.filters, "dd_brake_half_pct", 10.0)) / 100.0

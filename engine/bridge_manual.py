@@ -142,10 +142,16 @@ def manage(sym=None):
         max_dist = avg_entry * max_pct   # 3% floor distance (from avg entry — risk cap)
 
         # ratchet line state (HTF H1 if live config uses it, else M15)
+        # 2026-07-15 (Imtiyaz): pass THIS account's symbol (sym) — on a secondary
+        # account whose symbol ≠ primary (e.g. "XAUUSDs" vs "XAUUSD"), the old
+        # symbol-less call fetched the PRIMARY symbol's bars on the slave
+        # connection → copy_rates failed → line None → vSL never ratcheted (only
+        # the wide floor protected the slave manual trade).
         try:
             import bridge_ratchet
             _use_htf = bool(_f("ratchet_htf_sl", False))
-            _rst = bridge_ratchet.get_htf_state(_f("ratchet_htf_tf", "H1")) if _use_htf else bridge_ratchet.get_state()
+            _rst = (bridge_ratchet.get_htf_state(_f("ratchet_htf_tf", "H1"), symbol=sym)
+                    if _use_htf else bridge_ratchet.get_state(symbol=sym))
         except Exception:
             bridge_ratchet, _rst = None, None
 
