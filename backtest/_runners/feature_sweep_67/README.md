@@ -28,6 +28,7 @@ The live model folder `data\models\final` is not touched.
 | `FS67-04` | `FS67-04_RUN_Tier3_Remaining.bat` | `FS67-04_tier3_remaining` | `FS67-04_tier3_remaining_SUMMARY.csv` |
 | `FS67-11` | `FS67-11_RUN_PriorityBatch_OOS1YConfirm.bat` | `FS67-11_priority_batch_oos1y_confirm` | `FS67-11_priority_batch_oos1y_confirm_SUMMARY.csv` |
 | `FS67-12` | `FS67-12_RUN_h4_support_OOS1YConfirm.bat` | `FS67-12_h4_support_oos1y_confirm` | `FS67-12_h4_support_oos1y_confirm_SUMMARY.csv` |
+| `FS67-21` | `FS67-21_RUN_h4_support_WFO6M.bat` | `FS67-21_h4_support_wfo6m_20251229_20260629` | `_WFO_SUMMARY.csv` |
 
 Optional all-in-one:
 
