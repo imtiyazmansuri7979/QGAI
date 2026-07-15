@@ -33,6 +33,15 @@ along the way) — cosmetic, no trading-logic risk. Full list: `FIXES_CHANGELOG4
 Commit `674aa48`, pushed to `origin/main`.
 
 **⏳ NEXT (in priority order):**
+0. **🔴 P1 (NEW, 2026-07-15 — Imtiyaz assigned this to Anisa): mirror PRIMARY manual trades to SLAVE
+   accounts at each slave's own 3% risk.** Full spec is in `TASKS.md` → "🔴 P1 — HIGH PRIORITY"
+   section (read it there, it's detailed). Short version: the 3%-per-slave sizing already exists
+   and should be reused (`bridge_multi._execute_on_account` → `calc_lot(equity,...)`); what's missing
+   is a separate magic (202697 — reusing the bot's 202600 would make the bot's own close wrongly
+   close Imtiyaz's manual copies), open/close hooks in `bridge_manual.manage()`, and above all
+   **restart-safety** (`_managed` is in-memory, so a restart would re-fire the mirror and open
+   DUPLICATE real positions). Places REAL orders on funded accounts → DEMO-test heavily, ship
+   behind a default-OFF flag, confirm with Imtiyaz before enabling live.
 1. **67-feature validation sweep — FS67-02 (Tier1 Active) needs re-running.** It failed TWICE today
    (08:52 and 16:32) with `TRAINING LOCKED` — root cause: `train.py`'s lock file
    (`data/models/.training_lock`) is **shared across ALL sweep runners AND the live retrain**, not
