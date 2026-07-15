@@ -33,14 +33,19 @@ along the way) — cosmetic, no trading-logic risk. Full list: `FIXES_CHANGELOG4
 Commit `674aa48`, pushed to `origin/main`.
 
 **⏳ NEXT (in priority order):**
-0. **🔴 P1: manual-copy to slaves — CODE IS BUILT, needs DEMO-TEST then enabling.** Imtiyaz asked
-   for "manual trade on primary → copy to slaves at each slave's own 3% risk"; it was built the same
-   day (2026-07-15) and offline-tested 11/11 PASS, but ships **default OFF**
-   (`manual_copy_to_slaves_enabled = False` in `config.py`) so it currently has **zero live effect**.
-   **Next step = DEMO-test:** open a manual trade on the primary DEMO → confirm both slaves get a
-   correctly-sized copy stamped magic **202697** → close the manual → confirm both copies close.
-   Then set the flag True + restart, and confirm with Imtiyaz before running it on funded accounts.
-   Full detail: `TASKS.md` → "🔴 P1 — HIGH PRIORITY" + `FIXES_CHANGELOG4.md` 2026-07-15.
+0. **🔴 P1: manual-copy to slaves — BUILT AND SWITCHED ON LIVE 2026-07-15. WATCH IT.** Imtiyaz asked
+   for "manual trade on primary → copy to slaves at each slave's own 3% risk"; built same-day,
+   offline-tested **20/20 PASS**, and he chose to enable it immediately
+   (`manual_copy_to_slaves_enabled = True`). **It has never been exercised on a real trade** — the
+   primary is VantageDemo but both secondaries are REAL (VantageCentLive $3,678, TradeQuo-001
+   $5,055), so **the first manual trade Imtiyaz opens IS the live test**, and he is away 3-4 days.
+   **If anything looks wrong on a slave, the kill switch is `manual_copy_to_slaves_enabled = False`
+   in `config.py` + bridge restart.** What to check in `bridge.log` when a manual trade first opens:
+   `🔀 [XAUUSD] NEW manual detected -> mirroring ...` then `📐 [multi] <slave>: proportional lot ...`
+   per slave; on close, `🔀 [multi] Closing secondary accounts (MANUAL-COPY, magic 202697)`.
+   Sizing rule: `slave_lot = primary_lot × (slave_eq / primary_eq)`, rounded UP to 0.01 if smaller,
+   and hard-capped at 3% of that slave (skipped entirely if even 0.01 would breach 3%).
+   Full detail: `TASKS.md` → "🔴 P1" + `FIXES_CHANGELOG4.md` 2026-07-15.
    **Two hazards were the whole design problem — both handled, worth understanding before touching
    this code:** (a) copies MUST NOT reuse the bot's magic 202600, or the bot closing its own trade
    would also close Imtiyaz's manual copies (`close_secondary_accounts()` closes by magic);

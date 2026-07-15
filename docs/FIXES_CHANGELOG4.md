@@ -71,8 +71,13 @@ and specifically NOT 0.10 lot (3%)**; 30 lot on $1.5M → slave correctly gets 0
 while `skip` mode correctly places nothing; **a 6%-risking primary (60 lot on $1.5M) → slave capped
 to 0.10 lot (3.00%), NOT 0.20 lot (6%)**; **a $100 slave where even the 0.01 minimum would risk 15%
 → SKIPPED**; `fixed_risk` mode still works. Python syntax clean on all 5 edited files.
-**⚠️ NOT YET LIVE — `manual_copy_to_slaves_enabled = False`.** Places REAL orders on funded accounts.
-DEMO-test first, then set True + restart. Takes effect on bridge restart (config read at start).
+**ENABLED LIVE same day (Imtiyaz: "switch on karo") — `manual_copy_to_slaves_enabled = True`.**
+⚠️ **It was never DEMO-tested end-to-end** — the primary is VantageDemo, but both secondaries are
+REAL money (VantageCentLive $3,678, TradeQuo-001 $5,055), so a pure demo rehearsal isn't possible
+with the current account set: **the first real manual trade on the primary IS the live test.** Risk
+is bounded by the 3% ceiling — worst case ≈ $110 (Vantage) + $152 (TradeQuo) per copy. The logic
+itself is covered by the 20/20 offline suite. Takes effect on bridge restart (config read at start).
+Reversible at any time: set False + restart.
 **Not covered (deliberate, documented):** adding a 2nd manual leg later changes the primary's net
 volume/avg entry but does NOT re-mirror or resize the existing slave copies (`st` stays non-None) —
 the copies keep their original size. Decide a policy if that becomes a real workflow.

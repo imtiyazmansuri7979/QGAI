@@ -263,7 +263,7 @@ class FilterConfig:
     # ── MANUAL-COPY TO SLAVES (2026-07-15, Imtiyaz) — mirror a PRIMARY manual trade to every
     # secondary account, each sized independently at its OWN equity × risk_pct (3%).
     # ⚠️ Places REAL orders on funded accounts → DEMO-TEST before enabling. Default OFF.
-    manual_copy_to_slaves_enabled : bool = False  # master switch. True = a new manual (magic 0) trade on PRIMARY is mirrored to all secondaries.
+    manual_copy_to_slaves_enabled : bool = True   # 2026-07-15 (Imtiyaz): ENABLED LIVE. True = a new manual (magic 0) trade on PRIMARY is mirrored to all secondaries. Set False to stop.
     manual_copy_magic  : int = 202697  # magic stamped on the slave copies. MUST differ from MAGIC (202600) — close_secondary_accounts() closes ALL MAGIC positions whenever the BOT closes its own trade, so sharing the magic would wrongly close these manual copies too.
     # 2026-07-15 (Imtiyaz caught this): "fixed_risk" sizes each slave at the CONFIG risk_pct (3%)
     # regardless of what you actually risked on the primary — so opening 10 lot on a $1.5M primary
