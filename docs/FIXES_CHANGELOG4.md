@@ -8,6 +8,49 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-15 — NEW: mirror PRIMARY manual trades to SLAVE accounts, each at its own 3% risk (Imtiyaz) — BUILT, default OFF
+**Request (Imtiyaz):** "if I open a manual trade in primary, it should copy to slaves, sized on 3%
+risk of that slave."
+**Reused (not rebuilt):** `bridge_multi._execute_on_account()` already sizes each secondary from its
+OWN equity via `calc_lot(equity, sl_p, si)` = that account's equity × `RISK_PCT` (3%) — exactly the
+requested sizing, already proven live by the bot's own replication.
+**Built:**
+- `config.py`: `manual_copy_to_slaves_enabled` (**default False** — master switch),
+  `manual_copy_magic = 202697`, `manual_copy_sl_basis = "floor"`.
+- `bridge_multi.py`: `_execute_on_account()` gained optional `magic` + `skip_if_open_magic` params
+  (both default None → the bot's own path is byte-for-byte unchanged);
+  `close_secondary_accounts(magic=None, label=...)` is now magic-scopeable (default = MAGIC =
+  unchanged); NEW `execute_manual_copy_to_secondaries()` + `close_manual_copies_on_secondaries()`.
+- `bridge_manual.py`: `manage(sym=None, mirror_to_slaves=False)` — mirrors on the `st is None`
+  (new combined manual position) branch, and closes the copies on ALL FOUR exit paths (floor
+  breach / vSL breach / target TP / user closed it by hand).
+- `bridge_main.py`: the primary call site passes `mirror_to_slaves=True`. The slave-side manager
+  never mirrors (it would copy a slave's own trade back out to the other slaves).
+**Two real hazards, both explicitly handled + tested:**
+1. **Magic collision** — `close_secondary_accounts()` closes ALL `magic == MAGIC` (202600) positions
+   on secondaries and runs every time the BOT closes its own trade. Had the copies shared that magic,
+   **the bot closing its own trade would have wrongly closed Imtiyaz's manual copies too.** Copies use
+   a separate magic (202697) and a magic-scoped close.
+2. **Restart duplicate** — `bridge_manual._managed` is in-memory, so after a bridge restart the
+   `st is None` branch re-fires for an ALREADY-mirrored manual trade → would open a DUPLICATE real
+   position. Guard: before placing, `_execute_on_account` asks the BROKER (real source of truth, not
+   in-memory state) whether that slave already holds a `manual_copy_magic` position, and skips if so.
+**Sizing basis (`manual_copy_sl_basis`, default `"floor"`):** slave lot is sized off the manual
+trade's real max-loss distance (`manual_risk_pct`, 3% of entry) — so a slave risks its own 3% if
+price reaches that floor, a faithful mirror of the primary's risk. `"sl"` instead uses the tighter
+`manual_sl_pct` (1%) → ~3× bigger slave lot.
+**Verified:** offline test (`scratchpad/test_manual_copy.py`, mocked MT5 — no live terminal, no real
+order) **11/11 PASS**: default-OFF places zero orders; enabled mirrors to both slaves; every copy
+carries 202697 and none carries 202600; a slave already holding a copy is skipped (1 order, not 2);
+both-already-mirrored → zero duplicates on restart re-fire; the manual close touches only 222/444
+(copies) and never 111/333 (bot trades); and the bot's own close still closes only 111/333 and never
+the copies. Python syntax clean on all 5 edited files.
+**⚠️ NOT YET LIVE — `manual_copy_to_slaves_enabled = False`.** Places REAL orders on funded accounts.
+DEMO-test first, then set True + restart. Takes effect on bridge restart (config read at start).
+**Not covered (deliberate, documented):** adding a 2nd manual leg later changes the primary's net
+volume/avg entry but does NOT re-mirror or resize the existing slave copies (`st` stays non-None) —
+the copies keep their original size. Decide a policy if that becomes a real workflow.
+
 ## 2026-07-15 — Manual-trade manager DISABLED on secondary/slave accounts (Imtiyaz)
 **What:** `config.py` `slave_manual_manager_enabled` **True → False**. The PRIMARY manual-trade
 manager (`manual_manager_enabled`) is UNCHANGED (still True) — this only stops the bridge from

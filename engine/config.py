@@ -260,6 +260,12 @@ class FilterConfig:
     manual_hedge_magic       : int   = 202699  # magic stamped on the bot's hedge orders (to track them)
     slave_manual_manager_enabled : bool = False  # 2026-07-15 (Imtiyaz): DISABLED — do NOT manage magic=0 manual trades on secondary/slave accounts (primary manual manager above stays ON). Set True to re-enable.
     slave_manual_manage_interval_sec : float = 5.0  # Throttle slave MT5 reconnect cycles.
+    # ── MANUAL-COPY TO SLAVES (2026-07-15, Imtiyaz) — mirror a PRIMARY manual trade to every
+    # secondary account, each sized independently at its OWN equity × risk_pct (3%).
+    # ⚠️ Places REAL orders on funded accounts → DEMO-TEST before enabling. Default OFF.
+    manual_copy_to_slaves_enabled : bool = False  # master switch. True = a new manual (magic 0) trade on PRIMARY is mirrored to all secondaries.
+    manual_copy_magic  : int = 202697  # magic stamped on the slave copies. MUST differ from MAGIC (202600) — close_secondary_accounts() closes ALL MAGIC positions whenever the BOT closes its own trade, so sharing the magic would wrongly close these manual copies too.
+    manual_copy_sl_basis : str = "floor"  # which distance sizes the slave lot: "floor" = manual_risk_pct (3% of entry — the manual trade's real max-loss point, conservative) | "sl" = manual_sl_pct (1% — 3x bigger lot).
     # ── STUCK-TRADE MANUAL-PROTECT (2026-07-01, Imtiyaz) — if the bot's own close keeps
     # failing at the broker (e.g. retcode 10027 AutoTrading-off, caught live 2026-07-01 on
     # #1519547791), switch that ONE trade to manual-style protection instead of silently

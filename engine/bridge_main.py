@@ -352,7 +352,10 @@ def run():
             monitor_count += 1
             verbose = (monitor_count % _verbose_every == 0)   # ~every 30s
             core.monitor_virtual_sl(verbose=verbose)
-            try: bridge_manual.manage()
+            # mirror_to_slaves=True: ONLY this (primary) call site may mirror a new
+            # manual trade out to the secondaries — the slave-side manager must never
+            # (2026-07-15, Imtiyaz). Still gated by manual_copy_to_slaves_enabled.
+            try: bridge_manual.manage(mirror_to_slaves=True)
             except Exception: pass
             try: bridge_multi.manage_secondary_manual_accounts()
             except Exception: pass

@@ -99,9 +99,36 @@ def _close(pos, sym, tag="manual-close"):
     return r
 
 
-def manage(sym=None):
+def _mirror_open(direction, sl_dist, tp_p):
+    """Mirror a NEW primary manual trade to the secondaries (config-gated, default
+    OFF). Never raises — a mirror failure must not break local management."""
+    try:
+        import bridge_multi
+        bridge_multi.execute_manual_copy_to_secondaries(direction, sl_dist, tp_p)
+    except Exception as e:
+        log.warning(f"manual-copy mirror open failed: {e}")
+
+
+def _mirror_close():
+    """Close the secondaries' manual copies (config-gated, default OFF). Never raises."""
+    try:
+        import bridge_multi
+        bridge_multi.close_manual_copies_on_secondaries()
+    except Exception as e:
+        log.warning(f"manual-copy mirror close failed: {e}")
+
+
+def manage(sym=None, mirror_to_slaves=False):
     """Combine all manual trades into ONE position and run ONE ratcheting vSL.
-    No-op unless enabled. Call from the live loop (primary account)."""
+    No-op unless enabled. Call from the live loop (primary account).
+
+    `mirror_to_slaves` (2026-07-15, Imtiyaz): when True, a NEW combined manual
+    position is also mirrored onto every secondary account (each sized from its
+    OWN equity at risk_pct), and the copies are closed whenever this position
+    ends. ONLY the primary call site passes True — the slave-side manager must
+    never mirror (that would copy a slave's own trade back out to other slaves).
+    Gated again inside bridge_multi by `manual_copy_to_slaves_enabled`.
+    """
     if not _enabled():
         return
     sym = sym or SYMBOL
@@ -122,7 +149,13 @@ def manage(sym=None):
         if not manual:
             for h in _positions(_hedge_magic(), sym):
                 _close(h, sym, "manual-cleanup-hedge")
-            _managed.pop(key, None)
+            # Only fire the mirror-close on the HAD->GONE transition (pop returns the
+            # old state), never on every tick while simply no manual trade exists —
+            # otherwise this would reconnect to every slave once per monitor tick.
+            _had = _managed.pop(key, None) is not None
+            if _had and mirror_to_slaves:
+                log.info(f"🔀 [{sym}] manual position gone (closed by hand / broker) -> closing slave copies")
+                _mirror_close()
             return
 
         # ── COMBINE all manual legs into one net position ──
@@ -173,6 +206,18 @@ def manage(sym=None):
             _managed[key] = st
             log.info(f"🛡 [{sym}] COMBINED manual {V} lot @ avg {avg_entry:.2f} -> VIRTUAL vSL ON "
                      f"({max_pct*100:.0f}% floor @ {(avg_entry - max_dist) if is_buy else (avg_entry + max_dist):.2f}, NO broker SL — bot closes on breach)")
+            # ── mirror this NEW manual trade to the slaves (2026-07-15, Imtiyaz) ──
+            # Sizing basis: "floor" (default) = the manual's real max-loss distance
+            # (manual_risk_pct), so a slave risks its own risk_pct if price reaches
+            # that floor — the faithful mirror of the primary's risk. "sl" uses the
+            # tighter manual_sl_pct, which makes the slave lot ~3x bigger.
+            if mirror_to_slaves:
+                _basis = str(_f("manual_copy_sl_basis", "floor")).lower()
+                _copy_sl_dist = max_dist if _basis == "floor" else (avg_entry * sl_pct)
+                _tp_points = int((avg_entry * tp_pct / 100.0) / (mt5.symbol_info(sym).point or 0.01)) if tp_pct > 0 else 0
+                log.info(f"🔀 [{sym}] NEW manual detected -> mirroring {('BUY' if is_buy else 'SELL')} to slaves "
+                         f"(sl basis={_basis}, dist=${_copy_sl_dist:.2f}, tp={_tp_points}pts)")
+                _mirror_open("BUY" if is_buy else "SELL", _copy_sl_dist, _tp_points)
 
         # ── L13 fix (2026-06-29): line-INDEPENDENT floor breach — enforce the {max_pct} cap even
         # when the ratchet line is unavailable (trend against the position) or already broken. If
@@ -186,6 +231,8 @@ def manage(sym=None):
             for h in _positions(_hedge_magic(), sym):
                 _close(h, sym, "manual-floor-hedge-close")
             _managed.pop(key, None)
+            if mirror_to_slaves:
+                _mirror_close()
             return
 
         # ── ratchet ONE VIRTUAL vSL up the 2-SMMA line (NOT placed on the broker); breach -> close all ──
@@ -210,6 +257,8 @@ def manage(sym=None):
                 for h in _positions(_hedge_magic(), sym):
                     _close(h, sym, "manual-vsl-hedge-close")
                 _managed.pop(key, None)
+                if mirror_to_slaves:
+                    _mirror_close()
                 return
             if vsl != prev:
                 log.info(f"🔼 [{sym}] COMBINED vSL ratchet -> {vsl:.2f} (line {line:.2f}) [VIRTUAL — not on broker]")
@@ -225,6 +274,8 @@ def manage(sym=None):
                 for h in _positions(_hedge_magic(), sym):
                     _close(h, sym, "manual-tp-hedge-close")
                 _managed.pop(key, None)
+                if mirror_to_slaves:
+                    _mirror_close()
     except Exception as e:
         log.warning(f"manual manager (manage {sym}) error: {e}")
 

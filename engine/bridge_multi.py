@@ -164,11 +164,21 @@ def _reconnect_primary():
     return connect_primary(reason="reconnect")
 
 
-def _execute_on_account(acct: dict, direction: str, sl_dist: float, tp_p: int, comment: str = "QuantEdge AI") -> bool:
+def _execute_on_account(acct: dict, direction: str, sl_dist: float, tp_p: int, comment: str = "QuantEdge AI",
+                        magic: int | None = None, skip_if_open_magic: int | None = None) -> bool:
     """
     Connect to a single secondary MT5 account and place a trade.
     sl_dist: SL distance in price units (e.g. $7.50)
     tp_p:    TP distance in points
+    magic:   order magic; None = MAGIC (the bot's own). 2026-07-15: the manual-copy
+             path passes its own magic so the bot's close_secondary_accounts()
+             (which closes ALL MAGIC positions) can't wrongly close manual copies.
+    skip_if_open_magic: if set, skip this account when it ALREADY holds a position
+             with that magic. Used by the manual-copy path as its restart-safety
+             guard: bridge_manual's `_managed` state is in-memory, so after a bridge
+             restart it re-fires the "new manual trade" branch for an ALREADY-mirrored
+             trade — querying the broker (the real source of truth) instead of trusting
+             in-memory state is what stops that from opening a DUPLICATE real position.
     Returns True if trade was sent successfully.
     """
     name = acct.get("name", "Unknown")
@@ -230,6 +240,17 @@ def _execute_on_account(acct: dict, direction: str, sl_dist: float, tp_p: int, c
             mt5.shutdown()
             return False
 
+        # Restart-safety / duplicate guard (see docstring): ask the BROKER whether a
+        # copy is already open here before placing another one.
+        if skip_if_open_magic is not None:
+            _already = [p for p in (mt5.positions_get(symbol=acct_symbol) or [])
+                        if p.magic == int(skip_if_open_magic)]
+            if _already:
+                log.info(f"  ⏭️ [multi] {name}: already holds {len(_already)} copy position(s) "
+                         f"(magic {skip_if_open_magic}) — skipping, no duplicate opened")
+                mt5.shutdown()
+                return False
+
         pt = si.point
 
         # Independent lot sizing from this account's equity. Pass the login we
@@ -261,7 +282,7 @@ def _execute_on_account(acct: dict, direction: str, sl_dist: float, tp_p: int, c
             "sl":           broker_sl,
             "tp":           tp,
             "deviation":    20,
-            "magic":        MAGIC,
+            "magic":        (MAGIC if magic is None else int(magic)),
             "comment":      comment,
             "type_time":    mt5.ORDER_TIME_GTC,
             "type_filling": mt5.ORDER_FILLING_IOC,
@@ -329,6 +350,66 @@ def execute_secondary_accounts(direction: str, sl_dist: float, tp_p: int, commen
     log.info("🔀 [multi] Secondary execution complete")
 
 
+# ── MANUAL-COPY TO SLAVES (2026-07-15, Imtiyaz) ────────────────────────────
+# Mirror a PRIMARY manual (magic 0) trade onto every secondary account, each
+# sized independently from its OWN equity at risk_pct (the same `calc_lot`
+# path the bot's own replication already uses — that is exactly the "3% of
+# that slave's account" sizing requested). Kept magic-separate from the bot's
+# own trades so neither side's close can touch the other's positions.
+# Config-gated: CFG.filters.manual_copy_to_slaves_enabled (default False).
+
+def _manual_copy_enabled() -> bool:
+    return bool(getattr(CFG.filters, "manual_copy_to_slaves_enabled", False))
+
+
+def _manual_copy_magic() -> int:
+    return int(getattr(CFG.filters, "manual_copy_magic", 202697))
+
+
+def execute_manual_copy_to_secondaries(direction: str, sl_dist: float, tp_p: int,
+                                       comment: str = "QGAI manual-copy") -> None:
+    """Mirror a NEW primary manual trade to every secondary account.
+
+    Each secondary is sized from its own equity (independent `calc_lot`), stamped
+    with `manual_copy_magic`, and SKIPPED if it already holds a copy (restart /
+    duplicate guard — see `_execute_on_account`). No-op unless enabled.
+    Primary connection is restored on the way out.
+    """
+    if not _manual_copy_enabled():
+        return
+    try:
+        import config_mt5 as _c
+        accounts = getattr(_c, "MT5_ACCOUNTS", [])
+    except ImportError:
+        log.warning("[multi] config_mt5.py not found — skipping manual-copy")
+        return
+
+    secondary = accounts[1:]
+    if not secondary:
+        return
+
+    _magic = _manual_copy_magic()
+    log.info(f"🔀 [multi] MANUAL-COPY: mirroring {direction} to {len(secondary)} secondary "
+             f"account(s) (magic {_magic}, each at its own risk %)...")
+    mt5.shutdown()
+    try:
+        for acct in secondary:
+            _execute_on_account(acct, direction, sl_dist, tp_p, comment,
+                                magic=_magic, skip_if_open_magic=_magic)
+    finally:
+        _reconnect_primary()
+    log.info("🔀 [multi] MANUAL-COPY execution complete")
+
+
+def close_manual_copies_on_secondaries() -> None:
+    """Close ONLY the manual-copy positions on every secondary (never the bot's
+    own trades — different magic). Called when the primary manual position ends
+    (floor / vSL / target TP / closed by hand). No-op unless enabled."""
+    if not _manual_copy_enabled():
+        return
+    close_secondary_accounts(magic=_manual_copy_magic(), label="MANUAL-COPY")
+
+
 def manage_secondary_manual_accounts():
     """Run manual-trade manager on secondary/slave accounts.
 
@@ -389,12 +470,16 @@ def manage_secondary_manual_accounts():
         _reconnect_primary()
 
 
-def close_secondary_accounts():
+def close_secondary_accounts(magic: int | None = None, label: str = "QGAI"):
     """
-    Close all open QGAI positions on every secondary account.
+    Close all open positions with `magic` on every secondary account.
     Called whenever the primary closes a trade (vSL, TP, flip, smart exit).
     Primary must already be connected — this disconnects and reconnects it.
+    `magic`: None = MAGIC (the bot's own trades — unchanged default behaviour).
+    2026-07-15: the manual-copy path passes `manual_copy_magic` so it closes ONLY
+    the manual copies and never the bot's own secondary trades (and vice-versa).
     """
+    _magic = MAGIC if magic is None else int(magic)
     try:
         import config_mt5 as _c
         accounts = getattr(_c, "MT5_ACCOUNTS", [])
@@ -405,7 +490,7 @@ def close_secondary_accounts():
     if not secondary:
         return
 
-    log.info("🔀 [multi] Closing secondary accounts...")
+    log.info(f"🔀 [multi] Closing secondary accounts ({label}, magic {_magic})...")
     mt5.shutdown()
 
     for acct in secondary:
@@ -423,10 +508,10 @@ def close_secondary_accounts():
 
             acct_symbol = acct.get("symbol", SYMBOL)
             positions = mt5.positions_get(symbol=acct_symbol) or []
-            qgai_pos  = [p for p in positions if p.magic == MAGIC]
+            qgai_pos  = [p for p in positions if p.magic == _magic]
 
             if not qgai_pos:
-                log.info(f"  ℹ️ [multi] {name}: no open QGAI positions")
+                log.info(f"  ℹ️ [multi] {name}: no open {label} positions")
                 mt5.shutdown()
                 continue
 
@@ -444,7 +529,7 @@ def close_secondary_accounts():
                     "type":         close_type,
                     "position":     pos.ticket,
                     "price":        price,
-                    "magic":        MAGIC,
+                    "magic":        _magic,
                     "comment":      "QuantEdge_close_secondary",
                     "type_time":    mt5.ORDER_TIME_GTC,
                     "type_filling": mt5.ORDER_FILLING_IOC,
