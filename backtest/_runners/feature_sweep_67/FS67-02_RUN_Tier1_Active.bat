@@ -23,6 +23,12 @@ echo   %QGAI_FEATURE_SWEEP_DIR%
 echo   Reuse baseline:
 echo   %QGAI_SWEEP_BASELINE_JSON%
 echo   Live model is NOT touched.
+echo.
+echo   Instructions:
+echo   - Does NOT rerun baseline.
+echo   - Uses FS67-01 baseline result.json.
+echo   - Tests active features by removing one at a time.
+echo   - If one feature fails, the sweep aborts; rerun after fixing the error.
 echo ============================================================
 
 "%PY%" run_feature_sweep.py --tier active

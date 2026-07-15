@@ -42,6 +42,8 @@ echo [3/7] Refreshing shadow ledger...
 "%PY%" shadow_ledger.py
 
 echo [4/7] Rebuilding signal log (all dashboard tabs)...
+echo   Instruction: full-history files must exist before rebuilding.
+echo   If missing, existing signals_complete.csv will be preserved.
 set "HIST_SIG_DIR=C:\QGAI\backtest\results\fullhistory_regime"
 if exist "%HIST_SIG_DIR%\backtest_signals*.csv" (
   "%PY%" build_signal_log.py "%HIST_SIG_DIR%"

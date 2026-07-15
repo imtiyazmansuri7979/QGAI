@@ -7,6 +7,10 @@ Per-feature CSVs also include a sort number: `000` is baseline, then
 `001`, `002`, ... follow the test order. This keeps the view clean if all
 CSVs are copied into one folder and sorted by name.
 
+Main operator guide:
+
+`C:\QGAI\docs\RUNNER_REGISTRY_GUIDE.md`
+
 Root result folder:
 
 `C:\QGAI\backtest\results\feature_sweep_67`

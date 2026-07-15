@@ -39,6 +39,12 @@ echo.
 echo   Train cutoff : %QGAI_TRAIN_CUTOFF%
 echo   Backtest     : 2025-06-29 to 2026-06-29
 echo   Expected     : Leakage check PASS
+echo.
+echo   Instructions:
+echo   - Clean single-training OOS reference.
+echo   - Retrains in test_workspace only; live final model is not touched.
+echo   - Use as master 1-year baseline, not as feature-sweep local baseline.
+echo   - If leakage check fails, do not trust the result.
 echo ============================================================
 
 echo.

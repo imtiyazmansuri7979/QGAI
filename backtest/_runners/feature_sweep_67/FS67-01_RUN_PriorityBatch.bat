@@ -20,6 +20,12 @@ echo ------------------------------------------------------------
 echo   Result folder:
 echo   %QGAI_FEATURE_SWEEP_DIR%
 echo   Live model is NOT touched.
+echo.
+echo   Instructions:
+echo   - Creates the 3-month baseline for FS67 screens.
+echo   - Tests 10 priority features only.
+echo   - 3-month result is screening only, not final proof.
+echo   - If training lock appears, confirm no train.py is running before deleting it.
 echo ============================================================
 
 "%PY%" run_feature_sweep.py --tier priority_batch

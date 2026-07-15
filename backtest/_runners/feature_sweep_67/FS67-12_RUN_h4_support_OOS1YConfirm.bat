@@ -35,6 +35,12 @@ echo   Result folder:
 echo   %QGAI_FEATURE_SWEEP_DIR%
 echo.
 echo   Live model is NOT touched.
+echo.
+echo   Instructions:
+echo   - Tests only h4_support_dist against the OOS1Y window.
+echo   - Baseline may be rerun inside this isolated confirmation folder.
+echo   - Use result as OOS confirmation only, not live adoption by itself.
+echo   - If it hurts OOS1Y, keep the feature dropped.
 echo ============================================================
 
 "%PY%" run_feature_sweep.py --tier priority_batch --only h4_support_dist

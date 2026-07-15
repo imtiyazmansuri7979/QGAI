@@ -23,6 +23,12 @@ echo   %QGAI_FEATURE_SWEEP_DIR%
 echo   Reuse baseline:
 echo   %QGAI_SWEEP_BASELINE_JSON%
 echo   Live model is NOT touched.
+echo.
+echo   Instructions:
+echo   - Does NOT rerun baseline.
+echo   - Uses FS67-01 baseline result.json.
+echo   - Tests high-probability dropped features one at a time.
+echo   - Candidate features still need OOS1Y + WFO before adoption.
 echo ============================================================
 
 "%PY%" run_feature_sweep.py --tier high_prob

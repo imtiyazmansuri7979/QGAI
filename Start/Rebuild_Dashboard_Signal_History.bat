@@ -20,6 +20,12 @@ echo   This is NOT an OOS/profit-proof backtest.
 echo   It intentionally uses --allow-in-sample so the dashboard can
 echo   restore the full historical Signal Log after a fresh git pull.
 echo.
+echo   Use this only when:
+echo     - dashboard Signal Log lost full history, or
+echo     - engine\logs\signals_complete.csv is missing/corrupt.
+echo.
+echo   Do NOT use this result to judge strategy profit.
+echo.
 echo   Output:
 echo     %OUT%
 echo   Final dashboard file:

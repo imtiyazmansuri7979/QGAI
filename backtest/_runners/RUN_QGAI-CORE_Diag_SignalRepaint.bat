@@ -46,6 +46,11 @@ if not "%STEP%"=="" (
 )
 echo   Writes:
 echo     %OUT%
+echo.
+echo   Instructions:
+echo   - Read-only; safe diagnostic, does not trade.
+echo   - Run steps at real time offsets listed in this BAT header.
+echo   - If this fails, inspect report before trusting dashboard history.
 echo ============================================================
 echo.
 

@@ -36,6 +36,12 @@ echo   Candidate result:
 echo     %CANDIDATE_DIR%
 echo.
 echo   Live model is NOT touched.
+echo.
+echo   Instructions:
+echo   - Candidate-only WFO: baseline is NOT rerun.
+echo   - Compare against existing current-model WFO summary for same weeks.
+echo   - If training lock exists, check for train.py/backtest_replay.py first.
+echo   - This is extra due diligence because OOS1Y already rejected the feature.
 echo ============================================================
 
 if exist "C:\QGAI\data\models\.training_lock" (
