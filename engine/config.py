@@ -276,6 +276,13 @@ class FilterConfig:
     # broker minimum anyway (the copy exists, but that slave carries MORE relative risk than the
     # primary — absolute risk is still small at 0.01 lot). "skip" = don't copy at all on that account.
     manual_copy_min_lot_action : str = "round_up"  # "round_up" (Imtiyaz's choice) | "skip"
+    # 2026-07-15 (Imtiyaz): HARD CEILING — a slave copy must never risk more than this % of that
+    # account, whatever the maths says. Two ways it could otherwise blow past 3%: (a) round_up above
+    # (on a small enough account even the broker's 0.01 minimum can exceed 3%), (b) the PRIMARY itself
+    # risking >3% — proportional would faithfully mirror that over-risk. If even the broker minimum
+    # would breach this ceiling the copy is SKIPPED (can't be placed safely); otherwise the lot is
+    # capped down to the ceiling. Set 0 to disable the cap.
+    manual_copy_max_risk_pct : float = 3.0
     manual_copy_sl_basis : str = "floor"  # only used by "fixed_risk" mode: "floor" = manual_risk_pct (3% of entry) | "sl" = manual_sl_pct (1%). Ignored in proportional mode (still sets the copy's broker SL/TP levels).
     # ── STUCK-TRADE MANUAL-PROTECT (2026-07-01, Imtiyaz) — if the bot's own close keeps
     # failing at the broker (e.g. retcode 10027 AutoTrading-off, caught live 2026-07-01 on

@@ -291,6 +291,24 @@ def _execute_on_account(acct: dict, direction: str, sl_dist: float, tp_p: int, c
                             f"{_vmin} — rounding UP to {_vmin} (config round_up). NOTE: this account "
                             f"now carries more RELATIVE risk than the primary.")
                 lot = _vmin
+            # HARD CEILING (Imtiyaz, 2026-07-15): never risk more than manual_copy_max_risk_pct
+            # of THIS account — catches both a round_up that overshoots on a small account and a
+            # primary that itself risked >3% (which proportional would otherwise mirror faithfully).
+            _max_pct = float(getattr(CFG.filters, "manual_copy_max_risk_pct", 3.0) or 0.0)
+            _cs = float(getattr(si, "trade_contract_size", 100.0) or 100.0)
+            if _max_pct > 0 and _cs > 0 and sl_dist > 0:
+                _cap_raw = (equity * _max_pct / 100.0) / (_cs * float(sl_dist))
+                _cap = round(math.floor(_cap_raw / _step) * _step, 2) if _step > 0 else round(_cap_raw, 2)
+                if lot > _cap:
+                    if _cap < _vmin:
+                        log.warning(f"  ⏭️ [multi] {name}: even the broker minimum {_vmin} lot would risk "
+                                    f"more than the {_max_pct}% ceiling here (max safe = {_cap_raw:.4f} lot "
+                                    f"on ${equity:,.2f} vs SL ${float(sl_dist):.2f}) — SKIPPING this account")
+                        mt5.shutdown()
+                        return False
+                    log.warning(f"  🧢 [multi] {name}: lot {lot} would risk >{_max_pct}% of ${equity:,.2f} "
+                                f"— capping to {_cap} ({_max_pct}% ceiling)")
+                    lot = _cap
             lot = min(lot, _vmax)
             log.info(f"  📐 [multi] {name}: proportional lot {lot} "
                      f"(primary {primary_lot} lot × {equity:.2f}/{float(primary_equity):.2f} equity ratio)")
