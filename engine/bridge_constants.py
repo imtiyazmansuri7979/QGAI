@@ -319,4 +319,115 @@ def ensure_db():
             day_open_bal REAL DEFAULT 0.0
         );
     """)
+    _ensure_signal_immutable_schema(conn)
     conn.close()
+
+
+def _ensure_signal_immutable_schema(conn):
+    """Migrate signals to immutable per-inference rows.
+
+    Older DBs used UNIQUE(bar_time, mode), so a later evaluation of the same
+    candle could be silently ignored by INSERT OR IGNORE. This migration keeps
+    all historical rows but removes that uniqueness constraint and adds audit
+    fields needed to prove old signals do not repaint after refresh/restart.
+    """
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(signals)").fetchall()]
+    if not cols:
+        return
+
+    required = {
+        "signal_id": "TEXT",
+        "signal_created_at": "TEXT",
+        "market_timestamp": "TEXT",
+        "symbol": "TEXT",
+        "timeframe": "TEXT",
+        "decision_threshold": "REAL",
+        "combined_model_score": "REAL",
+        "state_model_score": "REAL",
+        "directional_model_score": "REAL",
+        "model_version": "TEXT",
+        "model_hash": "TEXT",
+        "model_file_name": "TEXT",
+        "feature_snapshot_json": "TEXT",
+        "feature_hash": "TEXT",
+        "decision": "TEXT",
+        "signal_status": "TEXT",
+        "trade_action": "TEXT DEFAULT ''",
+    }
+    for name, ddl in required.items():
+        if name not in cols:
+            conn.execute(f"ALTER TABLE signals ADD COLUMN {name} {ddl}")
+    conn.commit()
+
+    idx_rows = conn.execute("PRAGMA index_list(signals)").fetchall()
+    has_bar_mode_unique = False
+    for idx in idx_rows:
+        idx_name = idx[1]
+        is_unique = bool(idx[2])
+        if not is_unique:
+            continue
+        idx_cols = [r[2] for r in conn.execute(f"PRAGMA index_info({idx_name})").fetchall()]
+        if idx_cols == ["bar_time", "mode"]:
+            has_bar_mode_unique = True
+            break
+
+    if has_bar_mode_unique:
+        conn.execute("ALTER TABLE signals RENAME TO signals_legacy_unique")
+        conn.executescript("""
+            CREATE TABLE signals (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                signal_id    TEXT UNIQUE,
+                signal_created_at TEXT,
+                market_timestamp TEXT,
+                symbol       TEXT,
+                timeframe    TEXT,
+                bar_time     TEXT NOT NULL,
+                mode         TEXT NOT NULL,
+                signal       TEXT,
+                win_prob     REAL, state_prob REAL, dir_prob REAL, big_win_prob REAL,
+                hmm_state    TEXT,
+                price        REAL, lot REAL, sl REAL, tp REAL,
+                atr20_pct    REAL, vol_spike INTEGER, in_range_phase INTEGER,
+                slot_wr      REAL, h4_bull_ob_dist REAL, h4_bear_ob_dist REAL,
+                reason       TEXT, outcome TEXT, pnl_net REAL,
+                trade_action TEXT DEFAULT '',
+                model_version TEXT,
+                model_hash TEXT,
+                model_file_name TEXT,
+                decision_threshold REAL,
+                combined_model_score REAL,
+                state_model_score REAL,
+                directional_model_score REAL,
+                feature_snapshot_json TEXT,
+                feature_hash TEXT,
+                decision TEXT,
+                signal_status TEXT
+            );
+        """)
+        old_cols = [r[1] for r in conn.execute("PRAGMA table_info(signals_legacy_unique)").fetchall()]
+        copy_cols = [c for c in old_cols if c in [r[1] for r in conn.execute("PRAGMA table_info(signals)").fetchall()]]
+        col_sql = ",".join(copy_cols)
+        conn.execute(f"INSERT INTO signals ({col_sql}) SELECT {col_sql} FROM signals_legacy_unique")
+        conn.execute("""
+            UPDATE signals
+            SET signal_id = COALESCE(signal_id, 'LEGACY_' || id || '_' || REPLACE(REPLACE(bar_time, ' ', '_'), ':', '') || '_' || mode),
+                signal_created_at = COALESCE(signal_created_at, bar_time),
+                market_timestamp = COALESCE(market_timestamp, bar_time),
+                symbol = COALESCE(symbol, ?),
+                timeframe = COALESCE(timeframe, 'M15'),
+                decision_threshold = COALESCE(decision_threshold, 0.45),
+                combined_model_score = COALESCE(combined_model_score, win_prob),
+                state_model_score = COALESCE(state_model_score, state_prob),
+                directional_model_score = COALESCE(directional_model_score, dir_prob),
+                decision = COALESCE(decision, signal),
+                signal_status = COALESCE(signal_status, 'HISTORICAL_IMPORTED')
+        """, (SYMBOL,))
+        conn.execute("DROP TABLE signals_legacy_unique")
+
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_sig_signal_id ON signals(signal_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sig_created ON signals(signal_created_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sig_market ON signals(market_timestamp)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sig_bar    ON signals(bar_time)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sig_mode   ON signals(mode)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_sig_outcome ON signals(outcome)")
+    conn.commit()

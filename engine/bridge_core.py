@@ -227,18 +227,19 @@ class QGAICore:
             return
 
         # Build order
+        _open_mult = float(getattr(CFG.filters, "broker_sl_open_mult", 3.0) or 3.0)
         if direction == "BUY":
             otype      = mt5.ORDER_TYPE_BUY
             price      = tick.ask
             virtual_sl = round(price - sl_dist, 2)
             tp         = round(price + tp_p * pt, 2)
-            broker_sl  = round(price - sl_dist * 1.5, 2) if VIRTUAL_SL else round(price - sl_p * pt, 2)
+            broker_sl  = round(price - sl_dist * _open_mult, 2) if VIRTUAL_SL else round(price - sl_p * pt, 2)
         else:
             otype      = mt5.ORDER_TYPE_SELL
             price      = tick.bid
             virtual_sl = round(price + sl_dist, 2)
             tp         = round(price - tp_p * pt, 2)
-            broker_sl  = round(price + sl_dist * 1.5, 2) if VIRTUAL_SL else round(price + sl_p * pt, 2)
+            broker_sl  = round(price + sl_dist * _open_mult, 2) if VIRTUAL_SL else round(price + sl_p * pt, 2)
 
         # Market phase (Trending/Ranging/Volatile) — client-facing tag, NOT strategy data
         _phase = (self._last_signal.get("hmm_state") or "").strip().title()
@@ -395,6 +396,62 @@ class QGAICore:
             return False
 
     # ── Monitor virtual SL (every 2s) ─────────────────────────
+    def _sync_broker_sl(self, ticket, trade):
+        """Self-heal + wide-trail the broker-side backstop SL (2026-07-14).
+
+        The broker SL sent at trade open (entry ± sl_dist*1.5) is otherwise
+        set-once-and-forget — if deleted (accidentally or manually) or if it
+        never keeps pace with the software vSL, a crash/disconnect leaves the
+        position with zero real protection. This restores it if missing and
+        trails it forward as vSL ratchets, offset back by
+        broker_sl_trail_buffer_mult × sl_dist so it stays a backstop (not an
+        easy "SL hunt" target sitting right on the tight vSL). Never loosens.
+        Config: CFG.filters.broker_sl_sync_enabled / _trail_buffer_mult / _sync_interval_sec.
+        """
+        if not getattr(CFG.filters, "broker_sl_sync_enabled", True):
+            return
+        now = time.monotonic()
+        last = getattr(trade, "_broker_sl_last_sync", 0.0)
+        interval = float(getattr(CFG.filters, "broker_sl_sync_interval_sec", 10.0) or 10.0)
+        if now - last < max(1.0, interval):
+            return
+
+        try:
+            pos_list = mt5.positions_get(ticket=ticket)
+            if not pos_list:
+                return
+            pos = pos_list[0]
+            si = get_sym_info()
+            pt = si.point if si else 0.01
+
+            extra = trade.sl_dist * float(getattr(CFG.filters, "broker_sl_trail_buffer_mult", 0.5) or 0.5)
+            if trade.direction == "BUY":
+                target = round(trade.virtual_sl - extra, 2)
+                needs_update = (not pos.sl) or (target > pos.sl + pt)
+            else:
+                target = round(trade.virtual_sl + extra, 2)
+                needs_update = (not pos.sl) or (target < pos.sl - pt)
+
+            if not needs_update:
+                return
+
+            trade._broker_sl_last_sync = now
+            r = mt5.order_send({
+                "action":   mt5.TRADE_ACTION_SLTP,
+                "symbol":   SYMBOL,
+                "position": ticket,
+                "sl":       target,
+                "tp":       pos.tp,
+            })
+            if r and r.retcode == mt5.TRADE_RETCODE_DONE:
+                _was_missing = not pos.sl
+                log.info(f"  🛡️ #{ticket} broker SL {'RESTORED' if _was_missing else 'synced'} "
+                         f"-> {target:.2f} (backstop, vSL={trade.virtual_sl:.2f})")
+            else:
+                log.debug(f"  broker SL sync failed for #{ticket}: {r.retcode if r else mt5.last_error()}")
+        except Exception as e:
+            log.debug(f"broker SL sync exception for #{ticket}: {e}")
+
     def monitor_virtual_sl(self, verbose=False):
         """
         Check vSL, trailing, daily SL, smart exit every 2 seconds.
@@ -514,6 +571,9 @@ class QGAICore:
                     f"vSL:{trade.virtual_sl:.2f} (${st['sl_dist_$']:.2f} away) | "
                     f"TP:{trade.tp:.2f} | R:{st['profit_R']:+.2f} | {st['mode_label']}"
                 )
+
+            if action != "CLOSE":
+                self._sync_broker_sl(ticket, trade)
 
             if action == "CLOSE":
                 log.warning(f"  🛑 #{ticket} Virtual SL hit @ {current_price:.2f} — closing!")

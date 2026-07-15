@@ -1,0 +1,29 @@
+{
+  "model": "hmm",
+  "n_trades": 2743,
+  "requested_training_cutoff": null,
+  "effective_training_cutoff": null,
+  "training_start": "2024-12-02",
+  "training_end": "2025-12-05",
+  "feature_data_end": "2026-12-05",
+  "ohlc_data_end": "2026-07-14",
+  "adx_data_end": "2026-07-14",
+  "news_data_end": "2026-12-05",
+  "strict_cutoff_enabled": false,
+  "model_created_at": "2026-07-14T07:27:41",
+  "data_hash": "1e02397a076d1584",
+  "feature_list": [
+    "M15_ADX",
+    "M15_di_eff",
+    "M15_band_rel",
+    "M30_ADX",
+    "M30_di_eff",
+    "M30_band_rel",
+    "H1_ADX",
+    "H1_di_eff",
+    "H1_band_rel",
+    "H4_ADX",
+    "H4_di_eff",
+    "H4_band_rel"
+  ]
+}

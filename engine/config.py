@@ -230,6 +230,26 @@ class FilterConfig:
     ratchet_sl_min_pct       : float = 0.18   # min 1R SL distance = 0.18% of price (~$8 @ 4339). Was fixed $8.
     breakeven_buf_pct        : float = 0.05   # breakeven SL offset = 0.05% of price (~$2 @ 4339). Was fixed $2.
     risk_pct                 : float = 3.0
+    # ── Broker-side backstop SL self-heal + wide-trail (2026-07-14, Imtiyaz) ──
+    # Context: the broker-side SL sent at trade open (entry ± sl_dist*1.5) was
+    # manually deleted mid-trade with no code path to restore or re-trail it —
+    # if the app/bridge had crashed afterward, the position would have had ZERO
+    # broker-level protection. Fix: the primary vSL monitor loop now periodically
+    # (a) restores the broker SL if missing, and (b) trails it forward as the
+    # software vSL ratchets, but OFFSET further back than the tight vSL by
+    # broker_sl_trail_buffer_mult × sl_dist — wide enough to not be an easy
+    # "SL hunt" target (Imtiyaz's own concern), narrow enough to actually
+    # tighten as profit locks in. Never loosens (one-way, same as vSL itself).
+    broker_sl_sync_enabled       : bool  = True
+    # 2026-07-14 (Imtiyaz): widened primary's backstop to match secondary's 3x
+    # (was 1.5x) — same hunt-safety reasoning, now symmetric across accounts.
+    # broker_sl_open_mult sets the trade-open backstop AND the trail keeps it
+    # equal to that same distance thereafter: vSL - trail_buffer_mult*sl_dist
+    # must equal entry - open_mult*sl_dist at t=0 (vSL=entry-sl_dist for BUY),
+    # so trail_buffer_mult = open_mult - 1.
+    broker_sl_open_mult          : float = 3.0    # trade-open broker SL = entry -+ sl_dist * this (primary; secondary's own 3x is separate, in bridge_multi.py)
+    broker_sl_trail_buffer_mult  : float = 2.0    # gap behind vSL, in units of sl_dist == broker_sl_open_mult - 1
+    broker_sl_sync_interval_sec  : float = 10.0   # throttle — don't resend order_send every monitor tick
     # ── L13 MANUAL-TRADE MANAGER (2026-06-29, Anisa) — auto-manage YOUR manual trades ──
     # A manual trade = an XAUUSD position with magic 0 (the bot uses magic 202600).
     # ⚠️ Places REAL hedge orders → DEMO-TEST HEAVILY. Master switch default OFF.
@@ -238,6 +258,8 @@ class FilterConfig:
     manual_sl_pct            : float = 1.0    # SL distance for the manual leg = this % of price
     manual_target_tp_pct     : float = 2.0    # 2026-06-29 TEST: close/hedge both legs at 2% profit. 0 = off.
     manual_hedge_magic       : int   = 202699  # magic stamped on the bot's hedge orders (to track them)
+    slave_manual_manager_enabled : bool = True  # Also manage magic=0 manual trades on secondary/slave accounts.
+    slave_manual_manage_interval_sec : float = 5.0  # Throttle slave MT5 reconnect cycles.
     # ── STUCK-TRADE MANUAL-PROTECT (2026-07-01, Imtiyaz) — if the bot's own close keeps
     # failing at the broker (e.g. retcode 10027 AutoTrading-off, caught live 2026-07-01 on
     # #1519547791), switch that ONE trade to manual-style protection instead of silently

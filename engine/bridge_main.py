@@ -354,6 +354,8 @@ def run():
             core.monitor_virtual_sl(verbose=verbose)
             try: bridge_manual.manage()
             except Exception: pass
+            try: bridge_multi.manage_secondary_manual_accounts()
+            except Exception: pass
 
             # Write dashboard EVERY poll (was gated on open trades â†’ froze the
             # price/dashboard after a trade closed until the next bar). Now the

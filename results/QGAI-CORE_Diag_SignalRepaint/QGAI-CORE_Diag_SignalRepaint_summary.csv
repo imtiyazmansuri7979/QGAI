@@ -1,0 +1,2 @@
+run_at,steps_completed,signal_ids_tracked,repaint_rows,code_pattern_hits,risky_pattern_hits,pass
+2026-07-14T21:33:43,"after15m,after1h,after_model_reload,after_restart,refresh_compare",40,0,6,0,1

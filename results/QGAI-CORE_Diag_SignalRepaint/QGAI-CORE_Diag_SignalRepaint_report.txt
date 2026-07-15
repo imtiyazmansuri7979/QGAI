@@ -1,0 +1,29 @@
+QGAI-CORE_Diag_SignalRepaint Report
+============================================
+Run at: 2026-07-14T21:33:43
+Steps completed so far: after15m,after1h,after_model_reload,after_restart,refresh_compare
+
+Flow audited:
+Market data -> Feature calculation -> Model inference -> Signal decision -> SQLite logging -> CSV logging -> Dashboard display -> Signal history display
+
+Signal_ids tracked: 40
+Repaint rows: 0
+
+Static overwrite-pattern audit:
+- UPDATE signals: engine\bridge_constants.py:412 | UPDATE signals
+- UPDATE signals: engine\bridge_data.py:397 | UPDATE signals SET outcome=?, pnl_net=?
+- INSERT OR REPLACE: engine\bridge_data.py:484 | INSERT OR REPLACE INTO trades
+- REPLACE INTO: engine\bridge_data.py:484 | INSERT OR REPLACE INTO trades
+- INSERT OR REPLACE: engine\bridge_data.py:504 | INSERT OR REPLACE INTO daily_summary
+- REPLACE INTO: engine\bridge_data.py:504 | INSERT OR REPLACE INTO daily_summary
+
+Verdict:
+PASS
+
+Notes:
+- Current Signal panel may change because it is live inference.
+- Signal History must come from saved DB rows only.
+- Outcome/pnl updates are allowed; direction/probability/model/feature snapshot must not change.
+- Run --step baseline first, then the remaining steps at their real time offsets
+  (15 min, 1 hour, after an actual restart, after an actual model reload, after a
+  dashboard refresh) -- this tool cannot fast-forward real time or fake a restart.

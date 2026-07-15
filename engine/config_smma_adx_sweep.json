@@ -1,0 +1,56 @@
+{
+  "_comment": "Standalone rule-based research sweep config. NO AI model, NO win_prob, NO HMM entry gate, NO 67-feature logic, NO probability threshold, NO news/slot/hard-ADX filter. Two independent scores only: 2-SMMA (indicator-exact, engine/trend_signal.py port of 20SMA_TrendSignals_Hybrid.mq5) and ADX-DI. Sweeps timeframe-sets to find the raw edge, then that winner logic seeds compact AI features. Existing production code/models are NEVER touched.",
+
+  "date_start": "2026-04-01",
+  "date_end": "2026-06-29",
+  "_date_comment": "Phase-1 development window (3-month screen). Phase-2 one-year holdout + Phase-3 WFO are run separately with different date ranges on the same script (see docs). Change here for other windows.",
+
+  "timeframes": ["M15", "M30", "H1", "H4"],
+
+  "htf_mode": "forming",
+  "_htf_mode_comment": "forming = at EVERY M15 decision bar, reconstruct the PARTIAL (still-forming) M30/H1/H4 candle from only the M15 candles completed up to that point, and recompute the HTF SMMA trend + ADX/+DI/-DI on [previous CLOSED HTF candles] + [this one partial candle]. Reproduces the LIVE evolving indicator (16 distinct H4 snapshots per H4 period), NOT a delayed closed-only signal. No future high/low/close/volume of the current HTF candle ever enters an earlier snapshot; entry still fills next M15 open. Alternative 'closed' = last fully-closed HTF candle only (delayed) -- kept for A/B comparison. Default forming per the research mandate.",
+
+  "smma_score_mode": "indicator_stateful",
+  "_smma_mode_comment": "indicator_stateful = the ACTUAL indicator's carried-over +1/-1 trend (close>MA(High)[prev] -> +1, close<MA(Low)[prev] -> -1, else keep previous; never neutral). This is what 20SMA_TrendSignals_Hybrid.mq5 plots. Alternative 'memoryless_3state' = the simple price-vs-band +1/0/-1 with a neutral zone (section-3 pseudocode). Sweep can test either; default matches the real indicator.",
+
+  "adx_versions": ["A", "B", "C"],
+  "_adx_versions_comment": "A = DI direction only (sign of +DI - -DI). B = raw (+DI - -DI), clipped to a FIXED bounded scale (no dataset normalization). C = (di_diff/100) * clip(ADX/25, 0, 2). No ADX slope in round 1 (avoids the old ADX6 buy/sell cancellation bug); slope is a separate ablation on the winner only.",
+  "adx_period": 14,
+  "adx_clip_B": 50.0,
+  "adx_strength_div_C": 25.0,
+  "adx_strength_cap_C": 2.0,
+
+  "combined_weight_smma": 0.50,
+  "combined_weight_adx": 0.50,
+  "_weight_comment": "Round-1 fixed 50/50 equal weight. No per-timeframe weighting optimization yet (that is a later ablation on the winner).",
+
+  "entry_mode": "A",
+  "_entry_mode_comment": "A = direction-flip entry (open only when final direction differs from the last-entered trade's direction; same direction continuing = no duplicate entry). B = every eligible bar (open on any new bar whose score direction is non-neutral, respecting max_open) -- overtrading benchmark only. Exact-zero score is logged as a neutral observation, never a forced random trade.",
+
+  "families": ["smma_only", "adx_only", "combined"],
+
+  "exit": {
+    "reuse": "engine/analyze_capture.py htf_lines + the exact SL/trail/TP/flip loop shared by relabel_trades.py (the trusted backtest exit engine)",
+    "tp_mode": "flat",
+    "_tp_comment": "FLAT tp cap (ratchet_tp_cap_pct from config.py, currently 1.00%) for FULL isolation from the HMM regime model (regime-adaptive TP needs the HMM state model, which this research explicitly disables). Documented deliberately; same for every config so it cannot bias one config vs another.",
+    "buffer_pct": null,
+    "sl_min_pct": null,
+    "_buf_comment": "null = inherit BUF / SLMIN from analyze_capture (config.py ratchet_buf_pct / ratchet_sl_min_pct) -- identical to the trusted engine."
+  },
+
+  "spread": 0.13,
+  "risk_pct": 3.0,
+  "equity": 10000.0,
+  "max_open": 1,
+  "fixed_lot": 0.01,
+  "_sizing_comment": "Fixed 0.01 lot for lot-independent, path-faithful R comparison across configs (R = move/risk, not $). Spread charged at entry (next-bar-open + spread), matching backtest_replay convention.",
+
+  "min_trades_for_winner": 30,
+  "_min_trades_comment": "A config below this trade count is flagged and cannot be a 'winner' regardless of R.",
+
+  "log_regime_analysis": false,
+  "_regime_comment": "false = fully isolated (no model loaded at all). true = tag each trade with the existing hmm_model.pkl regime for RESULT BREAKDOWN ONLY (never an entry gate). Kept off by default to guarantee zero model dependency in the core sweep.",
+
+  "save_all_trade_detail": true,
+  "_trade_detail_comment": "true = write per-trade rows for every config (large for the full 675-combined sweep). Set false to skip trade-detail during the wide sweep and re-run only top candidates with detail on."
+}

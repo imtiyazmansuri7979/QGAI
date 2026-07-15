@@ -15,7 +15,7 @@ Usage (called from bridge_core.py after primary execution):
 import MetaTrader5 as mt5
 import math
 import time
-from bridge_constants import log, SYMBOL, MAGIC, RISK_PCT, VIRTUAL_SL, MAX_SPREAD_USD, SPREAD_WAIT_SEC
+from bridge_constants import log, CFG, SYMBOL, MAGIC, RISK_PCT, VIRTUAL_SL, MAX_SPREAD_USD, SPREAD_WAIT_SEC
 from bridge_risk import calc_lot
 
 # ── Per-account health state (2026-07-07, Fable-5 dashboard fix) ──────────
@@ -25,6 +25,7 @@ from bridge_risk import calc_lot
 # health row + reject alert. Updated on connect + order attempt. Read via
 # get_account_health().
 ACCOUNT_HEALTH: dict = {}   # name -> {name, login, balance, equity, last_order, last_order_time, last_retcode, is_primary}
+_LAST_SLAVE_MANUAL_MANAGE_TS = 0.0
 
 
 def _record_health(name, login=None, balance=None, equity=None,
@@ -323,6 +324,66 @@ def execute_secondary_accounts(direction: str, sl_dist: float, tp_p: int, commen
     # Restore primary connection
     _reconnect_primary()
     log.info("🔀 [multi] Secondary execution complete")
+
+
+def manage_secondary_manual_accounts():
+    """Run manual-trade manager on secondary/slave accounts.
+
+    Only slave positions with magic=0 are treated as manual. Bot positions use
+    MAGIC and remain handled by the normal mirror open/close code.
+    """
+    global _LAST_SLAVE_MANUAL_MANAGE_TS
+    if not bool(getattr(CFG.filters, "manual_manager_enabled", False)):
+        return
+    if not bool(getattr(CFG.filters, "slave_manual_manager_enabled", False)):
+        return
+    interval = float(getattr(CFG.filters, "slave_manual_manage_interval_sec", 5.0) or 5.0)
+    now = time.monotonic()
+    if now - _LAST_SLAVE_MANUAL_MANAGE_TS < max(1.0, interval):
+        return
+    _LAST_SLAVE_MANUAL_MANAGE_TS = now
+
+    try:
+        import config_mt5 as _c
+        import bridge_manual
+        accounts = getattr(_c, "MT5_ACCOUNTS", [])
+    except ImportError:
+        return
+
+    secondary = accounts[1:]
+    if not secondary:
+        return
+
+    touched = False
+    mt5.shutdown()
+    for acct in secondary:
+        name = acct.get("name", "Unknown")
+        if not acct.get("login"):
+            continue
+        try:
+            if not mt5.initialize(path=acct["path"]):
+                log.error(f"  [multi-manual] {name} initialize failed: {mt5.last_error()}")
+                continue
+            if not mt5.login(acct["login"], password=acct["pass"], server=acct["server"]):
+                log.error(f"  [multi-manual] {name} login failed: {mt5.last_error()}")
+                continue
+            info = mt5.account_info()
+            acct_symbol = acct.get("symbol", SYMBOL)
+            if info:
+                _record_health(name, login=acct.get("login"), balance=info.balance, equity=info.equity)
+            mt5.symbol_select(acct_symbol, True)
+            manual_count = len([p for p in (mt5.positions_get(symbol=acct_symbol) or []) if p.magic == 0])
+            if manual_count:
+                log.info(f"  [multi-manual] {name}: managing {manual_count} manual position(s) on {acct_symbol}")
+            bridge_manual.manage(acct_symbol)
+            touched = True
+        except Exception as e:
+            log.error(f"  [multi-manual] {name} exception: {e}", exc_info=True)
+        finally:
+            mt5.shutdown()
+
+    if touched:
+        _reconnect_primary()
 
 
 def close_secondary_accounts():

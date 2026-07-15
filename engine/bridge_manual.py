@@ -1,5 +1,5 @@
 """
-bridge_manual.py - L13 MANUAL-TRADE MANAGER (config-gated, default OFF). PRIMARY account only.
+bridge_manual.py - L13 MANUAL-TRADE MANAGER (config-gated, default OFF).
 
 Treats ALL your manual XAUUSD trades (magic 0; the bot uses 202600) as ONE combined
 position: sums the net lots, takes the volume-weighted average entry, and runs ONE
@@ -20,7 +20,7 @@ import MetaTrader5 as mt5
 from datetime import datetime
 from bridge_constants import log, CFG, SYMBOL, TEST_MODE
 
-_managed = {}   # symbol -> {"vsl": float|None}  (ONE combined state per symbol)
+_managed = {}   # account:symbol -> {"vsl": float|None}  (ONE combined state per account+symbol)
 
 
 def _f(name, default):
@@ -39,6 +39,14 @@ def _contract_size(sym):
 
 def _positions(magic, sym):
     return [p for p in (mt5.positions_get(symbol=sym) or []) if p.magic == magic]
+
+def _managed_key(sym):
+    try:
+        info = mt5.account_info()
+        login = getattr(info, "login", "unknown") if info else "unknown"
+    except Exception:
+        login = "unknown"
+    return f"{login}:{sym}"
 
 def _send_market(otype, volume, comment, sym):
     volume = round(float(volume), 2)
@@ -98,6 +106,7 @@ def manage(sym=None):
         return
     sym = sym or SYMBOL
     try:
+        key = _managed_key(sym)
         info = mt5.account_info()
         if not info:
             return
@@ -113,7 +122,7 @@ def manage(sym=None):
         if not manual:
             for h in _positions(_hedge_magic(), sym):
                 _close(h, sym, "manual-cleanup-hedge")
-            _managed.pop(sym, None)
+            _managed.pop(key, None)
             return
 
         # ── COMBINE all manual legs into one net position ──
@@ -140,7 +149,7 @@ def manage(sym=None):
         except Exception:
             bridge_ratchet, _rst = None, None
 
-        st = _managed.get(sym)
+        st = _managed.get(key)
         # ── first time for this combined position: 6% backstop + excess hedge ──
         if st is None:
             sl_dist   = avg_entry * sl_pct
@@ -155,7 +164,7 @@ def manage(sym=None):
             # on a virtual breach (floor / vSL below). ⚠️ if the bot is OFF, the manual has no
             # protection — that is the explicit trade-off.
             st = {"vsl": None}
-            _managed[sym] = st
+            _managed[key] = st
             log.info(f"🛡 [{sym}] COMBINED manual {V} lot @ avg {avg_entry:.2f} -> VIRTUAL vSL ON "
                      f"({max_pct*100:.0f}% floor @ {(avg_entry - max_dist) if is_buy else (avg_entry + max_dist):.2f}, NO broker SL — bot closes on breach)")
 
@@ -170,7 +179,7 @@ def manage(sym=None):
                 _close(p, sym, "manual-floor-close")
             for h in _positions(_hedge_magic(), sym):
                 _close(h, sym, "manual-floor-hedge-close")
-            _managed.pop(sym, None)
+            _managed.pop(key, None)
             return
 
         # ── ratchet ONE VIRTUAL vSL up the 2-SMMA line (NOT placed on the broker); breach -> close all ──
@@ -194,7 +203,7 @@ def manage(sym=None):
                     _close(p, sym, "manual-vsl-close")
                 for h in _positions(_hedge_magic(), sym):
                     _close(h, sym, "manual-vsl-hedge-close")
-                _managed.pop(sym, None)
+                _managed.pop(key, None)
                 return
             if vsl != prev:
                 log.info(f"🔼 [{sym}] COMBINED vSL ratchet -> {vsl:.2f} (line {line:.2f}) [VIRTUAL — not on broker]")
@@ -209,7 +218,7 @@ def manage(sym=None):
                     _close(p, sym, "manual-tp-close")
                 for h in _positions(_hedge_magic(), sym):
                     _close(h, sym, "manual-tp-hedge-close")
-                _managed.pop(sym, None)
+                _managed.pop(key, None)
     except Exception as e:
         log.warning(f"manual manager (manage {sym}) error: {e}")
 
@@ -233,6 +242,7 @@ def dashboard_status(sym=None):
         return None
     sym = sym or SYMBOL
     try:
+        key = _managed_key(sym)
         manual = _positions(0, sym)
         if not manual:
             return None
@@ -251,7 +261,7 @@ def dashboard_status(sym=None):
 
         tick = mt5.symbol_info_tick(sym)
         cur = (tick.bid if is_buy else tick.ask) if tick else avg_entry
-        st = _managed.get(sym, {})
+        st = _managed.get(key, {})
         max_pct = float(_f("manual_risk_pct", 3.0)) / 100.0
         floor = (avg_entry - avg_entry * max_pct) if is_buy else (avg_entry + avg_entry * max_pct)
         vsl = float(st.get("vsl") or floor)

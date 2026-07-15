@@ -1,49 +1,48 @@
 @echo off
 setlocal
 chcp 65001 >nul
-title QGAI - Feature Sweep TEST (2 features, quick sanity check)
-
-REM =====================================================================
-REM  Imtiyaz spec 2026-07-13: before committing to the full 67-feature,
-REM  3-4-night sweep, run a SHORT test (2 features from the active tier)
-REM  to verify the whole loop works - train, backtest, leakage-guard,
-REM  result parsing, resume-cache - before the long overnight runs.
-REM
-REM  Uses engine/run_feature_sweep.py. Every feature = 1 real retrain +
-REM  1 real 3-month backtest (leakage-guard-safe: QGAI_TRAIN_CUTOFF=
-REM  2026-03-31, backtest 2026-04-01 to 2026-06-29).
-REM
-REM  SAFE BY DESIGN (2026-07-13, root-cause fix after 3 same-day model-loss
-REM  incidents): every retrain in this sweep goes to a SEPARATE folder,
-REM  data\models\test_workspace, via the QGAI_MODELS_DIR override
-REM  (engine/config.py). data\models\final (your live model) is NEVER
-REM  touched by this script - no backup/restore needed, the live bridge can
-REM  even be running at the same time without any conflict.
-REM =====================================================================
+title QGAI - FS67-09 - Feature Sweep Sanity Active2
 
 set "ROOT=C:\QGAI"
 set "PY=C:\Users\user\AppData\Local\Programs\Python\Python312\python.exe"
 set "PYTHONUTF8=1"
 set "PYTHONIOENCODING=utf-8"
+set "RUN_ID=FS67-09"
+set "RESULT_ID=FS67-09_sanity_active2"
+set "QGAI_FEATURE_SWEEP_DIR=C:\QGAI\backtest\results\feature_sweep_67\%RESULT_ID%"
+set "QGAI_FEATURE_SWEEP_RESULT_ID=%RESULT_ID%"
 
 cd /d "%ROOT%\engine"
 
 echo ============================================================
-echo   FEATURE SWEEP - TEST (2 active features + baseline)
-echo   %DATE% %TIME%
+echo   %RUN_ID% - FEATURE SWEEP SANITY TEST
+echo ------------------------------------------------------------
+echo   Runs active tier with --limit 2 only.
+echo   Result folder:
+echo   %QGAI_FEATURE_SWEEP_DIR%
+echo   Live model is NOT touched.
 echo ============================================================
 
 "%PY%" run_feature_sweep.py --tier active --limit 2
 set "RC=%ERRORLEVEL%"
+if not "%RC%"=="0" goto fail
 
 echo.
 echo ============================================================
-echo   DONE. Check: backtest\results\feature_sweep\active_SUMMARY.csv
-echo   Models built in: data\models\test_workspace (not your live model)
-echo   If this looks right, run the full tiers:
-echo     Run_FeatureSweep_Tier1_Active.bat
-echo     Run_FeatureSweep_Tier2_HighProbability.bat
-echo     Run_FeatureSweep_Tier3_Remaining.bat
+echo   DONE %RUN_ID%
+echo   Summary: %QGAI_FEATURE_SWEEP_DIR%\%RESULT_ID%_SUMMARY.csv
+echo   If this looks right, run:
+echo   feature_sweep_67\FS67-01_RUN_PriorityBatch.bat
+echo ============================================================
+pause
+exit /b 0
+
+:fail
+echo.
+echo ============================================================
+echo   FAILED %RUN_ID%
+echo   Check logs in:
+echo   %QGAI_FEATURE_SWEEP_DIR%
 echo ============================================================
 pause
 exit /b %RC%

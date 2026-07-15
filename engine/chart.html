@@ -214,6 +214,7 @@ async function updateLiveTick(){
     const t = floorM15Seconds(dt);
     const c = liveColor(d);
     let last = chartData[chartData.length - 1];
+    if(last && t < last.time) return;
     if(!last || t > last.time){
       const op = last ? Number(last.close) : px;
       last = {time:t, open:op, high:Math.max(op, px), low:Math.min(op, px), close:px, color:c, borderColor:c, wickColor:c};

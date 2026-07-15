@@ -1,0 +1,18 @@
+{
+  "model": "duration",
+  "auc": 0.6928,
+  "requested_training_cutoff": null,
+  "effective_training_cutoff": null,
+  "training_start": "2024-12-02",
+  "training_end": "2026-04-29",
+  "feature_data_end": "2026-12-05",
+  "ohlc_data_end": "2026-07-14",
+  "adx_data_end": "2026-07-14",
+  "news_data_end": "2026-12-05",
+  "strict_cutoff_enabled": false,
+  "model_created_at": "2026-07-14T07:27:38",
+  "data_hash": "1e02397a076d1584",
+  "validation_end": "2026-02-17",
+  "calibration_end": "2026-02-17",
+  "test_end": "2026-04-29"
+}

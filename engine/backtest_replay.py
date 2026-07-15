@@ -643,6 +643,53 @@ def run(args):
             except Exception:
                 pass
 
+        # ── SHADOW-SKIP TRADE SIMULATION (missed-profit quantification) ─────
+        # Imtiyaz's follow-up (2026-07-14) to the HTF-alignment skip-rate diagnostic:
+        # "of the trades we did NOT take, how many would have been profitable?"
+        # Env-gated (QGAI_SHADOW_SKIPS unset/empty = zero change to normal behavior,
+        # exact original code path below runs untouched).
+        # When set to "strong" (4/4 HTF agreement), "weak" (3/4), or "both" (>=3/4),
+        # EVERY bar's decision this run is REPLACED by a pure counterfactual:
+        #   - if the bar's 4 HTF-direction signals (H1/H4 ADX-DI + H1/H4 SMMA-trend,
+        #     same 4 signals as diagnose_htf_alignment_skip_rate.py) agree strongly
+        #     enough to match the requested bucket -> FORCE a trade in that direction,
+        #     bypassing the model's win_prob gate AND all soft filters (range/ctf/
+        #     pullback/smma/adx) -- this measures "if we traded HTF-alignment
+        #     regardless of the model's confidence", not a filter A/B.
+        #   - otherwise -> SUPPRESS to SKIP (including the model's OWN real BUY/SELL
+        #     signals) so this run's total R is 100% attributable to bars the REAL
+        #     model actually skipped -- comparable directly against 0 (no missed
+        #     profit) rather than mixed with real-trade P&L.
+        # Same SL/TP/trailing/ratchet simulation as every other trade below --
+        # only the entry gate is bypassed. READ-ONLY diagnostic, no live impact.
+        _shadow_mode = os.environ.get("QGAI_SHADOW_SKIPS", "").strip().lower()
+        if _shadow_mode:
+            _was_real_trade = sig.get("signal") in ("BUY", "SELL")
+            _h1v = float(rb.get("H1_DI_diff", 0) or 0)
+            _h4v = float(rb.get("H4_DI_diff", 0) or 0)
+            _t1v = float(rb.get("ts_trend_h1", 0) or 0)
+            _t4v = float(rb.get("ts_trend_h4", 0) or 0)
+            _votes = [1 if _h1v > 0 else (-1 if _h1v < 0 else 0),
+                      1 if _h4v > 0 else (-1 if _h4v < 0 else 0),
+                      1 if _t1v > 0 else (-1 if _t1v < 0 else 0),
+                      1 if _t4v > 0 else (-1 if _t4v < 0 else 0)]
+            _buy_n  = sum(1 for v in _votes if v > 0)
+            _sell_n = sum(1 for v in _votes if v < 0)
+            _cdir   = "BUY" if _buy_n > _sell_n else ("SELL" if _sell_n > _buy_n else None)
+            _strength = max(_buy_n, _sell_n)
+            _bucket_ok = ((_shadow_mode == "both" and _strength >= 3)
+                          or (_shadow_mode == "strong" and _strength == 4)
+                          or (_shadow_mode == "weak" and _strength == 3))
+            if (not _was_real_trade) and _cdir is not None and _bucket_ok:
+                sig = dict(rb if _cdir == "BUY" else rs)
+                sig["signal"] = _cdir
+                sig["reason"] = f"SHADOW forced-skip (HTF {_strength}/4 {_cdir})"
+            else:
+                sig = dict(sig)
+                sig["signal"] = "SKIP"
+                sig["reason"] = ("SHADOW: real trade suppressed" if _was_real_trade
+                                  else "SHADOW: not a qualifying skip")
+
         # ── FIX-3 (2026-07-07): model LIVE opposite-signal reversal-close ──────
         # Live bridge_core.handle_opposite_signal closes an open trade EARLY when
         # the new signal is opposite: in LOSS → exit if new_prob≥0.45; in PROFIT →
@@ -946,6 +993,10 @@ def run(args):
     rep.append("⚡ QGAI AI REPLAY BACKTEST — REPORT")
     rep.append(f"Period         : {args.date_from} → {args.date_to}")
     rep.append(f"Modes          : TP={args.tp_mode} | SL={args.sl_mode} | trail={args.trail_mode} | runner={args.runner} | pred dirs={args.pred_dirs}")
+    _shadow_env = os.environ.get("QGAI_SHADOW_SKIPS", "").strip().lower()
+    if _shadow_env:
+        rep.append(f"⚠ SHADOW-SKIPS MODE = '{_shadow_env}' — R below is COUNTERFACTUAL missed-profit")
+        rep.append(f"  from bars the REAL model skipped, NOT a real/tradeable result. Real trades suppressed.")
     if args.fixed_lot > 0:
         rep.append(f"Sizing         : FIXED LOT {args.fixed_lot} (no compounding)")
     elif args.max_lot > 0:

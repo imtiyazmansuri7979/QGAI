@@ -8,6 +8,481 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-15 — SIGNAL + SIGNAL LOG equal-height fix: root-caused GridStack transition bug (Imtiyaz reported)
+**What:** Imtiyaz wanted SIGNAL and SIGNAL LOG panels to be EXACTLY the same height with no dead
+space and no scrollbar, resize handle ("↘") removed, and the fix done WITHIN GridStack (not by
+moving panels out of GridStack).
+**Root cause found (after extensive debugging):** GridStack's `grid-stack-animate` class adds
+`transition: left 0.3s, right 0.3s, top 0.3s, height 0.3s, width 0.3s` to all `.grid-stack-item`
+elements. When programmatically setting an item's inline `style.height` (or via `_gsGrid.update()`),
+the `height 0.3s` transition PREVENTS the new value from taking effect — the browser cannot
+properly interpolate from the original `calc(N * var(--gs-cell-height))` value to a pixel value,
+so the element stays locked at its original computed height. Confirmed: inline `height: 168px
+!important` shows in `cssText` but `getComputedStyle().height` returns `280px`; with the class
+removed, the same inline change takes effect instantly.
+**Fix — 3 parts:**
+1. **CSS transition override:** added a rule that excludes `height` from the transition for
+   signal/signal_log items specifically: `.grid-stack-animate .grid-stack-item[gs-id="signal"],
+   .grid-stack-animate .grid-stack-item[gs-id="signal_log"]{transition:left .3s,right .3s,top .3s,
+   width .3s!important}` — other panels keep their height animation.
+2. **`_syncSignalLogToSignalHeight()` rewritten:** measures `panel_signal`'s exact content height
+   via `getBoundingClientRect()`, updates GridStack's `gs-h` attribute via `_gsGrid.update()` for
+   positioning of items below, then sets EXACT pixel height on both grid-stack-items + sets
+   `panel_signal_log`'s panel height to match. No row-quantization gap.
+3. **Resize handle removed:** CSS `display:none!important` on `.grid-stack-item>.ui-resizable-handle`.
+**Also reverted:** signal/signal_log entries restored to PANEL_CONFIG (had been incorrectly removed
+in the previous session); `#signal_pair_row` CSS Grid wrapper removed (it was a workaround for
+the same transition bug, now properly fixed).
+**Verified (JS measurements, page reload):** both items 276px height, top-aligned at y=238,
+side-by-side (6+6 cols), heights match within <1px, resize handle display=none, no console errors.
+
+**Follow-up same day (Imtiyaz reported, screenshot: native scrollbar with up/down arrow buttons
+overlapping the SIGNAL box's WIN PROB/RATCHET area):** Root cause: `.grid-stack-item-content`
+(line ~230) has `overflow:auto` with no `scrollbar-width:thin` styling, unlike other scrollable
+areas in this file (`.sl-body`, `#liveSigRows`, `.tcard` all set `scrollbar-width:thin`) -- so it
+renders the browser's bulky default scrollbar. A 1px sub-pixel rounding gap between
+`panel_signal`'s exact content height and `.grid-stack-item-content`'s computed height (both set
+independently, one via JS pixel height, one via GridStack's `inset:1px`) was just enough to
+trigger it. Fix: `.grid-stack-item[gs-id="signal"]>.grid-stack-item-content,
+.grid-stack-item[gs-id="signal_log"]>.grid-stack-item-content{overflow:hidden}` -- safe because
+both panels already manage their own internal overflow (`panel_signal` has
+`overflow:hidden!important`; `panel_signal_log` scrolls internally via its own `.sl-body`).
+**Verified live:** both wrappers' computed `overflow-y` = `hidden`, `offsetWidth-clientWidth` = 0
+(no scrollbar reserved width) on both, heights still match.
+
+**Correction same day (Imtiyaz: "you remove resize option from all box panal it is wrong... put it
+in ↘ all panal box as it is"):** the `.grid-stack-item>.ui-resizable-handle{display:none!important}`
+rule added earlier (misreading of a request that was actually about a scrollbar, not the resize
+handle) had hidden the ↘ resize-corner icon on EVERY panel, not just signal/signal_log. Removed
+that rule entirely -- restores GridStack's original per-panel resize-handle behavior everywhere
+(handle only renders in Edit Mode, per `enableResize(true)`/`disableResize:true` toggle, unchanged).
+**Verified live:** confirmed via `document.styleSheets` that the override rule is gone and only
+GridStack's own built-in `.ui-resizable-handle` rules remain; SIGNAL/SIGNAL LOG height-match and
+no-scrollbar fixes above are unaffected (unrelated CSS).
+
+## 2026-07-15 — Hours Heatmap always overlaps the panel above it after Save (Imtiyaz reported, screenshot)
+**Root cause:** `_tightenLowerOuterGaps()` (added 2026-07-11 to visually close row-quantization gaps
+around Signal History/Hours Heatmap/Closed Trades) worked by writing a hardcoded pixel offset
+directly onto each panel's `.grid-stack-item` `style.top` (e.g. `calc(11 * cellHeight - 13px)`),
+bypassing GridStack's own `top = y * cellHeight` positioning entirely. Two problems compounded:
+(1) the function explicitly no-ops during Edit Mode (`if(_gsEditMode) return`) so it never
+recalculates while the user drags/resizes panels, and (2) it was never re-triggered right after
+`gsSaveLayout()`/`gsExitEdit()` either -- so the moment editing shifted any panel's real `gs-y` row,
+the STALE pre-edit pixel offset stayed applied on top of the NEW row position, visually pulling
+Hours Heatmap up into whatever panel now sat above it. The offset only got recalculated (and the
+overlap silently disappeared) on the next per-poll cycle, which is why it looked like it happened
+"every time right after Save."
+**Also found:** the gap this hack was compensating for no longer exists -- `_fitPanelToGrid()`
+(genuine GridStack row-height shrink, fixed 2026-07-14) already closes it to 0px on its own; the
+pixel-pull was redundant on top of being unsafe.
+**Fix:** removed `_tightenLowerOuterGaps()`'s body entirely (kept as a no-op stub since 3 call
+sites still reference it) -- panels now rely solely on `_fitPanelToGrid()`'s real row updates.
+**Verified live:** measured gaps between Signal History/Hours Heatmap/Closed Trades = 0px with
+clean `top: calc(N * var(--gs-cell-height))` (no pixel subtraction) in the normal state, AND after
+simulating a full enter-edit → move → `gsSaveLayout()` → exit-edit cycle -- no overlap in either
+case, no console errors.
+
+## 2026-07-15 — Panel width alignment check + missing viewport meta tag (Imtiyaz reported, screenshot)
+**What:** Imtiyaz flagged panel widths looking uneven/not fitting the browser. Investigated at
+1366px and 1920px width (his real laptop, maximized, 100% zoom): all `.grid-stack-item` left
+edges align within 0-2px, no horizontal scroll, dashboard content fills the full viewport width
+with no gap. The SIGNAL (half-width, paired with SIGNAL LOG) vs HOURS/Signal History/Closed
+Trades (full-width) size difference Imtiyaz initially flagged is confirmed intentional design
+(explicitly approved earlier this session), not a bug.
+**Found + fixed regardless (real, separate issue):** the file had **no `<meta name="viewport">`
+tag** at all -- added `<meta name="viewport" content="width=device-width, initial-scale=1">`.
+Without it, mobile browsers fall back to a virtual ~980px canvas and zoom the whole page down to
+fit the real screen, which is a genuine cause of cramped/uneven-looking panels on a phone (though
+not what today's laptop screenshot showed).
+
+## 2026-07-15 — Inner stat-box border color didn't match main panel border (Imtiyaz reported, screenshot)
+**What:** Imtiyaz pointed out the outer panel border and the border on small inner stat-boxes
+looked different.
+**Root cause:** the outer panel border (`.tcard`, all main panels) uses `var(--border)`
+(`#0d2535`), but a dashboard-wide shared style block ("Shared highlighted metric boxes", ~line 680:
+`.r-cell,.sig-hero-mini,.trade-item,.mauc,.rc,.slot-big-box,.ftc-item`) plus two more standalone
+rules (`.sig-hero-mini` ~line 164; `.why-factor-cell,.why-matrix .r-cell,.market-tools-col .trow`
+~line 203) all hardcoded a different, slightly lighter blue `#123247` instead of reusing the
+`--border` variable -- a deliberate-looking but inconsistent design choice affecting stat-boxes
+across the ENTIRE dashboard (not just SIGNAL panel).
+**Confirmed scope with Imtiyaz before changing** (broad, dashboard-wide change): fix all inner
+boxes to match the main panel color, not just the one panel in the screenshot.
+**Fix:** replaced all 3 occurrences of hardcoded `#123247` with `var(--border)`.
+**Verified live:** `getComputedStyle` on outer panel vs `.sig-hero-mini` now both return
+`rgb(13, 37, 53)` (`#0d2535`) -- exact match. No `#123247` left in the file (grep confirmed 0
+matches).
+
+## 2026-07-15 — Panel border different in Edit Mode vs View Mode (Imtiyaz reported)
+**What:** Imtiyaz noticed panel borders looked different while editing the layout vs normal
+viewing.
+**Root cause:** `body.gs-edit-mode .grid-stack-item-content{outline:1px dashed rgba(0,212,255,.3)}`
+(~line 236) added an extra dashed cyan outline around every panel only during Edit Mode (plus a
+brighter cyan on hover), layered on top of the normal solid `var(--border)` border -- an
+intentional "which panels are editable" indicator, but it meant the two modes never looked the
+same. Confirmed with Imtiyaz before removing (broad, dashboard-wide visual change): wanted View
+and Edit mode borders to match exactly, not keep the indicator.
+**Fix:** removed both outline rules (base + hover state); kept the unrelated `.gs-drag-handle`
+grab-cursor/background rules, which aren't part of the border complaint.
+**Verified live:** `getComputedStyle` on `panel_signal`'s border AND its `.grid-stack-item-content`
+wrapper's outline are now byte-identical between View Mode and a live `gsEnterEdit()` call --
+`1px solid rgb(13,37,53)` border, `none` outline, in both modes.
+
+## 2026-07-15 — HOURS heatmap cells had no border at all, unlike other stat-boxes (Imtiyaz reported, screenshot)
+**What:** Imtiyaz's screenshot (EV box + SIGNAL HISTORY + HOURS heatmap) showed the HOURS
+heatmap's hour-cells (01:00, 02:00, etc.) still looking inconsistent with the "EV" box even after
+the earlier `#123247`->`var(--border)` fix.
+**Root cause:** `.heat-cell` (~line 492) never had a border on top/left/right AT ALL --
+`border-bottom:3px solid transparent` (colored per win-rate tier via `.tier-best/.tier-good/
+.tier-ok/.tier-weak`) was its ONLY border property, unlike `.sig-hero-mini`/other stat-boxes which
+have a full 1px border on all 4 sides. Confirmed with Imtiyaz before changing (would affect every
+hour-cell across the Hours Heatmap panel): add a full border while preserving the win-rate
+tier-color accent.
+**Fix:** added `border:1px solid var(--border)` before the existing `border-bottom:...` override
+(CSS cascade lets the more specific bottom-only declaration win for that one side), so each cell
+now has a full border like other stat-boxes, PLUS its distinct colored bottom accent.
+**Verified live:** all sampled heat-cells show `border-top: 1px solid rgb(13,37,53)` (exact match
+to the EV box's border color) while `border-bottom` correctly still varies by tier (green #00ff88
+for tier-best, orange #ffaa00 for tier-ok, cyan #00c8ff for tier-good) -- both properties coexist
+as intended, no console errors.
+
+## 2026-07-15 — Ticker-pill borders unified + a real pre-existing bug found along the way (Imtiyaz reported)
+**What:** Imtiyaz asked for ALL borders across the dashboard to align, not just the ones already
+fixed today. A broader grep found a third border family: `.bb-item`/`.bb-label` (ticker pills used
+in Risk & Session, AI Summary, Market Intelligence, Open Trades bars), `.slot-panel`, and `.lsf-btn`
+(Signal Log's ALL/BUY-SELL/RELOAD filter buttons) all used a cyan-tinted `rgba(0,212,255,...)`
+border instead of `var(--border)`. Confirmed scope with Imtiyaz before changing (visually
+noticeable across multiple ticker strips) -- fix base/default states only; left the `.gold`/`.warn`
+semantic variants (`.bb-item.gold`, `.bb-item.warn`) and interactive hover/active states
+(`.lsf-btn:hover`, `.lsf-btn.lsf-on`) untouched, since those intentionally convey a different
+state, not just a stray color choice.
+**Fix:** `.bb-item`, `.bb-label`, `.slot-panel`, `.lsf-btn` base border -> `var(--border)`.
+**Real bug found investigating `.lsf-btn` (unrelated to the color question, found by accident):**
+its entire `<style>` block (defining `.lsf-btn`/`:hover`/`.lsf-on`) was sitting inside
+`<div class="tab-pane" id="tab-live">` in the raw HTML. `gsInitDashboard()` moves every actual
+panel (`[id^="panel_"]`/`.tcard`) OUT of each tab-pane into GridStack on page load, then deletes
+any tab-pane left with no matching children ("Remove empty tab panes (content moved to grid)").
+Since this stray `<style>` tag was the ONLY thing left behind in `#tab-live` afterward, it matched
+the "empty" cleanup condition and got deleted from the DOM on EVERY page load -- meaning these
+filter button styles have **never actually applied**, ever, confirmed via `document.styleSheets`
+showing only the 2 real stylesheets, neither containing `.lsf-btn`. The buttons had silently been
+rendering as native unstyled browser buttons (2px black outset border) the entire time.
+**Fix:** moved the 3 `.lsf-btn` rules into the main `<head>` stylesheet (next to `.gs-toolbar
+button`, another toolbar-button style) and deleted the orphaned in-body `<style>` tag.
+**Verified live:** `document.styleSheets` now contains a real `.lsf-btn` rule; the RELOAD/BUY-SELL
+buttons render `1px solid rgb(13,37,53)` (exact match to main panel border, `solid` style, `1px`
+width -- was `2px outset rgb(0,0,0)` before); the active filter button still correctly shows cyan
+(`rgb(0,255,238)`, the intentional "on" state); `_liveSigFilt('trade')` toggle still works
+(`lsf-on` class moves correctly between buttons); no console errors.
+
+## 2026-07-14 — Open Trades panel: dead space when empty + GridStack resize bug (Imtiyaz reported)
+**What:** Imtiyaz reported the Open Trades panel always reserved dashboard space even with zero
+trades open, and asked for it to collapse to about ticker-row height when empty (like the vSL/TP
+bar, `sl_progress_wrap`, already does) instead of sitting at the bottom with dead space.
+**Fix 1 — CSS:** `#panel_open_trades{height:auto!important;overflow:hidden!important}` (same proven
+pattern already used for `#panel_signal`/`#signal_history_panel`). The global rule
+`.grid-stack-item-content>.tcard{height:100%}` was stretching the panel to fill its allocated
+GridStack cell even when its real content (header-only, no open trades) was tiny. This alone
+shrank the panel's own content box from ~112px to ~36-38px (close to ticker-row height).
+**Fix 2 — real bug found while verifying Fix 1:** the GridStack row allocation (`gs-h`) never
+actually followed the smaller content down, staying stuck at 2 rows (112px) regardless. Root
+caused to TWO separate pre-existing bugs in the shared `_fitPanelToGrid()` helper (used by Open
+Trades, Closed Trades, Hours Heatmap, Signal History -- all of them affected, not just Open
+Trades):
+  1. A premature memo (`_panelFitLastH[panelId]`) marked a resize as "already handled" once it
+     computed a target height ONE time, without ever confirming the resize actually took effect —
+     so if the very first attempt silently failed, every later call skipped the fix forever.
+     Fixed: now checks the REAL grid attribute (`curH`) directly instead of trusting the memo alone.
+  2. The resize itself (`_gsGrid.removeWidget(wrap,false); _gsGrid.addWidget(wrap,{...})`) was
+     silently no-op'ing — confirmed via console spam already present on every page load: `"V11:
+     GridStack.addWidget() does not support HTMLElement anymore. use makeWidget()"`. This project's
+     GridStack build is v11, which dropped that call signature. Fixed: switched to `_gsGrid.update(wrap,
+     {x,y,w,h,minW,minH})` — the SAME method this file already uses successfully elsewhere for
+     resizing an existing widget (layout-restore code, ~line 4515).
+**Verified live** (browser preview): Open Trades panel wrapper height 112px -> 56px (GridStack's
+minimum 1-row quantization -- rows can't be smaller than the configured `cellH`, so 56px is the
+floor achievable while it stays a draggable/resizable grid panel; true ticker-row height (~36px)
+would require taking it out of the grid system entirely, a bigger structural change not done here).
+**Also benefits (same shared function, same bug):** Closed Trades, Hours Heatmap, and Signal
+History panels should now also correctly shrink-to-fit instead of getting stuck at a stale height.
+**Takes effect on browser refresh** (static HTML/JS, no server restart). If a saved GridStack
+layout still shows the old size, click the 🔁 Reset button once.
+
+**Follow-up same day (Imtiyaz: "I want hide also"):** 56px (1 GridStack row) still wasn't enough —
+wanted the panel FULLY gone (0px) when no trades are open, popping back in the instant one opens,
+matching `sl_progress_wrap`'s show/hide exactly. Extended the "OPEN TRADES" render block: on zero
+open trades, `_gsGrid.removeWidget(wrap, false)` (detaches from grid tracking, keeps the DOM node)
++ `wrap.style.display='none'`; the moment `open_trades.length` is truthy again, `wrap.style.display=''`
++ `_gsGrid.makeWidget(wrap)` (the v11-correct re-attach call, per the same console warning) +
+`_gsGrid.compact()` to close the gap / let later panels shift up. A `data-gs-attached` flag on the
+wrapper avoids calling removeWidget/makeWidget redundantly every poll tick.
+**Verified live:** hidden state = `display:none`, height 0px, `data-gs-attached="0"`. Manually invoked
+the show-path (`makeWidget`+`compact`) — no exceptions, panel reappeared at its normal size. Then
+let the next real poll tick (still 0 open trades) hide it again — no errors, no duplicate widget
+registration. Full hide-show-hide cycle confirmed clean.
+
+**Second follow-up same day (Imtiyaz: "sl_progress_wrap જેવો fixed bar yes"):** the makeWidget/
+removeWidget dance above still left the panel bound to GridStack's 56px row grid whenever it WAS
+shown. Took it out of GridStack entirely instead, mirroring exactly how `sl_progress_wrap` and
+`danger_banner` already work:
+- `gsInitDashboard()`'s "conditional bars" list (`['danger_banner','sl_progress_wrap']`, moved to sit
+  as plain siblings just above the `.grid-stack` div, not wrapped as grid items) now also includes
+  `'panel_open_trades'`.
+- Removed the `open_trades` entry from `PANEL_CONFIG` entirely (it's no longer grid-managed, so the
+  panel-creation loop that wraps each config entry into a `.grid-stack-item` never touches it).
+- `#panel_open_trades` CSS: added `display:none` as the default (matching `.sl-progress-wrap`'s own
+  default-hidden pattern) instead of relying on JS to hide it before first render.
+- Simplified the "OPEN TRADES" render block back down to a single direct toggle —
+  `panel.style.display = hasTrades ? 'block' : 'none'` — since there's no GridStack widget to
+  attach/detach anymore; removed the now-unnecessary `removeWidget`/`makeWidget`/`compact` calls
+  from the previous fix.
+- Removed the 3 now-stale `_fitPanelToGrid('panel_open_trades')` calls (harmless no-ops now since
+  `.closest('.grid-stack-item')` returns null off-grid, but cleaned up for clarity).
+**Trade-off (accepted, matches sl_progress_wrap):** Open Trades can no longer be dragged/resized in
+edit mode — it's a fixed bar now, by design, same as the vSL/TP bar it's paired next to.
+**Verification status:** code-reviewed line-by-line (confirmed the conditional-bars move runs BEFORE
+`PANEL_CONFIG` is read into the grid-creation loop, so removing the config entry is safe; confirmed
+no other code references `PANEL_CONFIG.open_trades`/`'open_trades'` anywhere). **Live browser
+re-verification was NOT completed this round** — the browser tool became temporarily unavailable
+mid-session (model-availability outage, not an app issue) right after this change. Please Ctrl+F5
+and confirm: (1) panel fully hidden with 0 open trades, (2) sits directly under the vSL/TP bar when
+a trade opens, (3) no console errors on load.
+
+**Third follow-up same day (Imtiyaz, with a real open trade now visible: "use only as ticker hight
+even trade is open"):** even correctly positioned/hideable, the panel was still ~150px tall
+WHILE a trade was open — the per-trade card rendered a 3x3 stat grid (Entry/Current/Virtual SL/TP/
+SL Dist/TP Dist/R Profit/Max R/Breakeven) plus a "To TP" progress bar, most of which duplicates what
+`sl_progress_wrap` already shows prominently right above it (vSL, TP, R, entry marker, progress
+track). Collapsed the per-trade template (`otc.innerHTML` map in the OPEN TRADES render block) from
+that tall grid down to a single ticker-style row reusing the SAME `.bb-item`/`.bb-val` classes as
+the Risk & Session strip: direction+ticket+status, Entry, Now, SL, TP, P&L/R — one line. Dropped the
+redundant progress bar entirely.
+**Verified live** (browser preview, real open trade): trade-card height 32px at 1400px width (was
+~150px) — right in ticker-row range; at a narrower 900px width it wraps cleanly to ~50px (2 lines)
+via `flex-wrap`, no text clipping (`scrollWidth === clientWidth` confirmed) and no visual overlap in
+either width. Whole panel (header + 1 trade row) now ~71px total vs. the original ~180px+.
+**Takes effect on browser refresh**, no server restart.
+
+**Fourth follow-up same day (Imtiyaz: remove the header line too, +20% font, bubbles justified
+across the full row):**
+- `#panel_open_trades .tcard-hdr{display:none}` — the "⚡ Open Trades" header bar is gone; the
+  ticker row itself already says direction/ticket/status, nothing lost.
+- Font bumped 20% over the base `.bb-item` ticker size, scoped to `#panel_open_trades` only (Risk &
+  Session / AI Summary / Market Intelligence tickers elsewhere untouched): label 0.5rem->0.6rem,
+  value 0.62rem->0.74rem, sub 0.56rem->0.67rem; the direction badge specifically 0.72rem->0.86rem.
+- Trade-card row: added `justify-content:space-between;width:100%` so the 6 bubbles (direction,
+  entry, now, SL, TP, P&L) spread across the FULL row width with even gaps instead of clustering
+  left.
+**Verified live:** header `display:none` confirmed; panel height 71px -> 49px (no header) with font
+20% bigger; bubble positions measured via `getBoundingClientRect()` -- first bubble starts at 13px,
+last ends at 1336px on a 1347px-wide card, evenly spaced between -- confirms the full-width justified
+spread. Computed font-size 11.84px (0.74rem) and 13.76px (0.86rem) on a 16px root, both exact 20%
+bumps.
+
+**Fifth follow-up same day (Imtiyaz: "vSL/TP bar make it 30% smaller"):** scaled `sl_progress_wrap`
+(the vSL/TP bar itself, not Open Trades) down ~30% across the board: track height 54px->38px (exact
+0.7x), header font 0.68rem->0.48rem, price-label fonts 0.8rem->0.56rem, price-sub fonts
+0.69rem->0.48rem, pct-detail 0.72rem->0.5rem, R/pct badges 0.88/0.9rem->0.62/0.63rem, labels-row
+height 14px->10px + font 0.6rem->0.42rem, wrap padding 3px 10px 4px->2px 7px 3px, eq-grid inset
+8px 10px->6px 7px.
+**Verified live:** track height measured 38px (matches the 0.7x target exactly), header 14.4px,
+labels row 10px, neither header nor labels row overflowing (`scrollWidth`==`clientWidth`), no
+console errors. Whole bar visibly more compact, same information, nothing clipped.
+
+## 2026-07-14 — Real bug: SIGNAL vs SIGNAL LOG height drifts out of sync during live use (Imtiyaz reported)
+**What:** Imtiyaz reported the SIGNAL panel (left) and SIGNAL LOG panel (right) heights not matching
+during real live use — a growing dead-space gap under SIGNAL while SIGNAL LOG kept a scrollbar,
+worse than a fresh page load. Explicitly did not want a manual drag-to-resize workaround.
+**Root cause found:** `_syncSignalLogToSignalHeight()` (measures `panel_signal`'s real content
+height and forces `panel_signal_log` to match) was ONLY wired to three trigger points: initial
+`gsInitDashboard()`, window `resize`, and `switchTab()`. It was **never called on the regular
+data-poll refresh cycle** — so whenever `panel_signal`'s own content height drifted with live data
+(a longer/shorter signal-reason string, a lifecycle step appearing/disappearing, the manual-trade
+banner toggling) with no resize or tab-switch happening in between, `panel_signal_log`'s height
+silently went stale and the two panels drifted apart — exactly what a fresh page load could never
+show (which is why my earlier post-Reset test looked fine — that was right after the init-time
+sync ran, before any live drift had a chance to accumulate).
+**Fix:** added a call to `_syncSignalLogToSignalHeight()` inside the main per-poll render block,
+right next to the other per-poll `_fitPanelToGrid(...)` calls (hours heatmap / signal history /
+closed trades), so SIGNAL and SIGNAL LOG re-sync on every single data refresh, not just on resize/
+tab-switch.
+**Verified live (real wiring test, not just the function in isolation):** artificially shrank
+`panel_signal`'s content height 278px -> 161px via a temporary `max-height` override, WITHOUT
+calling any resize/tab-switch/sync function manually. Waited 6 seconds (one natural poll interval).
+`panel_signal_log` automatically followed to 162px (`log.style.height` updated to `"162px"`) purely
+from the regular poll cycle picking up the new fix — confirms the sync now runs continuously during
+live use, not just at specific trigger moments.
+
+## 2026-07-14 — Dashboard SIGNAL HISTORY ticker: font legibility fix (Imtiyaz reported)
+**What:** Imtiyaz reported the price/time text drawn on the SIGNAL HISTORY canvas ticker
+(`drawSigChart()` in `engine/dashboard.html`) was not clearly visible.
+**Round 1 (partial fix):** the canvas CSS height was only 34px while the code drew 2 lines of
+13px/11px bold text into it — genuinely cramped. Bumped `#sig_history_chart` height 34px→46px
+(and the flex container's min-height to match) and bumped fonts to 15px/12px.
+**Round 2 (the actual main problem, per Imtiyaz's follow-up):** the "improvement" in round 1 also
+thickened the black text-outline (`ctx.lineWidth` 3→3.5, opacity 0.9→0.95) meant to keep text
+readable against any bar color — at these small font sizes a stroke that thick reads as a muddy
+black shadow/blob smearing the glyph edges, on BOTH the price and time lines. Replaced the hard
+`strokeText` outline with a soft `ctx.shadowBlur` halo (blur 2.5, no stroke) — same contrast against
+varying backgrounds, without thickening the letterforms. Verified visually (scaled 3x in-browser)
+before/after — round 2 reads noticeably cleaner.
+**Takes effect on browser refresh** (static HTML/JS, no server restart needed) — hard-refresh
+(Ctrl+F5) if the dashboard tab was already open.
+
+## 2026-07-14 — OneFunded secondary account disabled (Imtiyaz)
+**What:** Commented out the OneFunded entry in `engine/config_mt5.py` `MT5_ACCOUNTS` (same
+disable-by-comment convention already used for TradeQuo/Neex — credentials preserved for later
+re-enable, not deleted).
+**Why:** Every single mirrored order on this account was rejected with retcode 10027
+("AutoTrading disabled by client") — confirmed via `bridge.log` on 2026-07-13 19:45, 2026-07-14
+07:45, and 2026-07-14 16:45 (100% failure rate, 2+ days). This is a terminal-side setting (the
+AutoTrading toggle inside that specific MT5 terminal), not a code bug — no code changed to "fix"
+the rejection itself.
+**To re-enable:** turn AutoTrading back on in the OneFunded MT5 terminal, then uncomment the block
+in `config_mt5.py`.
+**Takes effect on next bridge restart** (bridge_main.py reads `config_mt5.py` at process start).
+
+## 2026-07-14 — Broker-side SL self-heal + wide-trail (Imtiyaz reported, Claude fixed)
+**Context:** while auditing today's primary trade (#1589591435, BUY 34.8 lot @ 4021.94), Imtiyaz
+manually deleted the position's broker-side SL (which had been correctly set at open to 4005.15 —
+verified byte-for-byte against the MT5 terminal's own trade log) mid-trade. Investigation found:
+`bridge_core.py`'s broker SL is set ONCE at `execute()` time (`entry ∓ sl_dist×1.5`) and NEVER
+touched again by any code path (`grep TRADE_ACTION_SLTP` = only 2 hits, neither is a periodic
+resync) — the software's own virtual SL (vSL) ratchets every tick, but that protection is 100%
+in-app; if the bridge process had crashed or lost connection before the position closed, it would
+have had ZERO broker-level stop. (No loss occurred this time — Imtiyaz closed the position manually
+minutes later for +$245,479.20 profit — but the gap was real.)
+**Fix (`engine/bridge_core.py`, new `_sync_broker_sl()` method, called from the existing per-tick
+`monitor_virtual_sl()` loop for every non-closing tick):**
+- Restores the broker SL if MT5 reports it missing (`pos.sl == 0`).
+- Otherwise trails it forward at `vSL − broker_sl_trail_buffer_mult × sl_dist` — verified this
+  reproduces the EXACT original 4005.15 backstop at trade-open (since `vSL = entry − sl_dist`, so
+  `vSL − 0.5×sl_dist = entry − 1.5×sl_dist`, the same formula `execute()` already uses).
+- One-way only (never loosens) — mirrors the vSL's own ratchet philosophy.
+- Deliberately offset BEHIND the tight vSL (not equal to it) — per Imtiyaz's own point that a SL
+  sitting exactly on the visible ratchet line is an easier "SL hunt" target than one held back with
+  a buffer; the buffer itself still narrows over time as profit locks in.
+- Throttled (`broker_sl_sync_interval_sec=10`, default) — does not spam `order_send` every tick.
+**New config (`engine/config.py` `FilterConfig`):** `broker_sl_sync_enabled=True`,
+`broker_sl_trail_buffer_mult=0.5`, `broker_sl_sync_interval_sec=10.0`. `FILTERS_MASTER.md` §B +
+change log updated in the same change.
+**Scope (deliberately NOT changed):** secondary/mirror accounts' static 3x-wide broker SL is
+untouched — that design relies on `close_secondary_accounts()` syncing to the primary's real exit
+event, not on the secondary's own broker SL trailing tightly; widening the scope here would have
+mixed two different safety mechanisms without being asked to.
+**Verified:** `python -m py_compile config.py bridge_core.py` clean. Formula hand-checked against
+today's real trade numbers (entry 4021.94, sl_dist 11.19 → target 4005.155 ≈ MT5's own logged
+4005.15). **Not yet exercised on a live running bridge** — next restart of the bridge picks it up;
+watch for the new `🛡️ #<ticket> broker SL RESTORED/synced -> ...` log line.
+
+**Follow-up same day — widened to 3x (Imtiyaz):** primary's trade-open backstop was 1.5x sl_dist
+(hardcoded), narrower/easier to "SL hunt" than secondary's 3x. Made `broker_sl_open_mult` a config
+value (`config.py`, default **3.0**, was hardcoded 1.5) and used it in `bridge_core.py execute()`'s
+broker_sl formula (both BUY/SELL branches) instead of the literal `1.5`. Updated
+`broker_sl_trail_buffer_mult` 0.5 → **2.0** to match (`open_mult − 1`, so the trail formula still
+reproduces the exact trade-open value at t=0). Secondary (`bridge_multi.py`) was already 3x —
+unchanged, now symmetric with primary. Verified: `entry − sl_dist×3.0` == `vSL − sl_dist×2.0` on
+today's real numbers (3988.37 both ways). `py_compile` clean.
+
+## 2026-07-14 — Signal-repaint audit: dashboard bar_time-collapse bug found + fixed
+**What:** Imtiyaz asked for a full audit + diagnostic proving saved historical signals never
+repaint (direction/probability/score/state/threshold/model-version/feature-snapshot must stay
+immutable once logged). Full read-only audit of the flow: LiveInferenceEngine -> log_signal() ->
+SQLite `signals` table -> CSV backup -> dashboard.json -> dashboard history panels.
+**Confirmed already correct (built in an earlier session, verified this session):**
+`log_signal()` does a plain `INSERT INTO signals` (no REPLACE/IGNORE/UPSERT); the only later
+`UPDATE signals` (`write_outcome()`) touches only `outcome`/`pnl_net`, and only while blank;
+`_signal_audit_fields()` generates a genuinely unique `signal_id` (SHA1 of symbol+bar+signal+
+mode+model_version+microsecond timestamp+feature_hash) plus all required audit columns
+(model_version/hash, feature_snapshot_json/hash, decision_threshold, combined/state/directional
+scores); `_make_result()` in `inference.py` hashes the EXACT `feat_dict` used for that inference
+call (a true point-in-time snapshot, never recomputed later); `get_signal_history()` (dashboard.json's
+`signal_history` key) is a pure DB `SELECT`, never re-inference; the dashboard's "Current Signal"
+(`last_signal`) and "Signal History" (`signal_history`) keys are already properly separate sources;
+model reload (`bridge_main.py`) only swaps the live `LiveInferenceEngine` instance for FUTURE
+inference, never touches past rows; `_overnight_replay()` backfill only fills genuine gaps
+(`_logged_bar_times()` gate) rather than re-logging already-logged bars. The old `UNIQUE(bar_time,
+mode)` schema constraint that WOULD have silently dropped/blocked a re-evaluated candle was already
+migrated away in a prior session (`_ensure_signal_immutable_schema()` in `bridge_constants.py`).
+**Found + fixed (real bug, dashboard-side only):** `engine/dashboard.html`'s "SIGNAL LOG" panel
+(`window._liveSigLoad`, feeding `#liveSigRows`) parsed `signals_all.csv` + `signals_complete.csv`
+and merged them keyed by **`bar_time`** alone (`map[r.bt]=r`, "live overrides same bar"). Since the
+backend explicitly tolerates two distinct immutable rows sharing a bar_time (a candle re-evaluated —
+e.g. BACKFILL then LIVE — each with its own snapshot/probability, per the comment in
+`bridge_data.py`'s `log_signal()`), this client-side merge could silently show only ONE of them for
+a given time slot, and WHICH one could change between 15-second dashboard refreshes depending on
+file-read order — a genuine dashboard-only repaint even though the underlying DB/CSV rows were
+correctly immutable throughout. **Fix:** `_parseSig()` now also extracts the `signal_id` column
+(already present in the CSV since the 2026-07-13 schema migration but never parsed by the JS); the
+merge key is now `r.sid||r.bt` (falls back to bar_time only for legacy pre-migration rows with no
+signal_id) — every distinct immutable signal_id now renders as its own row, never collapsed.
+**Diagnostic tool rewritten:** `engine/diag_signal_repaint.py` was a single-shot placeholder (it
+copied the SAME current value into every `_after_15m`/`_after_1h`/`_after_restart`/
+`_after_model_reload` column, proving nothing about time). Rewritten as a step-based tool with a
+persisted `_ledger.json` (keyed by `signal_id`): `--step baseline` snapshots the current signal_ids'
+immutable fields; each later step (`after15m`/`after1h`/`after_restart`/`after_model_reload`/
+`refresh_compare`) re-reads the SAME signal_ids from SQLite/CSV/dashboard.json NOW and fills in
+that step's columns, classifying repaint_type 0-9 per the spec. Also added a static check for the
+dashboard bar_time-collapse anti-pattern (regression guard). `RUN_QGAI-CORE_Diag_SignalRepaint.bat`
+now takes an optional `[step]` argument.
+**Not yet done (requires real elapsed time / a real restart / a real retrain — cannot be done by
+Claude in one turn, must be run by Imtiyaz per the house "never run tests inline" rule):** the
+actual baseline + 15-min + 1-hour + restart + model-reload + dashboard-refresh sequence has not
+been executed end-to-end. The prior single-shot run (08:08, before this rewrite) showed PASS
+(0 repaint rows) on a one-time read, which is evidence but not proof across time.
+**Files touched:** `engine/dashboard.html` (merge key fix only, no model/entry/trading logic
+touched), `engine/diag_signal_repaint.py` (rewrite), `backtest/_runners/RUN_QGAI-CORE_Diag_SignalRepaint.bat`.
+Both scripts py_compile / ASCII clean.
+**Follow-up same day (diagnostic false-positive fix):** Imtiyaz ran baseline (15:32, PASS/0) then
+after15m (15:51) — after15m reported 38 "repaint" rows, ALL repaint_type 4. Investigated: this was
+a BUG IN THE DIAGNOSTIC, not a real repaint. The 38 tracked baseline signals were all intact
+(db_row_changed=0, csv=0, dash=0, not disappeared, not duplicate — only the type-4 flag fired). The
+flaw: the type-4 ("historical signal appeared later") check flagged EVERY tracked entry whenever ANY
+new bar appeared since baseline — but the live bridge advancing to new candles (15:45 etc.) between
+baseline and after15m is normal forward progress, not a back-dated insertion. Fixed the logic:
+type-4 now fires only for a NEW signal_id whose bar_time is AT OR BEFORE the baseline frontier (a
+genuine insertion into a past slot); forward-progress candles are excluded by construction. Also
+fixed two related flaws found alongside: (1) `run_step` was overwriting the baseline reference
+(`bar_mode_at_baseline`) on every step, so after_restart/after_model_reload would have compared
+against the prior step instead of the true baseline — now the baseline frontier + id-set are fixed
+and never overwritten; (2) baseline now stores the frontier bar_time + full id-set instead of a
+deduplicated (bar_time,mode) set. **Real-signal conclusion from the run: the 38 saved signals did
+NOT repaint across the 15-minute window — direction/probability/state/model/feature all unchanged.**
+Stale ledger deleted; re-run baseline fresh with the fixed tool.
+**Second diagnostic false-positive (window-size mismatch), found on the after15m re-run:** the fixed
+tool still reported 189 type-4 rows at after15m — again NOT real. All 189 had bar_times 07-08..07-10,
+i.e. BELOW the baseline window (the tracked baseline signals only spanned 07-14 04:45..14:00). Cause:
+`run_baseline` read the newest 200 rows but `run_step` read the newest 400 — the extra 200 older rows
+a step reaches were never in the baseline id-set, so they looked "back-dated". Fixed: (1) a single
+`READ_WINDOW=400` constant used by BOTH baseline and every step; (2) baseline now also stores a
+`baseline_floor` (oldest bar_time it saw) and the type-4 check only fires for a new signal_id whose
+bar_time is INSIDE `[floor, frontier]` — rows older than the observed window (never snapshotted) and
+newer than the frontier (normal forward candles) are both excluded. py_compile clean, stale ledger
+deleted again. Net: two diagnostic-only bugs fixed; still zero evidence of any real signal repaint.
+
+---
+
+## 2026-07-14 — Leakage-fix results comparison + RESULTS_INDEX.md correction (Imtiyaz asked, Claude fixed)
+**What:** Imtiyaz asked to keep the honest (post-leak-fix) WFO/backtest results separate from the
+old pre-leak-fix (leak-inflated) ones in one place, and for an opinion on where things stand.
+**Found while doing this:** `backtest/results/RESULTS_INDEX.md` (dated 2026-07-11) still labeled
+W1 (`wfo_part1_prune35`, +444.7R) as **"ADOPTED / BEST"** — stale and actively misleading, since
+the 2026-07-12 leakage audit (`docs/LEAKAGE_AUDIT_20260712.md`) already established that number is
+lookahead-inflated (`in_range_phase` future-candle leak + `corr_imp_ratio` double-leak). Fixed:
+W1's verdict corrected to "RETIRED (leak-inflated)", "Key Observations" #1 corrected to point at
+the real honest baseline, and a correction banner added near the top of the doc.
+**New:** `backtest/results/_LEAKAGE_FIX_COMPARISON/SUMMARY.md` (NEW folder, documentation-only —
+no result CSVs copied/moved) — side-by-side OLD (leak-inflated: W1/W9/W10/W11, B1) vs NEW (honest:
+W12, W13, `volhtfgate_wfo_TEST_A_off`, `leakfix_p1p2p3_backtest_TEST`) with an opinion section.
+**Opinion (full detail in that file):** the honest ~+80-86R/53wk baseline (W13) is real and
+trustworthy, but every honest number currently on disk is missing something (W12/W13 predate the
+P2/P3 fixes; the 12-week `volhtfgate` run is honest+current-feature-set but too short a period;
+the P1P2P3 1-month backtest is too small a sample). The actual next step — `Run_LeakFix_P1P2P3_
+Retrain_WFO_FULL.bat` (53-week, current model) — is already built (2026-07-12) but has not been
+run; that is what would give one clean, fully-current honest 1-year number instead of comparing
+partial/stale ones against each other.
+
+---
+
 ## 2026-07-13 (night) — Training-label TP-cap bug found (Imtiyaz's hypothesis), Fable-5 corrects the causal direction
 **Trigger:** Imtiyaz watched a live ~29pt bearish move (2026-07-13, bar 16:00-17:00, price 4067→4038,
 ADX H1/H4 slope rising = strengthening trend, a separate SMMA trend signal also showing SELL) where

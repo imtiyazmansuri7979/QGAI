@@ -15,6 +15,8 @@ Usage (standalone test):
 MT5 bridge calls get_signal() for each candle.
 """
 
+import hashlib
+import json
 import os
 import numpy as np
 import pandas as pd
@@ -315,11 +317,17 @@ class LiveInferenceEngine:
         # reproduce the exact logged probability because the live model had
         # moved on and the in-progress snapshot wasn't recoverable.
         try:
-            import json as _json
-            _mm = _json.load(open(f"{cfg.models_dir}/model_meta.json", encoding="utf-8"))
+            _mm = json.load(open(f"{cfg.models_dir}/model_meta.json", encoding="utf-8"))
             self.model_version = f"{_mm.get('model_created_at') or _mm.get('timestamp') or '?'}_{_mm.get('data_hash') or '?'}"
         except Exception:
             self.model_version = "unknown"
+        try:
+            _model_path = Path(cfg.models_dir) / "xgb_model.pkl"
+            self.model_file_name = _model_path.name
+            self.model_hash = hashlib.sha256(_model_path.read_bytes()).hexdigest()[:16]
+        except Exception:
+            self.model_file_name = "xgb_model.pkl"
+            self.model_hash = "unknown"
 
         # Load directional BUY/SELL models — optional
         self.xgb_buy  = safe_load(WinProbabilityModel, f"{cfg.models_dir}/buy_model.pkl",  "BUY model")
@@ -1181,9 +1189,24 @@ class LiveInferenceEngine:
 
     def _make_result(self, signal, prob, sl_mult, state_name, reason, feat_dict,
                      state_prob=None, dir_prob=None):
+        try:
+            _snap = {
+                k: (float(v) if isinstance(v, (np.floating, np.integer)) else v)
+                for k, v in sorted((feat_dict or {}).items())
+                if not str(k).startswith("_")
+            }
+            _snap_json = json.dumps(_snap, sort_keys=True, separators=(",", ":"), default=str)
+            _snap_hash = hashlib.sha256(_snap_json.encode("utf-8")).hexdigest()[:16]
+        except Exception:
+            _snap_json = "{}"
+            _snap_hash = "snapshot_error"
         return {
             "signal":       signal,
             "model_version":getattr(self, "model_version", "unknown"),
+            "model_hash":   getattr(self, "model_hash", "unknown"),
+            "model_file_name": getattr(self, "model_file_name", "xgb_model.pkl"),
+            "feature_snapshot_json": _snap_json,
+            "feature_hash": _snap_hash,
             "win_prob":     round(prob, 4),
             "state_prob":   round(state_prob, 4) if state_prob is not None else round(prob, 4),
             "dir_prob":     round(dir_prob, 4)   if dir_prob   is not None else round(prob, 4),

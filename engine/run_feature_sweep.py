@@ -60,7 +60,7 @@ def is_currently_active(feat):
 
 
 BT_RESULTS = ENGINE.parent / "backtest" / "results"
-SWEEP_DIR = BT_RESULTS / "feature_sweep"
+SWEEP_DIR = Path(os.environ.get("QGAI_FEATURE_SWEEP_DIR", str(BT_RESULTS / "feature_sweep")))
 SWEEP_DIR.mkdir(parents=True, exist_ok=True)
 
 # 2026-07-13 (Imtiyaz, root-cause fix after 3 same-day model-loss incidents):
@@ -73,13 +73,12 @@ TEST_WORKSPACE.mkdir(parents=True, exist_ok=True)
 
 PY = sys.executable
 
-# Clean 3-month OOS window, leakage-guard-safe: training data (labeled trades)
-# naturally ends 2026-04-29, so a cutoff of 2026-03-31 with backtest starting
-# 2026-04-01 leaves a full clean 3-month replay with a real margin, not just
-# the bare-minimum 1-day gap the guard requires.
-TRAIN_CUTOFF = "2026-03-31"
-BT_FROM = "2026-04-01"
-BT_TO   = "2026-06-29"
+# Default clean 3-month OOS window. Registry runners may override these via
+# env vars when they need an apples-to-apples confirmation against a different
+# master baseline, e.g. OOS1Y-01 uses 2025-06-28 / 2025-06-29 -> 2026-06-29.
+TRAIN_CUTOFF = os.environ.get("QGAI_SWEEP_TRAIN_CUTOFF", "2026-03-31")
+BT_FROM = os.environ.get("QGAI_SWEEP_FROM", "2026-04-01")
+BT_TO   = os.environ.get("QGAI_SWEEP_TO", "2026-06-29")
 BT_ARGS = ["--from", BT_FROM, "--to", BT_TO, "--equity", "10000",
            "--fixed-lot", "0.01", "--risk", "3", "--ratchet", "auto",
            "--ratchet-buf-pct", "0.15", "--tp-regime", "--tp-equity-pct", "0",
@@ -208,7 +207,7 @@ def _analyze_trades_csv(out_dir):
         import pandas as pd
     except Exception:
         return {}
-    csvs = list(Path(out_dir).glob("backtest_trades*.csv"))
+    csvs = list(Path(out_dir).glob("*backtest_trades*.csv"))
     if not csvs:
         return {}
     try:
@@ -245,6 +244,26 @@ def _analyze_trades_csv(out_dir):
         except Exception:
             pass
     return out
+
+
+def _sweep_result_prefix():
+    return os.environ.get("QGAI_FEATURE_SWEEP_RESULT_ID") or os.environ.get("RESULT_ID") or SWEEP_DIR.name
+
+
+def _prefix_output_csvs(out_dir, label, sort_id=""):
+    """Keep every generated CSV self-identifying even if it is copied out of
+    its folder later. Example:
+    FS67-01_priority_batch_001_ablate_move_4hr_backtest_trades.csv"""
+    prefix = _sweep_result_prefix()
+    safe_label = re.sub(r"[^A-Za-z0-9_.-]+", "_", label)
+    sort_part = f"{sort_id}_" if sort_id else ""
+    for csv_path in Path(out_dir).glob("*.csv"):
+        if csv_path.name.startswith(prefix + "_"):
+            continue
+        target = csv_path.with_name(f"{prefix}_{sort_part}{safe_label}_{csv_path.name}")
+        if target.exists():
+            continue
+        csv_path.rename(target)
 
 
 def _auto_verdict(is_active, delta, breakdown, baseline_trades, baseline_captured_pts=None):
@@ -304,7 +323,7 @@ def _auto_verdict(is_active, delta, breakdown, baseline_trades, baseline_capture
             if cap_delta_pct < -0.10:
                 flags.append(f"captured points DOWN {abs(cap_delta_pct)*100:.0f}% vs baseline "
                              f"({baseline_captured_pts:+.0f} -> {this_captured:+.0f} pts) -- "
-                             f"R improved but the strategy is capturing LESS of the available move")
+                             f"review capture quality; the strategy is capturing LESS of the available move")
         # Fable-5 review (2026-07-13): baseline_trades was accepted but never
         # used -- a "helps"/"drop" verdict driven by a big swing in TRADE
         # COUNT (not just R) isn't apples-to-apples vs the baseline.
@@ -351,7 +370,7 @@ def _auto_verdict(is_active, delta, breakdown, baseline_trades, baseline_capture
     return verdict, reasons
 
 
-def run_one(label, ablate="", unprune=""):
+def run_one(label, ablate="", unprune="", sort_id=""):
     out_dir = SWEEP_DIR / label
     result_json = out_dir / "result.json"
     if result_json.exists():
@@ -386,6 +405,7 @@ def run_one(label, ablate="", unprune=""):
     metrics.update({"label": label, "ablate": ablate, "unprune": unprune,
                      "elapsed_sec": round(time.time() - t0, 1)})
     metrics.update(_analyze_trades_csv(out_dir))
+    _prefix_output_csvs(out_dir, label, sort_id)
     result_json.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
     return metrics
 
@@ -395,9 +415,18 @@ def main():
     ap.add_argument("--tier", choices=list(TIERS.keys()), required=True)
     ap.add_argument("--limit", type=int, default=0,
                      help="only test the first N features this tier (0 = all)")
+    ap.add_argument("--only", default="",
+                    help="comma-separated feature names to run from this tier only")
     args = ap.parse_args()
 
     features = TIERS[args.tier]
+    if args.only.strip():
+        wanted = [f.strip() for f in args.only.split(",") if f.strip()]
+        missing = [f for f in wanted if f not in features]
+        if missing:
+            print(f"--only contains feature(s) not in tier {args.tier}: {', '.join(missing)}")
+            return 1
+        features = wanted
     if args.limit > 0:
         features = features[:args.limit]
 
@@ -421,10 +450,10 @@ def main():
     # changes nothing) would ALSO be recomputed from scratch 4 times, wasting
     # ~30-60 min total across a 3-4 night campaign for zero new information.
     print("\n[baseline] current committed feature set, unchanged...")
-    baseline = run_one("baseline")
+    baseline = run_one("baseline", sort_id="000")
     if baseline is None:
         print("baseline FAILED -- aborting sweep (fix train.py/backtest_replay.py first)")
-        return
+        return 1
     base_r = baseline.get("total_r") or 0.0
     base_trades = baseline.get("trades") or 0
     base_captured = baseline.get("captured_pts")
@@ -438,7 +467,7 @@ def main():
         is_active = is_currently_active(feat)
         label = f"{'ablate' if is_active else 'unprune'}_{feat}"
         print(f"\n[{i}/{len(features)}] {alias_of(feat)} ({'ablate' if is_active else 'unprune'})...")
-        m = run_one(label, ablate=feat if is_active else "", unprune=feat if not is_active else "")
+        m = run_one(label, ablate=feat if is_active else "", unprune=feat if not is_active else "", sort_id=f"{i:03d}")
         if m is None:
             continue
         m["is_active"] = is_active
@@ -464,7 +493,8 @@ def main():
         eta = datetime.fromtimestamp(time.time() + left).strftime("%H:%M")
         print(f"  time {durs[-1]/60:.1f}m | avg {avg/60:.1f}m | ~{left/60:.0f}m remaining | ETA {eta}")
 
-    summary_path = SWEEP_DIR / f"{args.tier}_SUMMARY.csv"
+    summary_prefix = _sweep_result_prefix() if os.environ.get("QGAI_FEATURE_SWEEP_RESULT_ID") or os.environ.get("RESULT_ID") else args.tier
+    summary_path = SWEEP_DIR / f"{summary_prefix}_SUMMARY.csv"
     with open(summary_path, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
         w.writerow(["label", "feature", "alias", "indicator", "mode", "total_r", "trades", "pf", "wr", "dd",
@@ -493,7 +523,8 @@ def main():
     print("\nVerdict legend: CORE_KEEP-equivalent = 'MATTERS'-style active features that hurt when")
     print("removed become DROP_CANDIDATE if flipped; NEEDS_1YEAR_CONFIRMATION = passed the 3-month")
     print("screen with no red flags found -- still needs Stage 2 (1-year) + Stage 3 (WFO) before trusting.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

@@ -8,6 +8,7 @@ Usage:  python chart_data.py [num_bars]   (default 1200)
 import csv
 import io
 import json
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -102,6 +103,30 @@ def _read_signal_csv(path):
     return pd.DataFrame(fixed, columns=header)
 
 
+def _read_signal_db():
+    """Primary immutable signal source for chart markers."""
+    db_path = Path(getattr(CFG.paths, "db_path", LOGS / "qgai.db"))
+    if not db_path.exists():
+        return pd.DataFrame()
+    try:
+        con = sqlite3.connect(str(db_path))
+        df = pd.read_sql_query(
+            """
+            SELECT signal_id, signal_created_at, bar_time, mode, signal, win_prob,
+                   hmm_state, reason, price, trade_action, model_version, feature_hash
+            FROM signals
+            WHERE mode != 'BACKTEST'
+            ORDER BY COALESCE(signal_created_at, bar_time), id
+            """,
+            con,
+        )
+        con.close()
+        return df
+    except Exception as e:
+        print(f"Skipped signal DB source {db_path}: {e}")
+        return pd.DataFrame()
+
+
 def _read_ohlc_source(path):
     df = pd.read_csv(path)
     tcol = "time" if "time" in df.columns else ("datetime" if "datetime" in df.columns else df.columns[0])
@@ -183,14 +208,25 @@ def _ohlc_lag_info(df):
 
 
 def _signal_markers(start_t, end_t):
-    sig = _read_signal_csv(LOGS / "signals_all.csv")
+    sig = _read_signal_db()
+    if sig.empty:
+        sig = _read_signal_csv(LOGS / "signals_all.csv")
     if sig.empty or "bar_time" not in sig.columns:
         return [], [], {"BUY": 0, "SELL": 0, "SKIP": 0}
 
     sig["bar_time"] = pd.to_datetime(sig["bar_time"], errors="coerce")
     sig = sig.dropna(subset=["bar_time"])
     sig = sig[(sig["bar_time"] >= start_t) & (sig["bar_time"] <= end_t)].copy()
-    sig = sig.drop_duplicates(subset=["bar_time", "mode"], keep="last")
+    # Repaint audit 2026-07-14: never collapse historical signal rows by
+    # bar_time+mode. If the same candle was evaluated again later, the old
+    # BUY/SELL marker must remain visible instead of being replaced by the
+    # newest snapshot. New immutable rows carry signal_id/signal_created_at.
+    if "signal_id" in sig.columns:
+        keyed = sig[sig["signal_id"].astype(str).str.len() > 0]
+        unkeyed = sig[sig["signal_id"].astype(str).str.len() == 0]
+        keyed = keyed.drop_duplicates(subset=["signal_id"], keep="first")
+        sig = pd.concat([keyed, unkeyed], ignore_index=True)
+    sig = sig.sort_values(["bar_time"]).reset_index(drop=True)
 
     clean_markers = []
     all_markers = []

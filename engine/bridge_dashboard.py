@@ -266,9 +266,11 @@ def get_signal_history(limit: int = 40) -> list:
         conn = db_conn()
         rows = conn.execute(
             "SELECT bar_time, mode, signal, win_prob, hmm_state, reason, price, "
-            "COALESCE(trade_action, '') "
+            "COALESCE(trade_action, ''), COALESCE(signal_id, ''), "
+            "COALESCE(signal_created_at, bar_time), COALESCE(model_version, ''), "
+            "COALESCE(feature_hash, '') "
             "FROM signals WHERE mode != 'BACKTEST' "
-            "ORDER BY bar_time DESC LIMIT ?", (limit,)).fetchall()
+            "ORDER BY COALESCE(signal_created_at, bar_time) DESC, id DESC LIMIT ?", (limit,)).fetchall()
         conn.close()
         _b = CFG.filters.min_win_prob
         _thr = {"Ranging": round(_b + 0.03, 2), "Trending": round(_b, 2),
@@ -277,7 +279,11 @@ def get_signal_history(limit: int = 40) -> list:
                 "win_prob": r[3], "eff_prob": _thr.get(r[4], round(_b, 2)),
                 "hmm_state": r[4], "reason": r[5] or "",
                 "price": r[6],
-                "trade_action": r[7] or ""}
+                "trade_action": r[7] or "",
+                "signal_id": r[8] or "",
+                "signal_created_at": r[9] or "",
+                "model_version": r[10] or "",
+                "feature_hash": r[11] or ""}
                for r in rows]
         out.reverse()
         return out

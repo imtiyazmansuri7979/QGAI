@@ -3,11 +3,11 @@ bridge_data.py — QUANT GOLD AI v2
 All data persistence: SQLite (primary) + CSV (backup).
 No MT5 calls here — pure data layer.
 """
-import csv, json, os, shutil
+import csv, hashlib, json, os, shutil
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
-from bridge_constants import log, db_conn, CFG
+from bridge_constants import log, db_conn, CFG, SYMBOL
 
 
 # ── Signal logging ────────────────────────────────────────────
@@ -25,6 +25,7 @@ _teq_col_checked = False
 _ta_col_checked = False
 _ta_csv_checked = False
 _mv_col_checked = False
+_signal_schema_checked_paths = set()
 
 
 def _ensure_teq_column(log_path):
@@ -56,10 +57,10 @@ def _ensure_teq_column(log_path):
 
 def _ensure_signal_columns(log_path):
     """Normalize the signal CSV backup schema before appending new rows."""
-    global _teq_col_checked
-    if _teq_col_checked:
+    global _signal_schema_checked_paths
+    if log_path in _signal_schema_checked_paths:
         return
-    _teq_col_checked = True
+    _signal_schema_checked_paths.add(log_path)
     try:
         if not os.path.exists(log_path):
             return
@@ -89,6 +90,15 @@ def _ensure_signal_columns(log_path):
         if "model_version" not in header:
             header.append("model_version")
             changed = True
+        for col in [
+            "signal_id", "signal_created_at", "market_timestamp", "symbol", "timeframe",
+            "decision_threshold", "combined_model_score", "state_model_score",
+            "directional_model_score", "model_hash", "model_file_name", "feature_hash",
+            "decision", "signal_status", "feature_snapshot_json",
+        ]:
+            if col not in header:
+                header.append(col)
+                changed = True
         if not changed:
             return
 
@@ -129,6 +139,37 @@ def log_flow_event(ticket, server_time, amount, kind):
     except Exception as e:
         log.debug(f"log_flow_event failed: {e}")
 
+
+def _signal_audit_fields(bar_time, signal, result, mode):
+    """Build immutable IDs and snapshot metadata for one inference event."""
+    created_at = datetime.now().isoformat(timespec="microseconds")
+    market_ts = str(bar_time)
+    model_version = str(result.get("model_version", "") or "unknown")
+    model_hash = str(result.get("model_hash", "") or "unknown")
+    feature_hash = str(result.get("feature_hash", "") or "")
+    raw_id = f"{SYMBOL}|M15|{market_ts}|{signal}|{mode}|{model_version}|{created_at}|{feature_hash}"
+    digest = hashlib.sha1(raw_id.encode("utf-8")).hexdigest()[:12]
+    safe_ts = market_ts.replace("-", "").replace(":", "").replace(" ", "_")
+    return {
+        "signal_id": f"{SYMBOL}_{safe_ts}_{signal}_{model_version}_{digest}",
+        "signal_created_at": created_at,
+        "market_timestamp": market_ts,
+        "symbol": SYMBOL,
+        "timeframe": "M15",
+        "decision_threshold": round(float(result.get("effective_threshold", CFG.filters.min_win_prob) or 0), 4),
+        "combined_model_score": round(float(result.get("win_prob", 0) or 0), 4),
+        "state_model_score": round(float(result.get("state_prob", 0) or 0), 4),
+        "directional_model_score": round(float(result.get("dir_prob", 0) or 0), 4),
+        "model_version": model_version,
+        "model_hash": model_hash,
+        "model_file_name": str(result.get("model_file_name", "xgb_model.pkl") or "xgb_model.pkl"),
+        "feature_snapshot_json": str(result.get("feature_snapshot_json", "{}") or "{}"),
+        "feature_hash": feature_hash,
+        "decision": signal,
+        "signal_status": "CREATED",
+    }
+
+
 def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
                equity=0.0, trading_equity=None, trade_action=""):
     """
@@ -151,8 +192,8 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
     # 2026-06-23: skip duplicate writes for the same bar+mode (was logging the
     # same M15 bar 2-3x → duplicate rows in signals_all.csv / dashboard log).
     _key = (bt_str, mode)
-    if _key == _last_sig_key:
-        return
+    # Repeated same-candle evaluations are intentionally kept as separate rows
+    # because their feature snapshots/probabilities may differ at live time.
     _last_sig_key = _key
 
     vals = (
@@ -173,6 +214,7 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
     )
 
     model_version = result.get("model_version", "")
+    audit = _signal_audit_fields(bt_str, signal, result, mode)
 
     # Primary: SQLite
     try:
@@ -183,9 +225,28 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
             try:
                 cols = [r[1] for r in conn.execute("PRAGMA table_info(signals)").fetchall()]
                 if cols:  # table exists
-                    if "trade_action" not in cols:
-                        conn.execute("ALTER TABLE signals ADD COLUMN trade_action TEXT DEFAULT ''")
-                        conn.commit()
+                    for _name, _ddl in {
+                        "trade_action": "TEXT DEFAULT ''",
+                        "signal_id": "TEXT",
+                        "signal_created_at": "TEXT",
+                        "market_timestamp": "TEXT",
+                        "symbol": "TEXT",
+                        "timeframe": "TEXT",
+                        "decision_threshold": "REAL",
+                        "combined_model_score": "REAL",
+                        "state_model_score": "REAL",
+                        "directional_model_score": "REAL",
+                        "model_version": "TEXT DEFAULT ''",
+                        "model_hash": "TEXT",
+                        "model_file_name": "TEXT",
+                        "feature_snapshot_json": "TEXT",
+                        "feature_hash": "TEXT",
+                        "decision": "TEXT",
+                        "signal_status": "TEXT",
+                    }.items():
+                        if _name not in cols:
+                            conn.execute(f"ALTER TABLE signals ADD COLUMN {_name} {_ddl}")
+                    conn.commit()
                     _ta_col_checked = True
             except Exception:
                 pass
@@ -200,13 +261,48 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
                     _mv_col_checked = True
             except Exception:
                 pass
+        row = {
+            **audit,
+            "bar_time": bt_str,
+            "mode": mode,
+            "signal": signal,
+            "win_prob": vals[3],
+            "state_prob": vals[4],
+            "dir_prob": vals[5],
+            "big_win_prob": vals[6],
+            "hmm_state": vals[7],
+            "price": vals[8],
+            "lot": vals[9],
+            "sl": vals[10],
+            "tp": vals[11],
+            "atr20_pct": vals[12],
+            "vol_spike": vals[13],
+            "in_range_phase": vals[14],
+            "slot_wr": vals[15],
+            "h4_bull_ob_dist": vals[16],
+            "h4_bear_ob_dist": vals[17],
+            "reason": vals[18],
+            "outcome": "",
+            "trade_action": trade_action,
+        }
         conn.execute("""
-            INSERT OR IGNORE INTO signals
-            (bar_time,mode,signal,win_prob,state_prob,dir_prob,big_win_prob,
+            INSERT INTO signals
+            (signal_id,signal_created_at,market_timestamp,symbol,timeframe,
+             bar_time,mode,signal,win_prob,state_prob,dir_prob,big_win_prob,
              hmm_state,price,lot,sl,tp,atr20_pct,vol_spike,in_range_phase,
-             slot_wr,h4_bull_ob_dist,h4_bear_ob_dist,reason,outcome,trade_action,model_version)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'',?,?)
-        """, vals + (trade_action, model_version))
+             slot_wr,h4_bull_ob_dist,h4_bear_ob_dist,reason,outcome,trade_action,
+             model_version,model_hash,model_file_name,decision_threshold,
+             combined_model_score,state_model_score,directional_model_score,
+             feature_snapshot_json,feature_hash,decision,signal_status)
+            VALUES
+            (:signal_id,:signal_created_at,:market_timestamp,:symbol,:timeframe,
+             :bar_time,:mode,:signal,:win_prob,:state_prob,:dir_prob,:big_win_prob,
+             :hmm_state,:price,:lot,:sl,:tp,:atr20_pct,:vol_spike,:in_range_phase,
+             :slot_wr,:h4_bull_ob_dist,:h4_bear_ob_dist,:reason,:outcome,:trade_action,
+             :model_version,:model_hash,:model_file_name,:decision_threshold,
+             :combined_model_score,:state_model_score,:directional_model_score,
+             :feature_snapshot_json,:feature_hash,:decision,:signal_status)
+        """, row)
         conn.commit()
         conn.close()
     except Exception as e:
@@ -227,9 +323,21 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
                     "dir_prob","big_win_prob","hmm_state","price","lot","sl","tp",
                     "atr20_pct","vol_spike","in_range_phase","slot_wr",
                     "h4_bull_ob_dist","h4_bear_ob_dist","reason","outcome","equity","move",
-                    "trading_equity","trade_action","model_version"
+                    "trading_equity","trade_action","model_version",
+                    "signal_id","signal_created_at","market_timestamp","symbol","timeframe",
+                    "decision_threshold","combined_model_score","state_model_score",
+                    "directional_model_score","model_hash","model_file_name","feature_hash",
+                    "decision","signal_status","feature_snapshot_json"
                 ])
-            w.writerow(list(vals) + ["", round(equity, 2), "", _teq_out, trade_action, model_version])
+            w.writerow(list(vals) + [
+                "", round(equity, 2), "", _teq_out, trade_action, model_version,
+                audit["signal_id"], audit["signal_created_at"], audit["market_timestamp"],
+                audit["symbol"], audit["timeframe"], audit["decision_threshold"],
+                audit["combined_model_score"], audit["state_model_score"],
+                audit["directional_model_score"], audit["model_hash"],
+                audit["model_file_name"], audit["feature_hash"], audit["decision"],
+                audit["signal_status"], audit["feature_snapshot_json"],
+            ])
     except Exception as e:
         log.debug(f"CSV signal log failed: {e}")
 
@@ -237,9 +345,18 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
     try:
         _sc_path = os.path.join(os.path.dirname(str(CFG.paths.signal_log)), "signals_complete.csv")
         if os.path.exists(_sc_path):
+            _ensure_signal_columns(_sc_path)
             _teq_out = round(trading_equity, 2) if trading_equity is not None else ""
             with open(_sc_path, "a", newline="", encoding="utf-8") as f:
-                csv.writer(f).writerow(list(vals) + ["", round(equity, 2), "", _teq_out, trade_action])
+                csv.writer(f).writerow(list(vals) + [
+                    "", round(equity, 2), "", _teq_out, trade_action, model_version,
+                    audit["signal_id"], audit["signal_created_at"], audit["market_timestamp"],
+                    audit["symbol"], audit["timeframe"], audit["decision_threshold"],
+                    audit["combined_model_score"], audit["state_model_score"],
+                    audit["directional_model_score"], audit["model_hash"],
+                    audit["model_file_name"], audit["feature_hash"], audit["decision"],
+                    audit["signal_status"], audit["feature_snapshot_json"],
+                ])
     except Exception:
         pass
 
