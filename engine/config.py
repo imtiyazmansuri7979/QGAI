@@ -258,7 +258,7 @@ class FilterConfig:
     manual_sl_pct            : float = 1.0    # SL distance for the manual leg = this % of price
     manual_target_tp_pct     : float = 2.0    # 2026-06-29 TEST: close/hedge both legs at 2% profit. 0 = off.
     manual_hedge_magic       : int   = 202699  # magic stamped on the bot's hedge orders (to track them)
-    slave_manual_manager_enabled : bool = True  # Also manage magic=0 manual trades on secondary/slave accounts.
+    slave_manual_manager_enabled : bool = False  # 2026-07-15 (Imtiyaz): DISABLED — do NOT manage magic=0 manual trades on secondary/slave accounts (primary manual manager above stays ON). Set True to re-enable.
     slave_manual_manage_interval_sec : float = 5.0  # Throttle slave MT5 reconnect cycles.
     # ── STUCK-TRADE MANUAL-PROTECT (2026-07-01, Imtiyaz) — if the bot's own close keeps
     # failing at the broker (e.g. retcode 10027 AutoTrading-off, caught live 2026-07-01 on

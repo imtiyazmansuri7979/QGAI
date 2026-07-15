@@ -8,6 +8,22 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-15 — Manual-trade manager DISABLED on secondary/slave accounts (Imtiyaz)
+**What:** `config.py` `slave_manual_manager_enabled` **True → False**. The PRIMARY manual-trade
+manager (`manual_manager_enabled`) is UNCHANGED (still True) — this only stops the bridge from
+auto-managing magic=0 (manual) trades on secondary/slave accounts.
+**Effect:** `bridge_multi.manage_secondary_manual_accounts()` already returns early on this flag
+(`bridge_multi.py:338`), so with it False the bridge no longer connects to each slave every ~5s to
+combine/floor/ratchet/TP-manage manual positions there. A manual trade opened on a slave from now on
+gets **NO bot-side protection** (no virtual SL, no 3%-floor auto-close, no ratchet) — it must be
+managed by the operator or the flag re-enabled.
+**Safe to flip now:** verified no slave manual position was open at the time — TradeQuo-001 showed
+`0 open` in the 21:00 account summary (the manual trade opened earlier today was already closed), so
+nothing in-flight got stranded.
+**Takes effect on next bridge restart** (config.py is read once at process start).
+**Reversible:** set `slave_manual_manager_enabled = True`. `config.py` syntax re-checked clean.
+Also logged in `FILTERS_MASTER.md` (status table + §CHANGE LOG).
+
 ## 2026-07-15 — DD-brake fix regressed itself: cross-account contamination corrupted TradeQuo's peak, blocked a real SELL replication (Imtiyaz reported)
 **Symptom:** Imtiyaz noticed the primary fired a SELL (`Trade#3 SELL 17.41 XAUUSD #1598684643`,
 20:45:29) and it replicated to VantageCentLive, but **TradeQuo-001 did not get the SELL at all.**
