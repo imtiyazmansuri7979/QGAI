@@ -271,6 +271,11 @@ class FilterConfig:
     # (default) mirrors YOUR actual risk instead: slave_lot = primary_lot × (slave_eq / primary_eq).
     # sl_dist and contract size cancel out, so it faithfully copies whatever % you chose (1%, 3%, 0.5%).
     manual_copy_mode : str = "proportional"  # "proportional" (mirror your real risk) | "fixed_risk" (always risk_pct)
+    # 2026-07-15 (Imtiyaz): what to do when the proportional lot lands BELOW the broker's volume_min
+    # (0.01) — e.g. a small primary lot on a huge primary vs a small slave. "round_up" = place the
+    # broker minimum anyway (the copy exists, but that slave carries MORE relative risk than the
+    # primary — absolute risk is still small at 0.01 lot). "skip" = don't copy at all on that account.
+    manual_copy_min_lot_action : str = "round_up"  # "round_up" (Imtiyaz's choice) | "skip"
     manual_copy_sl_basis : str = "floor"  # only used by "fixed_risk" mode: "floor" = manual_risk_pct (3% of entry) | "sl" = manual_sl_pct (1%). Ignored in proportional mode (still sets the copy's broker SL/TP levels).
     # ── STUCK-TRADE MANUAL-PROTECT (2026-07-01, Imtiyaz) — if the bot's own close keeps
     # failing at the broker (e.g. retcode 10027 AutoTrading-off, caught live 2026-07-01 on

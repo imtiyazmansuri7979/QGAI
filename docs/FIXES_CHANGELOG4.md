@@ -46,19 +46,23 @@ Fixed by mirroring the real ratio instead:
 `sl_dist` and contract size cancel out of that ratio, so it faithfully copies whatever % he chose
 (1%, 3%, 0.5%…) with no SL bookkeeping. Verified: 10 lot on $1.5M → slave ($5k) gets **0.03 lot**
 (0.9% ≈ his 1%), not the old 0.10 lot (3.0%); and 30 lot on $1.5M → slave correctly gets 0.10 lot
-(3.0%). **Below-minimum guard:** if the ratio rounds under the broker's `volume_min`, the copy is
-**SKIPPED with a warning — never rounded UP to the minimum**, since that would silently over-risk the
-slave. `manual_copy_mode="fixed_risk"` restores the old always-`risk_pct` behaviour if ever wanted.
+(3.0%). **Below-minimum handling (`manual_copy_min_lot_action`, Imtiyaz chose `"round_up"`):** when
+the ratio lands under the broker's `volume_min` (0.01), the copy is placed at the minimum anyway so
+the trade still mirrors — logged loudly, because that slave then carries more *relative* risk than
+the primary (absolute risk at 0.01 lot is still small). `"skip"` is the alternative (no copy at all
+on that account) and is also tested. `manual_copy_mode="fixed_risk"` restores the old
+always-`risk_pct` behaviour if ever wanted.
 `manual_copy_sl_basis` (default `"floor"` = `manual_risk_pct`) now only affects the copy's broker
 SL/TP levels and `fixed_risk` sizing — proportional mode ignores it for lot maths.
 **Verified:** offline test (`scratchpad/test_manual_copy.py`, mocked MT5 — no live terminal, no real
-order) **16/16 PASS**: default-OFF places zero orders; enabled mirrors to both slaves; every copy
+order) **18/18 PASS**: default-OFF places zero orders; enabled mirrors to both slaves; every copy
 carries 202697 and none carries 202600; a slave already holding a copy is skipped (1 order, not 2);
 both-already-mirrored → zero duplicates on restart re-fire; the manual close touches only 222/444
 (copies) and never 111/333 (bot trades); the bot's own close still closes only 111/333 and never the
 copies; **10 lot on a $1.5M primary → slave gets 0.03 lot (0.90%, mirroring the ~1% actually taken)
 and specifically NOT 0.10 lot (3%)**; 30 lot on $1.5M → slave correctly gets 0.10 lot (3.00%); a
-0.5-lot primary → slave ratio 0.00167 < min → skipped, not rounded up; `fixed_risk` mode still works.
+0.5-lot primary → slave ratio 0.00167 < min → rounded up to exactly 0.01 and placed (`round_up`),
+while `skip` mode correctly places nothing; `fixed_risk` mode still works.
 Python syntax clean on all 5 edited files.
 **⚠️ NOT YET LIVE — `manual_copy_to_slaves_enabled = False`.** Places REAL orders on funded accounts.
 DEMO-test first, then set True + restart. Takes effect on bridge restart (config read at start).

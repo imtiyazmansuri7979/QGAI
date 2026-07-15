@@ -276,11 +276,21 @@ def _execute_on_account(acct: dict, direction: str, sl_dist: float, tp_p: int, c
             _raw  = float(primary_lot) * (equity / float(primary_equity))
             lot   = round(math.floor(_raw / _step) * _step, 2) if _step > 0 else round(_raw, 2)
             if lot < _vmin:
-                log.warning(f"  ⏭️ [multi] {name}: proportional copy = {_raw:.4f} lot "
-                            f"(primary {primary_lot} × {equity:.2f}/{float(primary_equity):.2f}) "
-                            f"< broker min {_vmin} — SKIPPING (rounding up would over-risk this account)")
-                mt5.shutdown()
-                return False
+                # Below the broker's minimum tradable size. Imtiyaz's call (2026-07-15):
+                # round UP to the minimum so the copy still happens. Trade-off, logged
+                # loudly: this slave then carries MORE *relative* risk than the primary
+                # (absolute risk at 0.01 lot is still small). "skip" avoids that instead.
+                _min_action = str(getattr(CFG.filters, "manual_copy_min_lot_action", "round_up")).lower()
+                if _min_action == "skip":
+                    log.warning(f"  ⏭️ [multi] {name}: proportional copy = {_raw:.4f} lot "
+                                f"(primary {primary_lot} × {equity:.2f}/{float(primary_equity):.2f}) "
+                                f"< broker min {_vmin} — SKIPPING (manual_copy_min_lot_action=skip)")
+                    mt5.shutdown()
+                    return False
+                log.warning(f"  ⬆️ [multi] {name}: proportional copy = {_raw:.4f} lot < broker min "
+                            f"{_vmin} — rounding UP to {_vmin} (config round_up). NOTE: this account "
+                            f"now carries more RELATIVE risk than the primary.")
+                lot = _vmin
             lot = min(lot, _vmax)
             log.info(f"  📐 [multi] {name}: proportional lot {lot} "
                      f"(primary {primary_lot} lot × {equity:.2f}/{float(primary_equity):.2f} equity ratio)")
