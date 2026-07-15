@@ -42,7 +42,19 @@ echo [3/7] Refreshing shadow ledger...
 "%PY%" shadow_ledger.py
 
 echo [4/7] Rebuilding signal log (all dashboard tabs)...
-"%PY%" build_signal_log.py ..\backtest\results\fullhistory_regime
+set "HIST_SIG_DIR=C:\QGAI\backtest\results\fullhistory_regime"
+if exist "%HIST_SIG_DIR%\backtest_signals*.csv" (
+  "%PY%" build_signal_log.py "%HIST_SIG_DIR%"
+) else (
+  echo   WARNING: full-history signal files are missing in:
+  echo     %HIST_SIG_DIR%
+  if exist "%ENG%\logs\signals_complete.csv" (
+    echo   Keeping existing logs\signals_complete.csv. Dashboard history will NOT be shrunk.
+  ) else (
+    echo   No logs\signals_complete.csv exists yet.
+    echo   Run Start\Rebuild_Dashboard_Signal_History.bat to rebuild display-only history.
+  )
+)
 
 echo [5/7] Starting LIVE trading bridge (own window)...
 start "QGAI Bridge" /min cmd /k "cd /d %ENG% && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& "%PY%" bridge_main.py"

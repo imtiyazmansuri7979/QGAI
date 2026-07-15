@@ -15,8 +15,12 @@ so the dashboard Signal Log reads it directly (no parser change).
 
 Usage:  python build_signal_log.py <backtest_results_folder>
    e.g. python build_signal_log.py ../backtest/results/fullhistory_regime   (regime-TP adopted)
+
+Safety: if the backtest folder has no backtest_signals*.csv and
+logs/signals_complete.csv already exists, this script preserves the existing
+complete history instead of shrinking it to live-only rows.
 """
-import sys, glob
+import sys, glob, os
 import pandas as pd
 from pathlib import Path
 
@@ -40,6 +44,22 @@ def main():
 
     # ── 1) full-history backtest (every bar) ────────────────────────────────
     sig_f = _find(folder, "backtest_signals*.csv")
+    if not sig_f and OUT.exists() and not os.environ.get("QGAI_BUILD_SIGNAL_LOG_ALLOW_LIVE_ONLY"):
+        live_rows = 0
+        if LIVE_LOG.exists():
+            try:
+                live_rows = max(0, sum(1 for _ in LIVE_LOG.open("r", encoding="utf-8", errors="ignore")) - 1)
+            except Exception:
+                live_rows = 0
+        try:
+            existing_rows = max(0, sum(1 for _ in OUT.open("r", encoding="utf-8", errors="ignore")) - 1)
+        except Exception:
+            existing_rows = 0
+        print("WARNING: no backtest_signals*.csv found in:")
+        print(f"  {Path(folder).resolve()}")
+        print(f"Preserving existing {OUT} ({existing_rows:,} rows).")
+        print(f"Live-only rows available: {live_rows:,}. Set QGAI_BUILD_SIGNAL_LOG_ALLOW_LIVE_ONLY=1 to overwrite intentionally.")
+        return
     if sig_f:
         sig = pd.read_csv(sig_f)
         sig["bar_time"] = pd.to_datetime(sig["bar_time"], errors="coerce")
