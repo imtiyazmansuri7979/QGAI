@@ -265,7 +265,13 @@ class FilterConfig:
     # ⚠️ Places REAL orders on funded accounts → DEMO-TEST before enabling. Default OFF.
     manual_copy_to_slaves_enabled : bool = False  # master switch. True = a new manual (magic 0) trade on PRIMARY is mirrored to all secondaries.
     manual_copy_magic  : int = 202697  # magic stamped on the slave copies. MUST differ from MAGIC (202600) — close_secondary_accounts() closes ALL MAGIC positions whenever the BOT closes its own trade, so sharing the magic would wrongly close these manual copies too.
-    manual_copy_sl_basis : str = "floor"  # which distance sizes the slave lot: "floor" = manual_risk_pct (3% of entry — the manual trade's real max-loss point, conservative) | "sl" = manual_sl_pct (1% — 3x bigger lot).
+    # 2026-07-15 (Imtiyaz caught this): "fixed_risk" sizes each slave at the CONFIG risk_pct (3%)
+    # regardless of what you actually risked on the primary — so opening 10 lot on a $1.5M primary
+    # (= 1% risk) would still open 3% on the slave = 3x MORE risk than you took. "proportional"
+    # (default) mirrors YOUR actual risk instead: slave_lot = primary_lot × (slave_eq / primary_eq).
+    # sl_dist and contract size cancel out, so it faithfully copies whatever % you chose (1%, 3%, 0.5%).
+    manual_copy_mode : str = "proportional"  # "proportional" (mirror your real risk) | "fixed_risk" (always risk_pct)
+    manual_copy_sl_basis : str = "floor"  # only used by "fixed_risk" mode: "floor" = manual_risk_pct (3% of entry) | "sl" = manual_sl_pct (1%). Ignored in proportional mode (still sets the copy's broker SL/TP levels).
     # ── STUCK-TRADE MANUAL-PROTECT (2026-07-01, Imtiyaz) — if the bot's own close keeps
     # failing at the broker (e.g. retcode 10027 AutoTrading-off, caught live 2026-07-01 on
     # #1519547791), switch that ONE trade to manual-style protection instead of silently

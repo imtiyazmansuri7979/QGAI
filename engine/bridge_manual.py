@@ -99,12 +99,16 @@ def _close(pos, sym, tag="manual-close"):
     return r
 
 
-def _mirror_open(direction, sl_dist, tp_p):
+def _mirror_open(direction, sl_dist, tp_p, primary_lot=None, primary_equity=None):
     """Mirror a NEW primary manual trade to the secondaries (config-gated, default
-    OFF). Never raises — a mirror failure must not break local management."""
+    OFF). `primary_lot`/`primary_equity` drive proportional sizing — the slave copies
+    mirror the risk ACTUALLY taken here, not a blanket risk_pct. Never raises — a
+    mirror failure must not break local management of the real position."""
     try:
         import bridge_multi
-        bridge_multi.execute_manual_copy_to_secondaries(direction, sl_dist, tp_p)
+        bridge_multi.execute_manual_copy_to_secondaries(
+            direction, sl_dist, tp_p,
+            primary_lot=primary_lot, primary_equity=primary_equity)
     except Exception as e:
         log.warning(f"manual-copy mirror open failed: {e}")
 
@@ -215,9 +219,14 @@ def manage(sym=None, mirror_to_slaves=False):
                 _basis = str(_f("manual_copy_sl_basis", "floor")).lower()
                 _copy_sl_dist = max_dist if _basis == "floor" else (avg_entry * sl_pct)
                 _tp_points = int((avg_entry * tp_pct / 100.0) / (mt5.symbol_info(sym).point or 0.01)) if tp_pct > 0 else 0
+                # Pass THIS account's real net lot (V) + equity so each slave can mirror the
+                # risk actually taken here (proportional mode), instead of a blanket risk_pct.
+                _risk_pct_taken = (V * cs * _copy_sl_dist / eq * 100.0) if eq > 0 else 0.0
                 log.info(f"🔀 [{sym}] NEW manual detected -> mirroring {('BUY' if is_buy else 'SELL')} to slaves "
-                         f"(sl basis={_basis}, dist=${_copy_sl_dist:.2f}, tp={_tp_points}pts)")
-                _mirror_open("BUY" if is_buy else "SELL", _copy_sl_dist, _tp_points)
+                         f"| primary {V} lot @ ${eq:,.0f} eq (~{_risk_pct_taken:.2f}% risk vs {_basis} SL ${_copy_sl_dist:.2f}) "
+                         f"| tp={_tp_points}pts")
+                _mirror_open("BUY" if is_buy else "SELL", _copy_sl_dist, _tp_points,
+                             primary_lot=V, primary_equity=eq)
 
         # ── L13 fix (2026-06-29): line-INDEPENDENT floor breach — enforce the {max_pct} cap even
         # when the ratchet line is unavailable (trend against the position) or already broken. If

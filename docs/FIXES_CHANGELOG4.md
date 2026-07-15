@@ -35,16 +35,31 @@ requested sizing, already proven live by the bot's own replication.
    `st is None` branch re-fires for an ALREADY-mirrored manual trade → would open a DUPLICATE real
    position. Guard: before placing, `_execute_on_account` asks the BROKER (real source of truth, not
    in-memory state) whether that slave already holds a `manual_copy_magic` position, and skips if so.
-**Sizing basis (`manual_copy_sl_basis`, default `"floor"`):** slave lot is sized off the manual
-trade's real max-loss distance (`manual_risk_pct`, 3% of entry) — so a slave risks its own 3% if
-price reaches that floor, a faithful mirror of the primary's risk. `"sl"` instead uses the tighter
-`manual_sl_pct` (1%) → ~3× bigger slave lot.
+**Sizing — PROPORTIONAL (`manual_copy_mode`, default `"proportional"`). Imtiyaz caught a real flaw in
+the first cut of this feature and it was fixed same-day:** the original version sized each slave via
+`calc_lot()`, which applies the CONFIG `risk_pct` (3%) **regardless of what was actually risked on the
+primary**. His example: a $1.5M primary at 3% would be 30 lot, but he typically opens only **10 lot
+(= 1% risk)** — the slave would still have opened its full 3%, i.e. **3× more risk than he took**.
+Fixed by mirroring the real ratio instead:
+> `slave_lot = primary_lot × (slave_equity / primary_equity)`
+
+`sl_dist` and contract size cancel out of that ratio, so it faithfully copies whatever % he chose
+(1%, 3%, 0.5%…) with no SL bookkeeping. Verified: 10 lot on $1.5M → slave ($5k) gets **0.03 lot**
+(0.9% ≈ his 1%), not the old 0.10 lot (3.0%); and 30 lot on $1.5M → slave correctly gets 0.10 lot
+(3.0%). **Below-minimum guard:** if the ratio rounds under the broker's `volume_min`, the copy is
+**SKIPPED with a warning — never rounded UP to the minimum**, since that would silently over-risk the
+slave. `manual_copy_mode="fixed_risk"` restores the old always-`risk_pct` behaviour if ever wanted.
+`manual_copy_sl_basis` (default `"floor"` = `manual_risk_pct`) now only affects the copy's broker
+SL/TP levels and `fixed_risk` sizing — proportional mode ignores it for lot maths.
 **Verified:** offline test (`scratchpad/test_manual_copy.py`, mocked MT5 — no live terminal, no real
-order) **11/11 PASS**: default-OFF places zero orders; enabled mirrors to both slaves; every copy
+order) **16/16 PASS**: default-OFF places zero orders; enabled mirrors to both slaves; every copy
 carries 202697 and none carries 202600; a slave already holding a copy is skipped (1 order, not 2);
 both-already-mirrored → zero duplicates on restart re-fire; the manual close touches only 222/444
-(copies) and never 111/333 (bot trades); and the bot's own close still closes only 111/333 and never
-the copies. Python syntax clean on all 5 edited files.
+(copies) and never 111/333 (bot trades); the bot's own close still closes only 111/333 and never the
+copies; **10 lot on a $1.5M primary → slave gets 0.03 lot (0.90%, mirroring the ~1% actually taken)
+and specifically NOT 0.10 lot (3%)**; 30 lot on $1.5M → slave correctly gets 0.10 lot (3.00%); a
+0.5-lot primary → slave ratio 0.00167 < min → skipped, not rounded up; `fixed_risk` mode still works.
+Python syntax clean on all 5 edited files.
 **⚠️ NOT YET LIVE — `manual_copy_to_slaves_enabled = False`.** Places REAL orders on funded accounts.
 DEMO-test first, then set True + restart. Takes effect on bridge restart (config read at start).
 **Not covered (deliberate, documented):** adding a 2nd manual leg later changes the primary's net

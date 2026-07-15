@@ -165,7 +165,8 @@ def _reconnect_primary():
 
 
 def _execute_on_account(acct: dict, direction: str, sl_dist: float, tp_p: int, comment: str = "QuantEdge AI",
-                        magic: int | None = None, skip_if_open_magic: int | None = None) -> bool:
+                        magic: int | None = None, skip_if_open_magic: int | None = None,
+                        primary_lot: float | None = None, primary_equity: float | None = None) -> bool:
     """
     Connect to a single secondary MT5 account and place a trade.
     sl_dist: SL distance in price units (e.g. $7.50)
@@ -179,6 +180,15 @@ def _execute_on_account(acct: dict, direction: str, sl_dist: float, tp_p: int, c
              restart it re-fires the "new manual trade" branch for an ALREADY-mirrored
              trade — querying the broker (the real source of truth) instead of trusting
              in-memory state is what stops that from opening a DUPLICATE real position.
+    primary_lot / primary_equity: PROPORTIONAL sizing (2026-07-15, Imtiyaz). When both
+             are given, the lot mirrors the risk ACTUALLY taken on the primary:
+                 slave_lot = primary_lot × (slave_equity / primary_equity)
+             instead of blindly applying the configured risk_pct. Imtiyaz's case: 10 lot
+             on a $1.5M primary is 1% risk (3% would be 30 lot) — `calc_lot` would still
+             have opened 3% on the slave, i.e. 3x MORE risk than he took. sl_dist and
+             contract size cancel out of the ratio, so this copies whatever % he chose.
+             If the result rounds below the broker's volume_min the copy is SKIPPED
+             (never rounded UP to the minimum — that would silently over-risk).
     Returns True if trade was sent successfully.
     """
     name = acct.get("name", "Unknown")
@@ -258,7 +268,24 @@ def _execute_on_account(acct: dict, direction: str, sl_dist: float, tp_p: int, c
         # the MT5 connection actually settled on this account before trusting
         # its balance history, instead of assuming "whatever's connected now".
         sl_p = max(100, int(sl_dist / pt))
-        lot  = calc_lot(equity, sl_p, si, account_id=acct.get("login"))
+        if primary_lot is not None and primary_equity and float(primary_equity) > 0:
+            # PROPORTIONAL: mirror the risk actually taken on the primary (see docstring).
+            _step = float(si.volume_step or 0.01)
+            _vmin = float(si.volume_min or 0.01)
+            _vmax = float(si.volume_max or 50.0)
+            _raw  = float(primary_lot) * (equity / float(primary_equity))
+            lot   = round(math.floor(_raw / _step) * _step, 2) if _step > 0 else round(_raw, 2)
+            if lot < _vmin:
+                log.warning(f"  ⏭️ [multi] {name}: proportional copy = {_raw:.4f} lot "
+                            f"(primary {primary_lot} × {equity:.2f}/{float(primary_equity):.2f}) "
+                            f"< broker min {_vmin} — SKIPPING (rounding up would over-risk this account)")
+                mt5.shutdown()
+                return False
+            lot = min(lot, _vmax)
+            log.info(f"  📐 [multi] {name}: proportional lot {lot} "
+                     f"(primary {primary_lot} lot × {equity:.2f}/{float(primary_equity):.2f} equity ratio)")
+        else:
+            lot = calc_lot(equity, sl_p, si, account_id=acct.get("login"))
 
         if direction == "BUY":
             otype      = mt5.ORDER_TYPE_BUY
@@ -367,13 +394,20 @@ def _manual_copy_magic() -> int:
 
 
 def execute_manual_copy_to_secondaries(direction: str, sl_dist: float, tp_p: int,
-                                       comment: str = "QGAI manual-copy") -> None:
+                                       comment: str = "QGAI manual-copy",
+                                       primary_lot: float | None = None,
+                                       primary_equity: float | None = None) -> None:
     """Mirror a NEW primary manual trade to every secondary account.
 
-    Each secondary is sized from its own equity (independent `calc_lot`), stamped
-    with `manual_copy_magic`, and SKIPPED if it already holds a copy (restart /
-    duplicate guard — see `_execute_on_account`). No-op unless enabled.
-    Primary connection is restored on the way out.
+    Sizing (`manual_copy_mode`):
+      * "proportional" (default) — slave_lot = primary_lot × (slave_eq / primary_eq),
+        i.e. mirror the risk Imtiyaz ACTUALLY took on the primary. Requires
+        primary_lot + primary_equity; falls back to fixed_risk if absent.
+      * "fixed_risk" — each slave sized at the configured risk_pct via `calc_lot`,
+        regardless of the primary's actual risk.
+    Every copy is stamped with `manual_copy_magic` and SKIPPED if that account
+    already holds one (restart / duplicate guard — see `_execute_on_account`).
+    No-op unless enabled. Primary connection is restored on the way out.
     """
     if not _manual_copy_enabled():
         return
@@ -389,13 +423,23 @@ def execute_manual_copy_to_secondaries(direction: str, sl_dist: float, tp_p: int
         return
 
     _magic = _manual_copy_magic()
+    _mode = str(getattr(CFG.filters, "manual_copy_mode", "proportional")).lower()
+    _proportional = (_mode == "proportional" and primary_lot is not None
+                     and primary_equity is not None and float(primary_equity) > 0)
+    if _mode == "proportional" and not _proportional:
+        log.warning("[multi] MANUAL-COPY: proportional mode requested but primary lot/equity "
+                    "unavailable — falling back to fixed risk_pct sizing")
+    _desc = (f"proportional to primary's {primary_lot} lot" if _proportional
+             else "fixed risk_pct each")
     log.info(f"🔀 [multi] MANUAL-COPY: mirroring {direction} to {len(secondary)} secondary "
-             f"account(s) (magic {_magic}, each at its own risk %)...")
+             f"account(s) (magic {_magic}, {_desc})...")
     mt5.shutdown()
     try:
         for acct in secondary:
             _execute_on_account(acct, direction, sl_dist, tp_p, comment,
-                                magic=_magic, skip_if_open_magic=_magic)
+                                magic=_magic, skip_if_open_magic=_magic,
+                                primary_lot=(primary_lot if _proportional else None),
+                                primary_equity=(primary_equity if _proportional else None))
     finally:
         _reconnect_primary()
     log.info("🔀 [multi] MANUAL-COPY execution complete")
