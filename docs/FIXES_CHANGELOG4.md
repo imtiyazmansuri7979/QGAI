@@ -8,6 +8,48 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-15 — DD-brake fix regressed itself: cross-account contamination corrupted TradeQuo's peak, blocked a real SELL replication (Imtiyaz reported)
+**Symptom:** Imtiyaz noticed the primary fired a SELL (`Trade#3 SELL 17.41 XAUUSD #1598684643`,
+20:45:29) and it replicated to VantageCentLive, but **TradeQuo-001 did not get the SELL at all.**
+**Trace:** `bridge.log` right after the primary fill: `🛡️ DD brake active: risk scaled ×0.0 (balance
+$5056)` immediately followed by `❌ [multi] TradeQuo-001 order rejected: 10014` (invalid volume —
+×0.0 scale means lot rounds to 0, which MT5 rejects outright). `logs/dd_peak.json` showed TradeQuo's
+peak had jumped from the correct ~$5053 (set earlier the same day, see the entry below) to
+**$9519.88** — but `bridge.log`'s own `TradeQuo-001 connected | balance=...` lines show its balance
+sat at **$5046-5064 the entire day**, never near $9.5k. No real deposit ever happened.
+**Root cause: a regression in THIS SAME DAY's own deposit/withdrawal-aware `dd_brake.py` fix.** That
+fix's `_balance_ops()` reads `mt5.history_deals_get()` from "whichever account MT5 is currently
+connected to" with no verification. This bridge switches its single MT5 connection between the
+primary and each secondary every few seconds (multi-account replication + the secondary manual-trade
+manager) — right after a fresh `mt5.login()`, the terminal's internal history cache does not always
+settle instantly, so `history_deals_get()` can momentarily still reflect a DIFFERENT (likely the much
+larger primary) account's balance deals. One of those got misread as a ~$4466 "deposit" and added to
+TradeQuo's peak, inflating it to $9519.88 against a real ~$5055 equity → computed drawdown ~47% →
+past the 30% halt band → scale ×0.0 → lot 0 → broker rejected the SELL replication outright.
+**Fix (`dd_brake.py`, `bridge_risk.py`, `bridge_multi.py`):** added `_connection_matches(expected_key)`
+— verifies `mt5.account_info().login` actually equals the account being sized for RIGHT NOW before
+trusting any balance-history read; on any mismatch (or error), treats balance ops as empty for that
+cycle instead of risking corruption (fail closed: a missed same-tick adjustment is safe, a wrong one
+is not). `calc_lot()` gained an optional `account_id` param so `bridge_multi._execute_on_account()`
+can pass the login it JUST explicitly logged into, rather than dd_brake guessing from "whatever's
+connected now". Primary's own sizing call (`bridge_core.py`) is unaffected (no `account_id` passed,
+same fallback-to-current-login behavior as before).
+**Immediate mitigation:** reset TradeQuo's peak in `logs/dd_peak.json` back to its real ~$5055.68
+after the bridge restart (had to wait for restart — the OLD buggy code was actively rewriting the
+file every ~20-50s, any reset attempted while it was still running would likely have been
+immediately re-corrupted).
+**Verified:** offline test extended with 3 new assertions (mismatched connection → scale stays 1.0,
+no false brake; peak NOT contaminated by a stray deal; matched connection → a genuine deposit still
+applies correctly) — all 8/8 scenarios PASS. Live, post-restart: `dd_peak.json`'s TradeQuo entry got
+touched again by the running bridge (`updated` timestamp advanced) but `peak_equity` stayed exactly
+5055.68 — no re-corruption. Zero errors in `bridge.log` since restart. No `DD brake active` warning
+since (correctly no longer false-triggering).
+**Lesson:** a same-day live-trading fix needs to be evaluated against this bridge's specific
+rapid-multi-account-switching architecture, not just against isolated unit-test logic — the original
+5-scenario test suite was logically correct but didn't model connection-timing races, which is
+exactly where this one lived. Added scenario 6 to the permanent test file to prevent a silent
+regression.
+
 ## 2026-07-15 — Slave manual-trade vSL never ratcheted (wrong symbol on secondary accounts) (Imtiyaz reported)
 **Symptom:** Imtiyaz added a manual trade on a SECONDARY (slave) account (TradeQuo, symbol
 `XAUUSDs`). `bridge.log` showed the manual manager picking it up every ~5s

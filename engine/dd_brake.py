@@ -56,6 +56,30 @@ def _current_login() -> str:
     return "default"
 
 
+def _connection_matches(expected_key: str) -> bool:
+    """True only if MT5 is VERIFIABLY connected to the account `expected_key`
+    right now. 2026-07-15 fix (Imtiyaz-reported): this bridge switches MT5's
+    single connection between the primary and each secondary account every
+    few seconds (multi-account replication + manual-trade management). Right
+    after a fresh mt5.login() the terminal's internal history cache does not
+    always settle instantly -- `history_deals_get()` can momentarily still
+    reflect the PREVIOUS account. Blindly trusting that once corrupted
+    TradeQuo's peak with what looks like the primary's own large balance
+    deals (peak jumped ~$5053->$9519 with no real deposit -> false 47%
+    "drawdown" -> risk scaled to x0.0 -> a real SELL replication was rejected
+    by the broker, retcode 10014, invalid volume). Fail CLOSED: on any doubt,
+    return False (skip applying balance ops this cycle) rather than risk
+    attributing another account's deals to this one's peak -- a missed
+    same-tick adjustment is safe (caught next genuinely-connected cycle); a
+    wrong one corrupts the peak until manually reset."""
+    try:
+        import MetaTrader5 as mt5
+        info = mt5.account_info()
+        return info is not None and str(info.login) == str(expected_key)
+    except Exception:
+        return False
+
+
 def _load() -> dict:
     if not _STATE.exists():
         return {}
@@ -130,7 +154,9 @@ def risk_scale(current_equity: float, account_id: str | None = None) -> float:
     has_field = "applied_balance_deals" in rec
     applied = set(rec.get("applied_balance_deals", []))
 
-    ops = _balance_ops()                       # [(ticket, profit), ...]
+    # Only trust balance-history if MT5 is verifiably connected to THIS
+    # account right now (see _connection_matches docstring for why).
+    ops = _balance_ops() if _connection_matches(key) else []
 
     if peak <= 0 or not has_field:
         # First establishment OR one-time migration of a pre-existing peak:

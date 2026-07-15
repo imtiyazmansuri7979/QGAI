@@ -232,9 +232,12 @@ def _execute_on_account(acct: dict, direction: str, sl_dist: float, tp_p: int, c
 
         pt = si.point
 
-        # Independent lot sizing from this account's equity
+        # Independent lot sizing from this account's equity. Pass the login we
+        # JUST connected to explicitly (2026-07-15 fix) so dd_brake can verify
+        # the MT5 connection actually settled on this account before trusting
+        # its balance history, instead of assuming "whatever's connected now".
         sl_p = max(100, int(sl_dist / pt))
-        lot  = calc_lot(equity, sl_p, si)
+        lot  = calc_lot(equity, sl_p, si, account_id=acct.get("login"))
 
         if direction == "BUY":
             otype      = mt5.ORDER_TYPE_BUY

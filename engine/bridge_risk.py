@@ -174,11 +174,20 @@ class VirtualTrade:
 
 # ── Lot sizing ────────────────────────────────────────────────
 
-def calc_lot(balance, sl_pts, sym_info=None) -> float:
+def calc_lot(balance, sl_pts, sym_info=None, account_id=None) -> float:
     """
     Risk-based lot size.
     lot = (balance × RISK_PCT%) / sl_pts
     Respects broker min/max/step.
+    `account_id` (optional): the MT5 login this sizing call is FOR. Pass it
+    explicitly when sizing a SECONDARY account (bridge_multi.py, right after
+    logging into it) — 2026-07-15 fix: dd_brake previously trusted "whichever
+    account MT5 happens to be connected to right now" for its balance-history
+    read, which corrupted a secondary's drawdown peak when the terminal's
+    history cache hadn't fully settled after a rapid account switch (this
+    bridge switches MT5 connections every few seconds). Passing the expected
+    login lets dd_brake verify the connection before trusting it, instead of
+    guessing.
     """
     import MetaTrader5 as mt5
     from bridge_constants import SYMBOL   # FIX #18: was hardcoded "XAUUSD.pc"
@@ -198,7 +207,7 @@ def calc_lot(balance, sl_pts, sym_info=None) -> float:
     # Protective only (scale ∈ {1.0, 0.5, 0.25, 0.0}); config-gated default OFF.
     try:
         import dd_brake as _ddb
-        _scale = _ddb.risk_scale(balance)
+        _scale = _ddb.risk_scale(balance, account_id=account_id)
         if _scale < 1.0:
             log.warning(f"  🛡️ DD brake active: risk scaled ×{_scale} (balance ${balance:.0f})")
         raw *= _scale
