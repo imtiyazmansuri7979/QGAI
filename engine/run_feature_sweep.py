@@ -410,6 +410,21 @@ def run_one(label, ablate="", unprune="", sort_id=""):
     return metrics
 
 
+def load_reused_baseline():
+    baseline_json = os.environ.get("QGAI_SWEEP_BASELINE_JSON", "").strip()
+    if not baseline_json:
+        return None
+    path = Path(baseline_json)
+    if not path.exists():
+        raise FileNotFoundError(f"QGAI_SWEEP_BASELINE_JSON not found: {path}")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data.setdefault("label", "baseline")
+    data.setdefault("ablate", "")
+    data.setdefault("unprune", "")
+    data["reused_from"] = str(path)
+    return data
+
+
 def main():
     ap = argparse.ArgumentParser(description="QGAI feature-by-feature validation sweep")
     ap.add_argument("--tier", choices=list(TIERS.keys()), required=True)
@@ -449,11 +464,19 @@ def main():
     # active_23_H4_DI_diff) -- and every tier's own "baseline" run (which
     # changes nothing) would ALSO be recomputed from scratch 4 times, wasting
     # ~30-60 min total across a 3-4 night campaign for zero new information.
-    print("\n[baseline] current committed feature set, unchanged...")
-    baseline = run_one("baseline", sort_id="000")
-    if baseline is None:
-        print("baseline FAILED -- aborting sweep (fix train.py/backtest_replay.py first)")
+    try:
+        baseline = load_reused_baseline()
+    except Exception as e:
+        print(f"baseline reuse FAILED: {e}")
         return 1
+    if baseline is not None:
+        print(f"\n[baseline] REUSED from {baseline.get('reused_from')}")
+    else:
+        print("\n[baseline] current committed feature set, unchanged...")
+        baseline = run_one("baseline", sort_id="000")
+        if baseline is None:
+            print("baseline FAILED -- aborting sweep (fix train.py/backtest_replay.py first)")
+            return 1
     base_r = baseline.get("total_r") or 0.0
     base_trades = baseline.get("trades") or 0
     base_captured = baseline.get("captured_pts")

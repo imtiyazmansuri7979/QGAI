@@ -11,6 +11,7 @@ set "RUN_ID=FS67-02"
 set "RESULT_ID=FS67-02_tier1_active"
 set "QGAI_FEATURE_SWEEP_DIR=C:\QGAI\backtest\results\feature_sweep_67\%RESULT_ID%"
 set "QGAI_FEATURE_SWEEP_RESULT_ID=%RESULT_ID%"
+set "QGAI_SWEEP_BASELINE_JSON=C:\QGAI\backtest\results\feature_sweep_67\FS67-01_priority_batch\baseline\result.json"
 
 cd /d "%ROOT%\engine"
 
@@ -19,6 +20,8 @@ echo   %RUN_ID% - 67 FEATURE SWEEP - TIER 1 ACTIVE
 echo ------------------------------------------------------------
 echo   Result folder:
 echo   %QGAI_FEATURE_SWEEP_DIR%
+echo   Reuse baseline:
+echo   %QGAI_SWEEP_BASELINE_JSON%
 echo   Live model is NOT touched.
 echo ============================================================
 

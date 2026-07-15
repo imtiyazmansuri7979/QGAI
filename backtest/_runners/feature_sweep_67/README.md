@@ -40,6 +40,13 @@ This runs all stages in order and stops if any stage fails.
 `FS67-01` to `FS67-04` are 3-month clean OOS screening tests only.
 They use a local 3-month baseline.
 
+Baseline reuse rule:
+
+- `FS67-01` creates the 3-month baseline.
+- `FS67-02`, `FS67-03`, and `FS67-04` reuse:
+  `C:\QGAI\backtest\results\feature_sweep_67\FS67-01_priority_batch\baseline\result.json`
+- If that baseline file is missing, run `FS67-01` first.
+
 `FS67-11` is the OOS1Y confirmation runner for the priority batch. It uses
 the same train cutoff and backtest window as `OOS1Y-01`:
 
