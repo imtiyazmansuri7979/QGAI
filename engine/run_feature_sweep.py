@@ -492,7 +492,8 @@ def main():
         print(f"\n[{i}/{len(features)}] {alias_of(feat)} ({'ablate' if is_active else 'unprune'})...")
         m = run_one(label, ablate=feat if is_active else "", unprune=feat if not is_active else "", sort_id=f"{i:03d}")
         if m is None:
-            continue
+            print(f"\nABORTING sweep: {label} failed. Fix the error above, then rerun; cached completed features will be reused.")
+            return 1
         m["is_active"] = is_active
         results.append(m)
         delta = (m.get("total_r") or 0.0) - base_r
