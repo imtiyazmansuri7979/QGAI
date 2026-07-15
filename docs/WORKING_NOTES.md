@@ -1,11 +1,66 @@
 # QGAI — Working Notes (where we are right now)
 
-**Updated:** 2026-07-08 · **Use:** live status / handoff. If the session breaks or
+**Updated:** 2026-07-15 · **Use:** live status / handoff. If the session breaks or
 Imtiyaz picks up, start HERE, then RULEBOOK.md → SYSTEM_OVERVIEW.md → FIXES_CHANGELOG.
 
 ---
 
-## ▶ CURRENT STATE (2026-07-07 — major session; full detail → FIXES_CHANGELOG4.md + TASKS.md)
+## ▶ HANDOFF (2026-07-15 — Imtiyaz off 3-4 days, Anisa continuing; full detail → FIXES_CHANGELOG4.md + TASKS.md)
+
+**Live bridge restarted twice today (18:03, then again after the ratchet fix) — both restarts clean,
+0 errors.** Primary #25334572 running an open BUY #1597157066 (25.24 lot, big profit, trailing).
+Secondary TradeQuo-001 has a manual trade (0.04 lot XAUUSDs, avg 4048.37) — now protected by BOTH a
+3%-floor virtual SL AND a live-ratcheting vSL (confirmed trailing to 4020.09 after the fix below).
+
+**Two live-trading safety fixes shipped + verified working today (both need watching over the next
+few days, not just a one-time check):**
+1. **DD brake now deposit/withdrawal-aware** (`dd_brake.py`) — was reading a **$814 withdrawal** on
+   TradeQuo as 14.7% "drawdown" and wrongly halving its risk (lot 0.04 vs Vantage's 0.05 on a bigger
+   account). Fixed: withdrawals/deposits now shift the tracked peak instead of being read as
+   trading loss. **Watch for:** if ANY account has a deposit/withdrawal in the next few days, check
+   `bridge.log` for `DD brake active` right after — it should NOT fire unless there's a real trading
+   loss. If it fires wrongly again, this fix has a bug and needs a second look.
+2. **Slave manual-trade vSL now ratchets on ITS OWN symbol** (`bridge_ratchet.py` + `bridge_manual.py`)
+   — previously a secondary account whose symbol differs from primary (e.g. `XAUUSDs` vs `XAUUSD`)
+   never got its vSL trailed (`copy_rates failed — no state` every cycle, silently), so a slave manual
+   trade only had the wide 3%-floor protecting it, not real profit-locking. **Watch for:** `bridge.log`
+   should show `🔼 [XAUUSDs] COMBINED vSL ratchet -> ...` periodically while any slave manual trade is
+   open. If that stops appearing and `copy_rates failed` comes back, the fix regressed.
+
+**Dashboard UI polish also shipped today** (border consistency, SIGNAL/SIGNAL LOG equal-height,
+AutoTrading-off proactive banner, a couple of real orphaned-CSS/stale-localStorage-layout bugs found
+along the way) — cosmetic, no trading-logic risk. Full list: `FIXES_CHANGELOG4.md` 2026-07-15 entries.
+Commit `674aa48`, pushed to `origin/main`.
+
+**⏳ NEXT (in priority order):**
+1. **67-feature validation sweep — FS67-02 (Tier1 Active) needs re-running.** It failed TWICE today
+   (08:52 and 16:32) with `TRAINING LOCKED` — root cause: `train.py`'s lock file
+   (`data/models/.training_lock`) is **shared across ALL sweep runners AND the live retrain**, not
+   scoped per test_workspace. **Before re-running FS67-02, confirm nothing else is training** (check
+   Task Manager for a live python.exe running `train.py`, or check `data/models/.training_lock`'s
+   age). Runner: `backtest/_runners/feature_sweep_67/FS67-02_RUN_Tier1_Active.bat` (baseline already
+   built by FS67-01, reused — don't need to rerun that part).
+2. **FS67-03 (Tier2) and FS67-04 (Tier3) — not started yet.** Same lock caveat applies; run them
+   one at a time, never overlapping with each other or with FS67-02.
+3. **Real finding from today, for context:** FS67-01's 3-month screen flagged `h4_support_dist`
+   (Order Block H4) as promising (+8.1R) — but the proper 1-year OOS confirmation (FS67-12, done
+   today) reversed that: **-15.3R, CONFIRMED_DROPPED.** Good validation that the 3-stage gate
+   (3-month screen → 1-year confirm → WFO) catches false positives — keep applying it to whatever
+   FS67-02/03/04 flag as promising, don't trust a 3-month screen alone.
+4. **win_prob calibration diagnostic** (`Run_WinProbCalibration_TEST.bat`) — built and ready, but per
+   the task note this needs **Imtiyaz to run it on his own PC** — not run yet.
+5. Older leakage-guard follow-up items (re-running ~30 in-sample-contaminated 07-12 result folders,
+   re-validating the committed B3-only prune) are still open — lower priority than the above, see
+   `TASKS.md` "🟡 બાકી (leakage-guard follow-up, added 2026-07-13)".
+
+**⛔ STANDING RULE (still in force):** never change a risk/trading/config setting without confirming
+first — this was learned the hard way in an earlier session (see the 2026-07-07 entry below) and
+was followed carefully today (TradeQuo full-risk change, dd_brake code fix, ratchet symbol fix — all
+confirmed with Imtiyaz before touching live code).
+
+---
+
+## ▶ PRIOR STEP (2026-07-07 — major session; full detail → FIXES_CHANGELOG4.md + TASKS.md)
 
 **Live bridge restarted 17:38 with today's changes. Open bot trade #1550707233 BUY 11.34lot
 @4149.25, big profit (~+$16k on $1.1M demo), vSL 4122.79 trailing — vSL persist restored it on

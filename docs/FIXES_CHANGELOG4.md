@@ -1096,6 +1096,35 @@ on every non-core-only retrain. Moved the computation up to right after the trai
 tier bat was handed off — exactly the "test small first" pattern this project already follows for a
 reason. Verified fixed with a second real sanity run.
 
+## 2026-07-13 — Feature-sweep redesigned around a permanent registry system (Imtiyaz's detailed spec)
+**Retroactive changelog entry (added 2026-07-15):** this change was recorded in `docs/TASKS.md` at
+the time but never got its own `FIXES_CHANGELOG4.md` entry, against this project's own rule that
+every change goes into both. Backfilled after the gap was noticed while investigating today's
+feature-sweep runs.
+**What changed:** `engine/run_feature_sweep.py` (built same day, entry above) was redesigned around
+Imtiyaz's exact priority plan. It now supports **permanent registry folders** — every runner gets a
+stable `FS67-NN` ID that appears in the `.bat` filename, the result folder name, the summary CSV,
+and every per-feature trade/signal CSV — plus cutoff/window overrides and baseline reuse via a new
+`QGAI_SWEEP_BASELINE_JSON` env var (so tiers 2-4 don't re-train the same 3-month baseline tier 1
+already built).
+**New layout:** organized runners moved to `backtest/_runners/feature_sweep_67/`; organized results
+to `backtest/results/feature_sweep_67/` (registry table + baseline-reuse rule documented in that
+folder's own `README.md`). Screening runners: `FS67-01_RUN_PriorityBatch.bat` → `FS67-01_priority_batch`
+(creates the 3-month baseline); `FS67-02_RUN_Tier1_Active.bat`, `FS67-03_RUN_Tier2_HighProbability.bat`,
+`FS67-04_RUN_Tier3_Remaining.bat` (all reuse `FS67-01_priority_batch/baseline/result.json`, never
+re-run baseline). OOS1Y confirmation runner: `FS67-11_RUN_PriorityBatch_OOS1YConfirm.bat` →
+`FS67-11_priority_batch_oos1y_confirm`, matched to `OOS1Y-01`'s exact cutoff/window
+(`2025-06-28` train cutoff, `2025-06-29 → 2026-06-29` backtest). Priority-batch feature list:
+`h4_support_dist, h1_resist_dist, move_2hr, ts_line_dist_pct, tick_volume, H4_DI_diff,
+h4_adx_slope, move_4hr, momentum_aligned_2hr, h1_support_dist`. Optional all-in-one:
+`FS67-00_RUN_ALL.bat`. Each feature auto-routes to ablate (active feature) or unprune (dropped
+feature) mode and computes BUY/SELL split, regime split, week-consistency, capture-efficiency, and
+a verdict string.
+**Decision flow this enables:** FS67-0N quick 3-month screen → FS67-1N OOS1Y confirm for any
+promising candidate → WFO before live adoption. (First real use of this flow, 2026-07-15:
+`h4_support_dist` passed the 3-month screen at +8.1R but was `CONFIRMED_DROPPED` at -15.3R on the
+1-year OOS1Y confirm — exactly the failure mode this staged design exists to catch.)
+
 ## 2026-07-13 — BUY-signal audit fixes: model-version logging + Volatile counter-HTF gate (candidate, WFO pending)
 **Context:** root-cause audit of the 2026-07-13 04:30 BUY signal (see earlier entry / artifact) plus a
 Fable-5 second opinion produced two concrete, testable findings. Both implemented as reversible,
