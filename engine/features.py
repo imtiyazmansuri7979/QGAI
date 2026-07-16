@@ -489,100 +489,13 @@ def get_range_features(t: pd.Timestamp, h4_df: pd.DataFrame) -> dict:
 
 
 
-def build_trend_ratio_table(ohlc_df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Builds H4 swing table with correction/impulse ratio.
-    correction_impulse_ratio > 2.0 = Strong trend
-    correction_impulse_ratio < 1.5 = Weak/choppy
-    """
-    ohlc_df = ohlc_df.copy()
-    ohlc_df["h4_group"] = ohlc_df["datetime"].dt.floor("4h")
-    h4 = ohlc_df.groupby("h4_group").agg(
-        open  = ("open",  "first"),
-        high  = ("high",  "max"),
-        low   = ("low",   "min"),
-        close = ("close", "last"),
-    ).reset_index()
-    h4.rename(columns={"h4_group": "datetime"}, inplace=True)
-
-    # Find swing highs and lows (n=3)
-    n = 3
-    swing_list = []
-    for i in range(n, len(h4) - n):
-        is_high = all(h4["high"].iloc[i] > h4["high"].iloc[i-j] for j in range(1,n+1)) and                   all(h4["high"].iloc[i] > h4["high"].iloc[i+j] for j in range(1,n+1))
-        is_low  = all(h4["low"].iloc[i]  < h4["low"].iloc[i-j]  for j in range(1,n+1)) and                   all(h4["low"].iloc[i]  < h4["low"].iloc[i+j]  for j in range(1,n+1))
-        if is_high:
-            swing_list.append({"idx": i, "datetime": h4["datetime"].iloc[i],
-                               "price": h4["high"].iloc[i], "type": "HIGH"})
-        elif is_low:
-            swing_list.append({"idx": i, "datetime": h4["datetime"].iloc[i],
-                               "price": h4["low"].iloc[i], "type": "LOW"})
-
-    if not swing_list:
-        h4["corr_imp_ratio"] = 1.0
-        return h4[["datetime","corr_imp_ratio"]].reset_index(drop=True)
-    swings = pd.DataFrame(swing_list).sort_values("idx").reset_index(drop=True)
-
-    # Compute recent ratio for each H4 candle
-    h4["corr_imp_ratio"] = 1.0
-
-    # For each swing pair compute ratio
-    ratios = []
-    for i in range(1, len(swings)):
-        prev = swings.iloc[i-1]
-        curr = swings.iloc[i]
-        candles = curr["idx"] - prev["idx"]
-        move    = abs(curr["price"] - prev["price"]) / prev["price"] * 100
-        if move < 0.3 or candles < 2:
-            continue
-        ratios.append({
-            "start_idx": prev["idx"],
-            "end_idx":   curr["idx"],
-            "candles":   candles,
-            "direction": "UP" if curr["type"]=="HIGH" else "DOWN",
-        })
-
-    # Compute rolling ratio: last UP candles / last DOWN candles
-    ratio_records = []
-    for i in range(len(ratios) - 1):
-        curr_leg = ratios[i]
-        next_leg = ratios[i+1]
-        if curr_leg["direction"] == "DOWN" and next_leg["direction"] == "UP":
-            ratio = next_leg["candles"] / (curr_leg["candles"] + 1e-9)
-            ratio_records.append({
-                "h4_idx": next_leg["end_idx"],
-                "ratio":  round(ratio, 2),
-            })
-        elif curr_leg["direction"] == "UP" and next_leg["direction"] == "DOWN":
-            ratio = curr_leg["candles"] / (next_leg["candles"] + 1e-9)
-            ratio_records.append({
-                "h4_idx": next_leg["end_idx"],
-                "ratio":  round(ratio, 2),
-            })
-
-    # Assign ratio to h4 rows
-    for rec in ratio_records:
-        idx = rec["h4_idx"]
-        if idx < len(h4):
-            h4.at[idx, "corr_imp_ratio"] = rec["ratio"]
-
-    # Forward fill ratio
-    h4["corr_imp_ratio"]  = h4["corr_imp_ratio"].replace(1.0, np.nan).ffill().fillna(1.0)
-
-    return h4[["datetime","corr_imp_ratio"]].reset_index(drop=True)
-
-
-def get_trend_ratio_features(t: pd.Timestamp, ratio_df: pd.DataFrame) -> dict:
-    """Get trend ratio features for timestamp t."""
-    _t64  = t.to_datetime64() if hasattr(t, 'to_datetime64') else np.datetime64(t)
-    _idx  = int(np.searchsorted(ratio_df['datetime'].values, _t64, side='right'))
-    past  = ratio_df.iloc[:_idx]
-    if len(past) == 0:
-        return {"corr_imp_ratio": 1.0}
-    row = past.iloc[-1]
-    return {
-        "corr_imp_ratio":  round(float(row["corr_imp_ratio"]), 2),
-    }
+# `build_trend_ratio_table()` / `get_trend_ratio_features()` (the only computation of
+# `corr_imp_ratio`) were DELETED 2026-07-16 — the feature has been pruned from the model
+# (`_MANUAL_PRUNE`) since 2026-07-12 due to a confirmed double lookahead (swing detection
+# read 3 future H4 candles), and an honest fix was judged not worth building (would yield a
+# 16h-stale near-useless value). `compute_features()` below now sets a constant
+# `corr_imp_ratio=1.0` directly instead of computing the real (leaky) value. See
+# `docs/LEAKAGE_AUDIT_20260712.md` and `FIXES_CHANGELOG4.md` 2026-07-16 for the full history.
 
 # ─────────────────────────────────────────────
 # COMPUTE 54 FEATURES (46 + 5 range-bound + 3 trend-ratio)
@@ -597,7 +510,7 @@ def _safe_int(val, default=0):
     except (TypeError, ValueError):
         return default
 
-def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table=None, h4_df=None, ratio_df=None, h1_ob=None, h4_ob_df=None):
+def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table=None, h4_df=None, h1_ob=None, h4_ob_df=None):
     f = {}
     slot_tbl = slot_table or SLOT_WIN_RATE
     hour     = t.hour
@@ -936,12 +849,8 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
               "h4_move_pct":0.0,"cum3_move_pct":0.0}
     f.update(rb)
 
-    # ── GROUP 8: TREND RATIO (3) ──
-    if ratio_df is not None:
-        tr = get_trend_ratio_features(t, ratio_df)
-    else:
-        tr = {"corr_imp_ratio": 1.0}
-    f.update(tr)
+    # ── GROUP 8: TREND RATIO (3) ── constant since 2026-07-16 (see note above compute_features)
+    f["corr_imp_ratio"] = 1.0
 
     # ── GROUP 9: ORDER BLOCK (3) ──
     if h1_ob is not None and h4_ob_df is not None:
@@ -1188,7 +1097,7 @@ FEATURE_ALIASES = {
     # feature_name:          (alias, indicator)
     # TIMING
     "15_min_slot":           ("time_15min_slot",          "Clock"),
-    "slot_win_rate":         ("time_hourly_winrate",      "Historical WR"),
+    "slot_win_rate":         ("time_1hr_winrate",         "Historical WR"),
     "slot_cos":              ("time_cyclical_encoding",   "Clock (cosine)"),
     "day_of_week":           ("time_weekday",             "Calendar"),
     # ORDER BLOCK / S-R
@@ -1385,7 +1294,7 @@ FEATURE_COLS = [
 ]
 
 
-def build_feature_matrix(trades_df, ohlc_df, adx_df, news_df, slot_table, h4_df=None, ratio_df=None, h1_ob=None, h4_ob_df=None):
+def build_feature_matrix(trades_df, ohlc_df, adx_df, news_df, slot_table, h4_df=None, h1_ob=None, h4_ob_df=None):
     rows  = []
     total = len(trades_df)
     for i, (_, trade) in enumerate(trades_df.iterrows()):
@@ -1400,7 +1309,6 @@ def build_feature_matrix(trades_df, ohlc_df, adx_df, news_df, slot_table, h4_df=
             news_df    = news_df,
             slot_table = slot_table,
             h4_df      = h4_df,
-            ratio_df   = ratio_df,
             h1_ob      = h1_ob,
             h4_ob_df   = h4_ob_df,
         )
@@ -1534,12 +1442,19 @@ _ZERO_IMP = {
 # after retrain; if it drops, remove a name from this set to restore it.
 _MANUAL_PRUNE = {
     "corr_imp_ratio",          # DROPPED 2026-07-12 (P1, leakage audit): confirmed DOUBLE leak
-                               # — swing detection reads 3 FUTURE H4 candles (build_trend_ratio_table
-                               # iloc[i+j]) + availability gate stamps the ratio ~16h too early.
-                               # Low importance (rank #28, 0.022; AUC -0.014) & redundant with honest
-                               # ts_trend_h4 / h4_ADX / in_range_phase. Gating it honestly would only
-                               # yield a 16h-stale near-useless value, so DROP not fix. WFO-gated vs
-                               # ~+80R honest baseline. REVERT: comment this line + retrain.
+                               # — swing detection read 3 FUTURE H4 candles + availability gate
+                               # stamped the ratio ~16h too early. Low importance (rank #28, 0.022;
+                               # AUC -0.014) & redundant with honest ts_trend_h4 / h4_ADX /
+                               # in_range_phase. Gating it honestly would only yield a 16h-stale
+                               # near-useless value, so DROP not fix.
+                               # ⚠️ 2026-07-16: the computation itself (`build_trend_ratio_table` /
+                               # `get_trend_ratio_features`) was DELETED from this file — this key
+                               # is now ALWAYS a hardcoded 1.0 in compute_features(), the leak no
+                               # longer exists anywhere in code. `QGAI_UNPRUNE=corr_imp_ratio` is now
+                               # a pure no-op (nothing computes a real value to unprune). Also removed
+                               # from `run_feature_sweep.py`'s HIGH_PROB_TIER test list for the same
+                               # reason. REVERT: restore both deleted functions from git history
+                               # (search this file's git log for 2026-07-16) before uncommenting.
     "h1_in_ob_zone", "last_3star_dev_sign", "ts_trend_h1", "is_post_big_move",
     "session_score", "ts_adx_switch_trend", "move_2hr", "move_8hr",
     # round 2 — only useful in the main model (0.0158/0.0174), zero in BUY/SELL:

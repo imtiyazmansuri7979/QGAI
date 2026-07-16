@@ -510,7 +510,12 @@ def manage_secondary_manual_accounts():
     if not secondary:
         return
 
-    touched = False
+    # 2026-07-16 bug fix: previously only reconnected the primary if `touched`
+    # (i.e. at least one secondary succeeded) ever became True. If EVERY
+    # secondary failed initialize/login, the primary connection killed by
+    # `mt5.shutdown()` just above stayed dead for the rest of the session —
+    # no ticks, no position monitoring, no vSL exits — until some other code
+    # path happened to reconnect it. Reconnect unconditionally instead.
     mt5.shutdown()
     for acct in secondary:
         name = acct.get("name", "Unknown")
@@ -532,17 +537,15 @@ def manage_secondary_manual_accounts():
             if manual_count:
                 log.info(f"  [multi-manual] {name}: managing {manual_count} manual position(s) on {acct_symbol}")
             bridge_manual.manage(acct_symbol)
-            touched = True
         except Exception as e:
             log.error(f"  [multi-manual] {name} exception: {e}", exc_info=True)
         finally:
             mt5.shutdown()
 
-    if touched:
-        _reconnect_primary()
+    _reconnect_primary()
 
 
-def close_secondary_accounts(magic: int | None = None, label: str = "QGAI"):
+def close_secondary_accounts(magic: int | None = None, label: str = "QGAI") -> dict:
     """
     Close all open positions with `magic` on every secondary account.
     Called whenever the primary closes a trade (vSL, TP, flip, smart exit).
@@ -550,32 +553,43 @@ def close_secondary_accounts(magic: int | None = None, label: str = "QGAI"):
     `magic`: None = MAGIC (the bot's own trades — unchanged default behaviour).
     2026-07-15: the manual-copy path passes `manual_copy_magic` so it closes ONLY
     the manual copies and never the bot's own secondary trades (and vice-versa).
+
+    Returns a summary dict (2026-07-15, for dashboard trade-close confirmation):
+        {"all_flat": bool, "accounts": {name: {"closed": n, "failed": n, "remaining_open": n}}}
+    `all_flat` is True only if every configured secondary ended the call with
+    zero open `magic` positions remaining (verified by re-querying right before
+    disconnecting from that account, not assumed from the close order's result).
     """
     _magic = MAGIC if magic is None else int(magic)
+    summary: dict = {"all_flat": True, "accounts": {}}
     try:
         import config_mt5 as _c
         accounts = getattr(_c, "MT5_ACCOUNTS", [])
     except ImportError:
-        return
+        return summary
 
     secondary = accounts[1:]
     if not secondary:
-        return
+        return summary
 
     log.info(f"🔀 [multi] Closing secondary accounts ({label}, magic {_magic})...")
     mt5.shutdown()
 
     for acct in secondary:
         name = acct.get("name", "Unknown")
+        acct_result = {"closed": 0, "failed": 0, "remaining_open": 0}
+        summary["accounts"][name] = acct_result
         if not acct.get("login"):
             continue
         try:
             if not mt5.initialize(path=acct["path"]):
                 log.error(f"  ❌ [multi] {name} initialize failed: {mt5.last_error()}")
+                summary["all_flat"] = False
                 continue
             if not mt5.login(acct["login"], password=acct["pass"], server=acct["server"]):
                 log.error(f"  ❌ [multi] {name} login failed: {mt5.last_error()}")
                 mt5.shutdown()
+                summary["all_flat"] = False
                 continue
 
             acct_symbol = acct.get("symbol", SYMBOL)
@@ -591,6 +605,7 @@ def close_secondary_accounts(magic: int | None = None, label: str = "QGAI"):
                 tick = mt5.symbol_info_tick(acct_symbol)
                 if not tick:
                     log.error(f"  ❌ [multi] {name} no tick for {acct_symbol}")
+                    acct_result["failed"] += 1
                     continue
                 close_type = mt5.ORDER_TYPE_SELL if pos.type == 0 else mt5.ORDER_TYPE_BUY
                 price      = tick.bid if pos.type == 0 else tick.ask
@@ -616,17 +631,30 @@ def close_secondary_accounts(magic: int | None = None, label: str = "QGAI"):
 
                 if r and r.retcode == mt5.TRADE_RETCODE_DONE:
                     log.info(f"  ✅ [multi] {name} #{pos.ticket} closed @ {price:.2f}")
+                    acct_result["closed"] += 1
                 else:
                     err = r.retcode if r else mt5.last_error()
                     log.error(f"  ❌ [multi] {name} #{pos.ticket} close failed: {err}")
+                    acct_result["failed"] += 1
+
+            # Re-verify against the broker (not the send-result) before moving on —
+            # a "DONE" retcode plus a slow terminal position-cache refresh could
+            # still show a stale open position if we trusted the order result alone.
+            remaining = [p for p in (mt5.positions_get(symbol=acct_symbol) or []) if p.magic == _magic]
+            acct_result["remaining_open"] = len(remaining)
+            if remaining:
+                summary["all_flat"] = False
+                log.warning(f"  ⚠️ [multi] {name}: {len(remaining)} {label} position(s) STILL open after close attempt")
 
         except Exception as e:
             log.error(f"  ❌ [multi] {name} close exception: {e}", exc_info=True)
+            summary["all_flat"] = False
         finally:
             mt5.shutdown()
 
     _reconnect_primary()
-    log.info("🔀 [multi] Secondary close complete")
+    log.info(f"🔀 [multi] Secondary close complete — all_flat={summary['all_flat']}")
+    return summary
 
 
 def log_all_accounts():

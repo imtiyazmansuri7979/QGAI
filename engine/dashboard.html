@@ -15,11 +15,31 @@
   --purple:#bf00ff;--orange:#ff8800;--text:#c8f0ff;--dim:#1e4a6a;
   --mono:'Arial',sans-serif;
   --orb:'Arial',sans-serif;
+  /* 2026-07-16 (Fable-5 border audit) — standardized border token set.
+     Rule: ONE mechanism per edge — `border` for the line itself,
+     `box-shadow` only for an OUTER glow (never an inset ring stacked on
+     top of a border), `outline` only for :focus-visible. Mixing these on
+     the same edge is what caused the "some panels thick, some thin"
+     inconsistency this token set fixes. */
+  --bw:1px;                              /* universal panel/cell border width */
+  --bw-accent:3px;                       /* left/top color accent bars — dominant existing value */
+  --border-soft:rgba(13,37,53,.6);       /* row separators (.trow, .hist-table td, .setting-row, .replay-row) */
+  --border-glow:rgba(0,212,255,.18);     /* cyan-tinted edge — replaces the old outline hack */
+  --border-glow-hover:rgba(0,255,238,.34);
+  --border-track:#07131f;                /* ticker/progress track edge */
+  --panel-glow:0 0 10px rgba(0,212,255,.035); /* outer glow only, no inset ring */
 }
 /* ── COLOUR THEMES (2026-07-02 Divyesh) — dark = default (:root). Switch via header selector. ── */
 body.theme-light{--bg:#eef2f8;--panel:#ffffff;--panel2:#f3f6fc;--border:#d3dcea;--text:#16202e;--dim:#8397ad;--gold:#b58500;--green:#00a860;--red:#e01e5a;--blue:#2f6fed;--cyan:#0a86b4;--purple:#8a2be2;--orange:#c96f00}
 body.theme-blue{--bg:#07162c;--panel:#0e2346;--panel2:#0b1c3a;--border:#1d3d68;--text:#dce9ff;--dim:#6a86b0;--gold:#ffd24d;--green:#2ec88a;--red:#ff5c7a;--blue:#4f9dff;--cyan:#5fd0ff;--purple:#a77bff;--orange:#ff9f45}
 body.theme-contrast{--bg:#000000;--panel:#0a0a0a;--panel2:#050505;--border:#333333;--text:#ffffff;--dim:#8a8a8a;--gold:#ffe000;--green:#00ff5f;--red:#ff2a2a;--blue:#00d4ff;--cyan:#00ffee;--purple:#c07bff;--orange:#ff8800}
+body.theme-neon{--bg:#000000;--panel:#020900;--panel2:#000600;--border:#163700;--text:#d7ffd0;--dim:#3f7d32;--gold:#ffff00;--green:#39ff14;--red:#ff1744;--blue:#00d4ff;--cyan:#00ffee;--purple:#ff00ff;--orange:#ff9800}
+body.theme-tradingview{--bg:#0b1118;--panel:#111923;--panel2:#0d141d;--border:#223244;--text:#d6dde7;--dim:#6f8197;--gold:#f2c94c;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--cyan:#38bdf8;--purple:#a78bfa;--orange:#f59e0b}
+body.theme-bloomberg{--bg:#050300;--panel:#100a00;--panel2:#080500;--border:#553300;--text:#ffd35a;--dim:#8f6500;--gold:#ffc400;--green:#c6ff00;--red:#ff3b00;--blue:#ffb000;--cyan:#ffcc33;--purple:#ff7a00;--orange:#ff9800}
+body.theme-soft{--bg:#07111b;--panel:#0d1a26;--panel2:#091520;--border:#20364a;--text:#c7d6e4;--dim:#60798e;--gold:#d8c36a;--green:#54d08d;--red:#d85f6f;--blue:#74a9d8;--cyan:#6ccbd6;--purple:#b38ad8;--orange:#d99a55}
+body.theme-matrix{--bg:#000500;--panel:#001000;--panel2:#000900;--border:#0b3d13;--text:#b6ffb6;--dim:#2f7d39;--gold:#d6ff00;--green:#00ff41;--red:#ff2e63;--blue:#00b050;--cyan:#39ff14;--purple:#72ff72;--orange:#a6ff00}
+body.theme-future{--bg:#020612;--panel:#071225;--panel2:#030b18;--border:#133a66;--text:#d6f7ff;--dim:#4b75a0;--gold:#ffe45e;--green:#45ffb0;--red:#ff3f7f;--blue:#1ea7ff;--cyan:#00f5ff;--purple:#b45cff;--orange:#ff9d2e}
+body.theme-xbit{--bg:#061715;--panel:#0b2826;--panel2:#081f1d;--border:#164843;--text:#d7fffb;--dim:#72a39d;--gold:#e6d26a;--green:#22f0c0;--red:#ff5b7a;--blue:#58dacd;--cyan:#23f2df;--purple:#7ee8ff;--orange:#ffc15a;--border-glow:rgba(35,242,223,.24);--border-glow-hover:rgba(35,242,223,.52);--panel-glow:0 18px 42px rgba(0,0,0,.26),0 0 28px rgba(35,242,223,.055)}
 /* Non-dark themes: make hardcoded-dark card/cell surfaces follow the palette (dark theme untouched) */
 body.theme-light .sig-hero-card,body.theme-blue .sig-hero-card,body.theme-contrast .sig-hero-card,
 body.theme-light .ftc-item,body.theme-blue .ftc-item,body.theme-contrast .ftc-item,
@@ -33,6 +53,44 @@ body.theme-light .sl-progress-track,body.theme-blue .sl-progress-track,body.them
 body.theme-light .vsl-bar-wrap,body.theme-blue .vsl-bar-wrap,body.theme-contrast .vsl-bar-wrap,
 body.theme-light .heat-cell,body.theme-blue .heat-cell,body.theme-contrast .heat-cell
 {background:var(--panel2)!important;border-color:var(--border)!important}
+body.theme-neon,body.theme-matrix,body.theme-future{
+  background-image:
+    radial-gradient(circle at 80% 0%,rgba(0,245,255,.08),transparent 26%),
+    repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,136,.028) 3px,rgba(0,255,136,.028) 4px);
+}
+body.theme-matrix{background-image:repeating-linear-gradient(0deg,rgba(0,255,65,.055) 0 1px,transparent 1px 7px),repeating-linear-gradient(90deg,rgba(0,255,65,.025) 0 1px,transparent 1px 18px)}
+body.theme-future .tcard,body.theme-future .sig-hero-card,body.theme-future .hdr,
+body.theme-neon .tcard,body.theme-neon .sig-hero-card,body.theme-neon .hdr,
+body.theme-matrix .tcard,body.theme-matrix .sig-hero-card,body.theme-matrix .hdr{
+  box-shadow:0 0 18px rgba(0,245,255,.08);
+}
+body.theme-bloomberg .sig-ticker-track,body.theme-bloomberg .sig-hero-bars .sig-prob-track{filter:saturate(1.1) brightness(.95)}
+body.theme-xbit{
+  background-image:
+    radial-gradient(circle at 0% 38%,rgba(35,242,223,.26),transparent 19%),
+    radial-gradient(circle at 82% 12%,rgba(34,240,192,.12),transparent 24%),
+    linear-gradient(135deg,#041211 0%,#061715 44%,#02100f 100%);
+}
+body.theme-xbit .tcard,body.theme-xbit .sig-hero-card,body.theme-xbit .hdr,body.theme-xbit .risk-strip{
+  border-radius:16px;
+  background:linear-gradient(155deg,rgba(14,55,52,.92),rgba(5,24,23,.96));
+  box-shadow:0 20px 45px rgba(0,0,0,.30),0 0 28px rgba(35,242,223,.055);
+}
+body.theme-xbit .tcard-hdr,body.theme-xbit .hdr-mid,body.theme-xbit .hdr-right,body.theme-xbit .hdr-logo,body.theme-xbit .hdr-pcell{
+  background:rgba(4,18,17,.72);
+  border-color:rgba(35,242,223,.18);
+}
+body.theme-xbit .bb-item,body.theme-xbit .sig-hero-mini,body.theme-xbit .lc-step,body.theme-xbit .heat-cell,body.theme-xbit .sl-row{
+  border-radius:12px;
+  background:rgba(6,30,28,.72);
+  border-color:rgba(35,242,223,.18);
+}
+body.theme-xbit .tab-btn.active,body.theme-xbit .mode-btn,body.theme-xbit .lsf-btn.lsf-on{
+  background:linear-gradient(135deg,#21e9d7,#16c9b1);
+  color:#02100f;
+  border-color:#21e9d7;
+  box-shadow:0 0 18px rgba(35,242,223,.26);
+}
 body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);background-image:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,212,255,0.012) 3px,rgba(0,212,255,0.012) 4px);color:var(--text);font-family:'Arial',sans-serif;font-weight:700;font-weight:700;font-size:15px;padding:8px}
 .hidden{display:none!important}
 
@@ -53,7 +111,7 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
 /* SECTION LABEL */
-.sec{font-family:var(--orb);font-size:0.75rem;letter-spacing:3px;color:var(--blue);text-transform:uppercase;padding:2px 8px;background:var(--panel2);border-left:2px solid var(--blue);border-radius:0 3px 3px 0;margin-bottom:3px;display:inline-block}
+.sec{font-family:var(--orb);font-size:0.75rem;letter-spacing:3px;color:var(--blue);text-transform:uppercase;padding:2px 8px;background:var(--panel2);border-left:var(--bw-accent) solid var(--blue);border-radius:0 3px 3px 0;margin-bottom:3px;display:inline-block}
 
 /* CURVED COMPACT CARD */
 .crow{display:flex;gap:2px;margin-bottom:3px;flex-wrap:nowrap}
@@ -87,7 +145,6 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
 /* SIGNAL CARD */
 /* ── SIGNAL CARD v2 ── */
 .sig-card{background:linear-gradient(135deg,#06000e 0%,var(--panel2) 100%);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:4px}
-.sig-top{display:flex;align-items:stretch;border-bottom:1px solid var(--border)}
 /* Direction block */
 .sig-dir-block{width:130px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 8px;border-right:1px solid var(--border);background:rgba(255,34,85,0.06);gap:3px}
 .sig-dir-block.BUY{background:rgba(0,255,136,0.06)}
@@ -104,7 +161,6 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
 .sig-win-pct{font-family:var(--orb);font-size:1.35rem;font-weight:700;color:var(--gold)}
 .sig-dir-sub{font-size:0.72rem;color:var(--cyan);font-weight:700;margin-top:2px}
 /* Probability bars */
-.sig-probs{flex:1;display:flex;flex-direction:column;justify-content:center;padding:6px 14px;gap:4px;border-right:1px solid var(--border)}
 .sig-prob-row{display:flex;align-items:center;gap:8px}
 .sig-prob-lbl{font-size:0.72rem;color:var(--dim);width:68px;flex-shrink:0}
 .sig-prob-track{flex:1;height:6px;background:var(--panel);border-radius:3px;overflow:hidden}
@@ -113,16 +169,11 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
 /* Slot info panel */
 /* slot panel removed — info moved to bottom bar */
 /* Advice bar */
-.sig-advice-bar{padding:5px 12px;font-size:0.78rem;color:var(--orange);border-bottom:1px solid var(--border)}
 /* Bottom row — BIG state + params */
-.sig-bottom{display:flex;align-items:center;flex-wrap:nowrap;overflow:hidden;border-top:1px solid var(--border)}
-.sig-state-cell{padding:6px 12px;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center;min-width:140px;background:rgba(0,212,255,0.03)}
 .sig-state-big{font-family:var(--orb);font-size:1.3rem;font-weight:900;color:var(--cyan);line-height:1;letter-spacing:1px;flex-shrink:0}
 .sig-state-big.Trending{color:var(--green)}
 .sig-state-big.Volatile{color:var(--red)}
 .sig-state-auc{font-size:0.69rem;color:var(--dim);margin-top:2px}
-.sig-param{flex:1;padding:5px 5px;text-align:center;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center}
-.sig-param:last-child{border-right:none}
 .sig-param-lbl{font-size:0.66rem;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:1px}
 .sig-param-val{font-family:var(--orb);font-size:0.9rem;font-weight:700}
 .hmm-state{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:700;letter-spacing:1px}
@@ -148,7 +199,7 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
 .sig-blocked-reason{font-size:0.58rem;color:#ff6b6b;opacity:.8;margin-top:2px}
 .sig-hero-top .sig-win-pct{font-family:var(--orb)!important;font-size:1.45rem!important;line-height:1;color:#ffff00;text-shadow:0 0 10px rgba(255,255,0,.38)}
 .sig-hero-top .sig-desk-sub{font-size:.62rem;color:#80aeca;letter-spacing:.5px;margin-top:4px;text-transform:uppercase;white-space:nowrap}
-.sig-ticker-track{height:22px;background-image:repeating-linear-gradient(90deg,transparent 0 calc(4.166% - 3px),rgba(2,3,5,.95) calc(4.166% - 3px) 4.166%),linear-gradient(90deg,#ff1744 0%,#ff1744 20%,#ff9800 30%,#ffff00 45%,#9cff00 58%,#39ff14 76%,#00ff66 100%);border:1px solid #07131f;border-radius:6px;overflow:hidden;box-shadow:inset 0 0 10px #001;filter:saturate(1.55) brightness(1.14);position:relative}
+.sig-ticker-track{height:22px;background-image:repeating-linear-gradient(90deg,transparent 0 calc(4.166% - 3px),rgba(2,3,5,.95) calc(4.166% - 3px) 4.166%),linear-gradient(90deg,#ff1744 0%,#ff1744 20%,#ff9800 30%,#ffff00 45%,#9cff00 58%,#39ff14 76%,#00ff66 100%);border:1px solid var(--border-track);border-radius:6px;overflow:hidden;box-shadow:inset 0 0 10px #001;filter:saturate(1.55) brightness(1.14);position:relative}
 .sig-ticker-track.small{height:18px}
 .sig-ticker-fill{height:100%;width:100%!important;border-radius:4px;background:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,0));position:relative;transition:none}
 .sig-ticker-fill:after{content:attr(data-label);position:absolute;left:calc(var(--p,0) * 1%);top:50%;min-width:28px;height:16px;transform:translate(-50%,-50%);background:#fff8dc;color:#241000;border:1px solid #fbbf24;border-radius:999px;padding:1px 6px;font-size:0.52rem;font-weight:900;line-height:12px;text-align:center;white-space:nowrap;box-shadow:0 0 12px #fff8dc,0 0 26px var(--gold),0 0 38px var(--gold);z-index:3}
@@ -156,23 +207,30 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
 .sig-hero-bars{display:grid;gap:4px;margin:0 2px 6px}
 .sig-hero-bars .sig-prob-row{gap:8px}
 .sig-hero-bars .sig-prob-lbl{width:64px;font-size:0.68rem;color:#64bde8}
-.sig-hero-bars .sig-prob-track{height:14px;background-image:repeating-linear-gradient(90deg,transparent 0 calc(4.166% - 3px),rgba(2,3,5,.95) calc(4.166% - 3px) 4.166%),linear-gradient(90deg,#ff1744 0%,#ff1744 20%,#ff9800 30%,#ffff00 45%,#9cff00 58%,#39ff14 76%,#00ff66 100%);border:1px solid #07131f;border-radius:5px;overflow:hidden;filter:saturate(1.5) brightness(1.12);position:relative}
+.sig-hero-bars .sig-prob-track{height:14px;background-image:repeating-linear-gradient(90deg,transparent 0 calc(4.166% - 3px),rgba(2,3,5,.95) calc(4.166% - 3px) 4.166%),linear-gradient(90deg,#ff1744 0%,#ff1744 20%,#ff9800 30%,#ffff00 45%,#9cff00 58%,#39ff14 76%,#00ff66 100%);border:1px solid var(--border-track);border-radius:5px;overflow:hidden;filter:saturate(1.5) brightness(1.12);position:relative}
 .sig-hero-bars .sig-prob-fill{height:100%;width:100%!important;border-radius:4px;background:linear-gradient(90deg,rgba(255,255,255,.10),rgba(255,255,255,0))!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);position:relative}
 .sig-hero-bars .sig-prob-fill:after{content:attr(data-label);position:absolute;left:calc(var(--p,0) * 1%);top:50%;min-width:24px;height:13px;transform:translate(-50%,-50%);background:#fff8dc;color:#241000;border:1px solid #fbbf24;border-radius:999px;padding:0 5px;font-size:0.48rem;font-weight:900;line-height:11px;text-align:center;white-space:nowrap;box-shadow:0 0 10px #fff8dc,0 0 22px var(--gold),0 0 34px var(--gold);z-index:3}
 .sig-hero-bars .sig-prob-val{width:48px;font-size:0.72rem}
 .sig-hero-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px}
-.sig-hero-mini{background:#031018;border:1px solid var(--border);border-radius:5px;padding:4px 8px;min-height:34px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:6px}
+/* border + border-radius intentionally NOT set here — 2026-07-16 (Fable-5
+   border audit, F4): the shared metric-box group below (search
+   "Shared highlighted metric boxes") always overrides both via
+   !important, so declaring them here was dead code / a future-edit trap. */
+.sig-hero-mini{background:#031018;padding:4px 8px;min-height:34px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:6px}
 .sig-hero-mini .k{font-size:0.62rem;color:#64bde8;letter-spacing:.5px;margin:0;white-space:nowrap}
 .sig-hero-mini .v{font-family:var(--orb);font-size:0.75rem;font-weight:800}
 .sig-hero-mini div:last-child{font-size:0.55rem!important;white-space:nowrap}
 .sig-hero-reason{padding:1px 6px;font-size:0.6rem;border-top:1px solid var(--border);background:rgba(0,0,0,0.2);display:flex;gap:4px;align-items:center;overflow:hidden}
 /* TRADE LIFECYCLE panel */
-.lc-panel{padding:3px 8px 4px;background:linear-gradient(135deg,#050d16,#081523);border-top:1px solid rgba(0,212,255,0.18);margin:0}
 .lc-title{text-align:center;margin-bottom:1px}
 .lc-title b{font-size:0.58rem;letter-spacing:1.8px;color:var(--cyan)}
 .lc-bar{display:flex;align-items:center;justify-content:center;gap:0;padding:1px 0}
 .lc-step{flex:1;text-align:center;padding:3px 4px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid transparent;transition:all .4s ease;position:relative;min-height:36px}
-.lc-step.active{border-color:currentColor;transform:scale(1.02)}
+/* 2026-07-16 (Fable-5 border audit, F5.3): removed transform:scale(1.02) —
+   scaling a 1px border to fractional pixels made it render blurry/uneven
+   at sub-pixel widths. The existing glow (lc-pulse animation below) is
+   enough to signal the active step without resizing it. */
+.lc-step.active{border-color:currentColor}
 .lc-step-lbl{font-size:0.46rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:1px;font-weight:600}
 .lc-step-val{font-family:var(--orb);font-size:0.95rem;font-weight:900;line-height:1;color:var(--dim);opacity:0.3;transition:all .4s ease}
 .lc-step.active .lc-step-val{opacity:1;font-size:1.15rem}
@@ -200,10 +258,13 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
 .why-matrix,.intel-matrix{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3px!important;padding:3px!important}
 #why_signal_card .why-matrix:first-of-type{padding-bottom:0!important}
 #why_signal_card .why-matrix:nth-of-type(2){padding-top:3px!important}
-.why-factor-cell,.why-matrix .r-cell,.market-tools-col .trow{background:linear-gradient(180deg,#06131b 0%,#031018 100%)!important;border:1px solid var(--border)!important;border-radius:6px!important;padding:4px 6px!important;min-height:39px!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:2px!important;box-shadow:inset 0 0 0 1px rgba(0,213,255,.035),0 0 10px rgba(0,213,255,.035)}
+/* 2026-07-16 (Fable-5 border audit, F4/F1-consistency): dropped the inset
+   ring (was inset 0 0 0 1px on top of the 1px border, same double-layer
+   pattern as F1) — border + outer glow only now. */
+.why-factor-cell,.why-matrix .r-cell,.market-tools-col .trow{background:linear-gradient(180deg,#06131b 0%,#031018 100%)!important;border:1px solid var(--border)!important;border-radius:6px!important;padding:4px 6px!important;min-height:39px!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:2px!important;box-shadow:0 0 10px rgba(0,213,255,.035)}
 .why-factor-cell .wf-k,.why-matrix .r-key,.market-tools-col .trow .tk{font-size:.58rem!important;line-height:1!important;color:#64bde8!important;letter-spacing:.8px!important;text-transform:uppercase!important;margin:0!important;white-space:nowrap}
 .why-factor-cell .wf-v,.why-matrix .r-cell>div:last-child,.market-tools-col .trow .tv{font-family:'Arial',sans-serif!important;font-size:.72rem!important;line-height:1.1!important;font-weight:800!important;margin:0!important;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-.why-factor-cell:hover,.why-matrix .r-cell:hover,.market-tools-col .trow:hover{border-color:#1e6b93!important;box-shadow:inset 0 0 0 1px rgba(0,213,255,.08),0 0 14px rgba(0,213,255,.09)}
+.why-factor-cell:hover,.why-matrix .r-cell:hover,.market-tools-col .trow:hover{border-color:#1e6b93!important;box-shadow:0 0 14px rgba(0,213,255,.09)}
 .market-tools-col .r-cell,
 .market-tools-col .trow,
 .risk-session-col .r-cell,
@@ -238,7 +299,7 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 /* Edit toolbar */
 .gs-toolbar{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;margin-bottom:4px}
 .gs-toolbar.hidden{display:none}
-.gs-toolbar button{background:#21262d;color:var(--dim);border:1px solid #30363d;border-radius:5px;padding:3px 10px;font-size:0.69rem;cursor:pointer;font-family:'Arial',sans-serif}
+.gs-toolbar button{background:#21262d;color:var(--dim);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:0.69rem;cursor:pointer;font-family:'Arial',sans-serif}
 .gs-toolbar button:hover{background:#30363d;color:#fff}
 .gs-toolbar button.gs-active{background:#1f6feb;border-color:#1f6feb;color:#fff}
 /* Signal Log filter buttons (moved 2026-07-15 from a <style> block nested inside
@@ -250,12 +311,10 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
    only 2 sheets, neither containing .lsf-btn). */
 .lsf-btn{appearance:none;-webkit-appearance:none;background:var(--panel2,#0d1e2e);color:var(--dim);border:1px solid var(--border);border-radius:5px;padding:2px 9px;font-size:0.6rem;font-weight:700;letter-spacing:.3px;font-family:inherit;cursor:pointer;outline:none;transition:border-color .15s,box-shadow .15s,color .15s}
 .lsf-btn:hover{background:rgba(0,212,255,.08);color:var(--cyan);border-color:rgba(0,212,255,.55)}
-.lsf-btn.lsf-on{background:rgba(0,212,255,.14);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 6px rgba(0,212,255,.4),inset 0 0 4px rgba(0,212,255,.18)}
+/* 2026-07-16 (Fable-5 ticker/signal-log audit, F-S3): dropped the inset
+   ring — outer glow alone already shows the selected filter clearly. */
+.lsf-btn.lsf-on{background:rgba(0,212,255,.14);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 6px rgba(0,212,255,.4)}
 .gs-toolbar .gs-toolbar-label{font-size:0.69rem;color:var(--cyan);letter-spacing:1px;font-weight:700}
-/* Lifecycle panel compact */
-.lc-panel{padding:3px 8px 4px;background:linear-gradient(135deg,#050d16,#081523);border-color:var(--border)}
-.lc-panel>div:first-child{margin-bottom:1px!important}
-.lc-panel>div:first-child b{font-size:0.58rem!important;letter-spacing:1.8px!important;color:var(--cyan)!important}
 /* Signal log rows */
 #liveSigRows{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent}
 #panel_signal,#panel_signal_log{box-sizing:border-box;display:flex;flex-direction:column;min-height:0}
@@ -296,7 +355,15 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 #panel_lifecycle{flex:0 0 auto;margin-top:0!important}
 #liveSigRows .replay-row{height:26px;min-height:26px;padding:0 10px;overflow:hidden}
 /* ── RISK & SESSION — compact single-line status strip / ticker (2026-07-10) ── */
-.risk-strip{width:100%;overflow-x:auto;overflow-y:hidden;position:relative;background:var(--panel2,#0d1e2e);border-bottom:1px solid rgba(0,212,255,.22);height:auto;min-height:0;scrollbar-width:none;-ms-overflow-style:none}
+/* 2026-07-16 (Fable-5 ticker audit, F-T3, Imtiyaz confirmed): this was a
+   flat, square, edge-to-edge band with only a bottom border in a
+   hardcoded, non-token color — visually a different "language" from
+   every other rounded/gradient/glow .tcard panel on the dashboard. Now
+   uses the same panel treatment (gradient background, 4-side border,
+   radius, outer glow) as the rest of the dashboard, so all 3 ticker rows
+   (this one + the 2 rs-embed ones inside #panel_ai_market) now read as
+   consistent panels instead of 3 different frame styles. */
+.risk-strip{width:100%;overflow-x:auto;overflow-y:hidden;position:relative;background:linear-gradient(160deg,var(--panel) 0%,var(--panel2) 100%);border:var(--bw) solid var(--border-glow);border-radius:10px;box-shadow:var(--panel-glow);height:auto;min-height:0;margin-bottom:3px;scrollbar-width:none;-ms-overflow-style:none}
 .risk-strip::-webkit-scrollbar{display:none}
 .risk-strip-track{display:flex;align-items:center;white-space:nowrap;padding:3px 10px;width:max-content}
 .risk-strip.rs-ticker .risk-strip-track{animation:rsScroll var(--rs-dur,32s) linear infinite}
@@ -306,22 +373,33 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 .rs-lbl{color:var(--dim);font-weight:700;letter-spacing:.3px;font-size:0.56rem}
 .rs-val{font-family:var(--orb);font-weight:700;font-size:0.68rem;color:var(--fg,#e6ebf2)}
 .rs-sub{color:var(--dim);font-size:0.54rem;opacity:.8}
-.rs-div{width:1px;align-self:stretch;background:rgba(0,212,255,.18);flex-shrink:0;margin:2px 0}
+.rs-div{width:1px;align-self:stretch;background:var(--border-glow);flex-shrink:0;margin:2px 0}
 /* .rs-embed = same ticker mechanics as risk-strip, but flush/borderless so it drops
    inline inside a card (AI Decision Summary / Market Intelligence) instead of acting
-   as a page-wide bar. */
-.risk-strip.rs-embed{border-bottom:none;background:transparent}
+   as a page-wide bar. The 2 rs-embed rows inside #panel_ai_market share THAT panel's
+   single outer frame (restored in F-T2 above) rather than each having their own —
+   giving each row its own border here would just recreate a double-border between
+   the two ticker rows. */
+.risk-strip.rs-embed{border:none;border-radius:0;box-shadow:none;background:transparent;margin-bottom:0}
 .risk-strip.rs-embed .risk-strip-track{padding:1px 0}
 /* ── NESTED BUBBLES — AI Summary / Market Intelligence ticker items (2026-07-11) ──
    Each .bb-item is one bordered rounded segment (a "main bubble"); inside it, the
-   group label is its own small outlined mini-bubble and the value(s) sit in a
-   second, dark-filled mini-bubble — nested pill-in-pill, per spec. */
-.bb-item{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap;border:1px solid var(--border);border-radius:9px;padding:2px 6px;margin:0 4px;background:rgba(0,212,255,.02);box-shadow:inset 0 0 6px rgba(0,212,255,.05)}
-.bb-item.gold{border-color:rgba(232,200,74,.32);background:rgba(232,200,74,.02);box-shadow:inset 0 0 6px rgba(232,200,74,.05)}
-.bb-item.title{border-width:1px;padding:2px 9px;background:rgba(232,200,74,.06)}
+   group label and the value(s) sit in dark-filled mini-bubbles — nested
+   pill design, per spec.
+   2026-07-16 (Fable-5 ticker audit, F-T1, Imtiyaz confirmed): dropped (1)
+   the inset box-shadow ring stacking on top of the pill's own border —
+   same one-mechanism-per-edge rule as the earlier F1 panel-border fix —
+   and (2) the inner .bb-label's OWN border, which put a 2nd border inside
+   the outer pill's border (border-in-border, 16+ segments per ticker row
+   made the whole strip read visually heavy/thick). .bb-label keeps its
+   background tint so the label is still visually distinct from the value
+   — it just no longer draws a competing edge line. */
+.bb-item{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap;border:1px solid var(--border);border-radius:9px;padding:2px 6px;margin:0 4px;background:rgba(0,212,255,.02);box-shadow:var(--panel-glow)}
+.bb-item.gold{border-color:rgba(232,200,74,.32);background:rgba(232,200,74,.02);box-shadow:var(--panel-glow)}
+.bb-item.title{padding:2px 9px;background:rgba(232,200,74,.06)}
 .bb-item.warn{border-color:rgba(255,107,107,.5);background:rgba(255,23,68,.07)}
-.bb-label{display:inline-flex;align-items:center;font-size:0.5rem;font-weight:700;letter-spacing:.3px;color:var(--cyan);border:1px solid var(--border);border-radius:6px;padding:1px 6px;text-transform:uppercase;white-space:nowrap;background:rgba(0,212,255,.05);flex-shrink:0}
-.bb-item.gold .bb-label{color:var(--gold);border-color:rgba(232,200,74,.4);background:rgba(232,200,74,.05)}
+.bb-label{display:inline-flex;align-items:center;font-size:0.5rem;font-weight:700;letter-spacing:.3px;color:var(--cyan);border-radius:6px;padding:1px 6px;text-transform:uppercase;white-space:nowrap;background:rgba(0,212,255,.05);flex-shrink:0}
+.bb-item.gold .bb-label{color:var(--gold);background:rgba(232,200,74,.05)}
 .bb-val{display:inline-flex;align-items:center;gap:6px;font-size:0.62rem;font-weight:700;padding:1px 7px;white-space:nowrap;color:var(--fg,#e6ebf2);border-radius:6px;background:rgba(0,0,0,.18)}
 .bb-val .sub{color:var(--dim);font-weight:600;font-size:0.56rem;margin-right:2px}
 .bb-msg{max-width:260px;overflow:hidden;text-overflow:ellipsis}
@@ -337,11 +415,24 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
    (REGIME..EQUITY) shares whatever width remains EQUALLY via 1fr, so extra
    panel width spreads across all four instead of piling into one column. */
 .sl-cols{grid-template-columns:94px 50px 58px 64px 1fr 1fr 1fr 1fr}
-.sl-table-header{display:grid;gap:6px;padding:3px 10px;font-size:0.54rem;font-weight:700;letter-spacing:.3px;color:var(--dim);text-transform:uppercase;background:rgba(0,10,20,.55);border-top:1px solid rgba(0,212,255,.2);border-bottom:1px solid rgba(0,212,255,.2);position:sticky;top:0;z-index:5}
+/* 2026-07-16 (Fable-5 border audit, F3): removed border-top — the sibling
+   .tcard-hdr right above this already has its own border-bottom on the
+   same shared edge, in a different color (dark var(--border) vs cyan
+   here), so the two rendered as a visible double-line. border-bottom kept
+   so the header row still separates from the log rows below it. */
+/* 2026-07-16 (Fable-5 ticker/signal-log audit, F-S1): this panel had 4
+   different edge "strengths" stacked top-to-bottom (outer frame tint,
+   near-invisible dark header line, a brighter cyan table-header line, and
+   a slightly-different-shade cyan row line) — unified the header-line and
+   row-line to the dashboard's 2 standard separator tokens. */
+.sl-table-header{display:grid;gap:6px;padding:3px 10px;font-size:0.54rem;font-weight:700;letter-spacing:.3px;color:var(--dim);text-transform:uppercase;background:rgba(0,10,20,.55);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
 .sl-table-header>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;text-align:center}
 .sl-table-header>span:first-child,.sl-table-header>span:nth-child(2){text-align:left}
 .sl-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent}
-.sl-row{display:grid;gap:6px;align-items:center;min-height:22px;position:relative;overflow:hidden;padding:0 10px 0 13px;border-bottom:1px solid rgba(0,210,255,.14)}
+.sl-row{display:grid;gap:6px;align-items:center;min-height:22px;position:relative;overflow:hidden;padding:0 10px 0 13px;border-bottom:1px solid var(--border-soft)}
+/* F-S2: without this, the last row's own border-bottom + the panel's
+   outer bottom border landed on the same edge = a visible double line. */
+.sl-row:last-child{border-bottom:none}
 .sl-row:nth-child(even){background:rgba(0,20,35,.22)}
 .sl-row:hover{background:rgba(0,212,255,.07)}
 .sl-row>*{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -363,8 +454,18 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
    rule (which would otherwise stretch this panel to fill its full GridStack row
    allocation regardless of actual content). #panel_ai_market as an ID selector
    outranks that rule's specificity, so no !important needed. */
-#panel_ai_market{width:calc(100% - 24px);height:auto!important;max-height:none;min-height:0;margin:2px 12px 2px!important;padding:0!important;background:transparent!important;border:0!important;border-color:transparent!important;outline:0!important;box-shadow:none!important;overflow:hidden!important}
-#panel_ai_market::before,#panel_ai_market::after{display:none!important;content:none!important}
+/* 2026-07-16 (Fable-5 ticker audit, F-T2, Imtiyaz confirmed): this panel's
+   border was killed with 4 layers of !important (border/border-color/
+   outline/box-shadow all none) — that's why the AI Summary + Market
+   Intelligence tickers had no visible frame at all, while the panel still
+   has the .tcard class and so still participates in the F1 border-glow
+   group. Restored to a plain width:100%/no-inset-margin panel so the
+   .tcard base + F1 group give it the same border every other panel has.
+   The inner ai_summary_box/market_intel_box rows (line ~389 below) stay
+   frameless on purpose — the two ticker rows share ONE outer frame here,
+   not two separate ones (that would just reintroduce a double border
+   between the two rows). */
+#panel_ai_market{width:100%;height:auto!important;max-height:none;min-height:0;margin:0 0 3px!important;padding:0!important;overflow:hidden!important}
 #dashboard_grid>.grid-stack-item[gs-id="ai_market"]>.grid-stack-item-content{overflow:hidden!important;display:flex;align-items:center}
 /* Two stacked full-width rows (ROW 1: Summary, ROW 2: Market Intelligence) —
    always one-after-another, never side-by-side columns, per explicit request. */
@@ -415,26 +516,38 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 .tcard{background:linear-gradient(160deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--border);border-radius:10px;overflow:auto;margin-bottom:0;position:relative;min-height:38px;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent}
 .tcard::-webkit-scrollbar{width:6px;height:6px}
 .tcard::-webkit-scrollbar-thumb{background:rgba(0,212,255,.35);border-radius:999px}
-.tcard::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.38),transparent);pointer-events:none;z-index:2}
-.tcard::after{content:'';position:absolute;right:0;top:9px;bottom:9px;width:1px;background:linear-gradient(180deg,transparent,rgba(0,212,255,.25),transparent);pointer-events:none;z-index:2}
+/* 2026-07-16 (Fable-5 border audit, F2): removed ::before/::after gradient
+   edge lines — they stacked a 2nd decorative layer directly on top of the
+   .tcard border + the F1 group's tint/glow, making top/right edges look
+   like 3-4 overlapping lines. The border-color glow (F1) is now the only
+   edge treatment. */
 .tcard-hdr,.r-cell,.cc,.sig-hero-mini,.trade-item,.lc-step{min-width:0}
 .r-val,.r-sub,.tv,.tk,.cc-val,.cc-sub,.sig-param-val,.sig-state-big,.sig-win-pct,.sig-big,.sig-prob-val,.sig-hero-mini .v,.sig-hero-mini .k,.trade-item-val,.trade-item-label,.lc-step-val,.lc-step-sub,.hmm-state,.tcard-hdr span,.slot-pill,.hdr-pval,.hdr-plbl{max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis}
-/* Four-side separators for all dashboard boxes, cells, and bars */
+/* Four-side separators for all dashboard boxes, cells, and bars.
+   2026-07-16 (Fable-5 border audit, F1 — the #1 cause of inconsistent
+   border weight across the dashboard): this block used to layer an
+   `outline` (same pixel as the element's own `border`) PLUS an
+   `inset box-shadow` ring on top of that — three mechanisms stacking on
+   one edge made these ~30 selectors' borders read visibly thicker/tinted
+   vs. everything outside this group using a plain 1px border. Now this
+   group only does two things: (1) tint the EXISTING border color (only
+   affects elements that already declare a border on that side — adds no
+   new borders anywhere) and (2) an outer-only glow. One line, one width,
+   everywhere. */
 .tcard,.cc,.r-cell,.sig-hero-card,.sig-hero-mini,.trade-card,.trade-item,
-.lc-panel,.lc-step,.trow,.hdr,.hdr-pcell,.hdr-mid,.hdr-right,
+.lc-step,.trow,.hdr,.hdr-pcell,.hdr-mid,.hdr-right,
 .price-bar,.slot-panel,.slot-big-box,.slot-pill,.slot-cell,.heat-cell,
 .mauc,.ftc-item,.focus-trade-card,.vsl-tracker,.sl-progress-wrap,
 .sig-ticker-track,.sig-prob-track,.sig-hero-bars .sig-prob-track,
 .prog-track,.vsl-bar-wrap,.sl-progress-track,.replay-row,
 .why-factor-cell,.market-tools-col .trow{
-  outline:1px solid rgba(0,212,255,.18);
-  outline-offset:-1px;
-  box-shadow:inset 0 0 0 1px rgba(0,212,255,.055),0 0 10px rgba(0,212,255,.035);
+  border-color:var(--border-glow);
+  box-shadow:var(--panel-glow);
 }
 .tcard:hover,.cc:hover,.r-cell:hover,.sig-hero-mini:hover,.trade-card:hover,.trade-item:hover,
 .lc-step:hover,.trow:hover,.slot-pill:hover,.heat-cell:hover,.replay-row:hover{
-  outline-color:rgba(0,255,238,.34);
-  box-shadow:inset 0 0 0 1px rgba(0,255,238,.09),0 0 14px rgba(0,255,238,.08);
+  border-color:var(--border-glow-hover);
+  box-shadow:0 0 14px rgba(0,255,238,.08);
 }
 .tcard-hdr{background:var(--panel2);border-bottom:1px solid var(--border);padding:4px 10px;font-family:var(--orb);font-size:0.75rem;letter-spacing:2px;color:var(--blue);text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
 .tcard-hdr span{color:var(--cyan);letter-spacing:1px;font-family:'Arial',sans-serif;font-size:0.88rem}
@@ -505,7 +618,11 @@ footer{text-align:center;color:var(--dim);font-size:0.69rem;padding:8px 0;border
 .heat-cell.tier-good{border-bottom-color:#00c8ff}
 .heat-cell.tier-ok{border-bottom-color:#ffaa00}
 .heat-cell.tier-weak{border-bottom-color:#ff2255}
-.heat-cell.is-now{border:2px solid var(--gold)!important;border-bottom:3px solid var(--gold)!important;background:#141000!important}
+/* 2026-07-16 (Fable-5 border audit, F5.1): border-width kept at the base
+   1px (was 2px, which shifted inner content by 1px whenever the "NOW"
+   cell moved each hour) — the gold highlight now comes from an inset ring
+   instead of a wider border, so cell size never changes. */
+.heat-cell.is-now{border:1px solid var(--gold)!important;box-shadow:inset 0 0 0 1px var(--gold);border-bottom:3px solid var(--gold)!important;background:#141000!important}
 .heat-lbl{font-size:10px;color:#aac4d8;line-height:1.2;font-weight:600}
 .heat-val{font-size:18px;font-weight:700;line-height:1.3}
 .heat-cell.tier-best .heat-val{color:#00ff88}
@@ -542,6 +659,12 @@ footer{text-align:center;color:var(--dim);font-size:0.69rem;padding:8px 0;border
 /* 2026-07-15: AUTOTRADING BANNER — same visual language as danger_banner */
 #autotrading_banner{display:none;background:rgba(255,34,85,0.18);border:1px solid var(--red);border-radius:8px;padding:6px 14px;margin-bottom:5px;font-family:var(--orb);font-size:0.72rem;letter-spacing:2px;color:var(--red);text-align:center}
 #autotrading_banner.show{display:block;animation:flash 1s infinite}
+/* 2026-07-15: TRADE CLOSE banner — same layout as autotrading_banner but informational
+   (green = confirmed flat, amber = secondaries still open, no flashing — this is a
+   confirmation, not an active emergency). */
+#trade_close_banner{display:none;background:rgba(0,255,136,0.12);border:1px solid var(--green);border-radius:8px;padding:6px 14px;margin-bottom:5px;font-family:var(--orb);font-size:0.72rem;letter-spacing:1.5px;color:var(--green);text-align:center}
+#trade_close_banner.show{display:block}
+#trade_close_banner.warn{background:rgba(255,170,0,0.14);border-color:var(--orange,#ffaa00);color:var(--orange,#ffaa00)}
 
 /* ── IMPROVEMENT 7: P&L FLASH ── */
 @keyframes flashGreen{0%,100%{background:transparent}40%{background:rgba(0,255,136,0.25)}}
@@ -569,7 +692,7 @@ footer{text-align:center;color:var(--dim);font-size:0.69rem;padding:8px 0;border
    down by roughly 0.7x from their original values. */
 .sl-progress-wrap{margin-bottom:2px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:2px 7px 3px;display:none}
 .sl-progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;font-size:0.48rem}
-.sl-progress-track{position:relative;height:38px;background:#020305;border-radius:5px;overflow:visible;border:1px solid #07131f}
+.sl-progress-track{position:relative;height:38px;background:#020305;border-radius:5px;overflow:visible;border:1px solid var(--border-track)}
 .sl-progress-gradient{display:none}
 .sl-eq-grid{position:absolute;inset:6px 7px;display:grid;grid-template-columns:repeat(24,1fr);gap:2px;z-index:1}
 .sl-eq-col{position:relative;min-width:0;border-radius:2px;background:var(--c);opacity:.88;box-shadow:0 0 7px color-mix(in srgb,var(--c),transparent 62%),inset 0 0 0 1px rgba(255,255,255,.12);filter:saturate(1.22);transition:opacity .25s,box-shadow .25s,filter .25s,transform .25s}
@@ -584,7 +707,7 @@ footer{text-align:center;color:var(--dim);font-size:0.69rem;padding:8px 0;border
 .sl-r-badge{font-family:var(--orb);font-size:0.62rem;font-weight:700;padding:1px 7px;border-radius:10px;letter-spacing:1px}
 .sl-pct-badge{font-family:var(--orb);font-size:0.63rem;font-weight:700;padding:1px 6px;border-radius:10px}
 .risk-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-bottom:3px}
-.rc{background:#010810;border:1px solid #0d2535;border-radius:5px;padding:3px 4px;text-align:center;min-width:0}
+.rc{background:#010810;border:1px solid var(--border);border-radius:5px;padding:3px 4px;text-align:center;min-width:0}
 .rc .rl{font-size:0.69rem;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rc .rv{font-family:var(--orb);font-size:0.95rem;font-weight:700;color:var(--gold);white-space:nowrap}
 .rc .rs{font-size:0.69rem;color:var(--dim);margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -600,8 +723,13 @@ footer{text-align:center;color:var(--dim);font-size:0.69rem;padding:8px 0;border
 .slot-pill .broker-t{font-size:0.72rem;font-weight:400;opacity:0.55;margin-left:3px}
 .slot-pill.active{border-color:var(--gold);color:var(--gold);background:rgba(255,215,0,0.1);box-shadow:0 0 6px rgba(255,215,0,0.3)}
 .slot-pill.past{border-color:rgba(0,255,136,0.3);color:rgba(0,255,136,0.5);background:rgba(0,255,136,0.05)}
-.slot-pill.next{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,0.08);animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 rgba(0,212,255,0.4)}50%{box-shadow:0 0 8px rgba(0,212,255,0.6)}}
+.slot-pill.next{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,0.08);animation:pulseGlow 1.5s infinite}
+/* 2026-07-16 (Fable-5 border audit, F11): renamed from the duplicate
+   "pulse" name — a 2nd @keyframes pulse here was silently overriding the
+   .live dot's opacity-blink keyframes (line ~66) with this box-shadow
+   version, since CSS keyframe names aren't scoped to a selector. .live
+   now correctly plays its own opacity animation again. */
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 0 rgba(0,212,255,0.4)}50%{box-shadow:0 0 8px rgba(0,212,255,0.6)}}
 .slot-count{font-size:0.69rem;color:var(--dim)}
 .slot-panel{min-width:210px;background:rgba(0,212,255,0.04);border:1px solid var(--border);border-radius:8px;padding:7px 10px;flex-shrink:0}
 .slot-panel-hdr{font-family:var(--orb);font-size:0.69rem;letter-spacing:3px;color:var(--blue);margin-bottom:5px}
@@ -622,7 +750,10 @@ footer{text-align:center;color:var(--dim);font-size:0.69rem;padding:8px 0;border
 
 /* ── TAB SYSTEM ── */
 .tab-bar{display:flex;gap:3px;margin-bottom:3px;background:var(--panel2);padding:3px;border-radius:8px;border:1px solid var(--border)}
-.tab-btn{flex:1;padding:5px 8px;border:none;background:transparent;color:var(--dim);font-family:var(--orb);font-size:0.69rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-radius:5px;transition:all 0.2s}
+/* 2026-07-16 (Fable-5 border audit, F5.2): border is now transparent 1px
+   instead of `none` — .tab-btn.active adds a real 1px border below, so
+   switching tabs no longer shifts the button's inner content by 1px. */
+.tab-btn{flex:1;padding:5px 8px;border:1px solid transparent;background:transparent;color:var(--dim);font-family:var(--orb);font-size:0.69rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-radius:5px;transition:background 0.2s,color 0.2s,border-color 0.2s}
 .tab-btn:hover{color:var(--text);background:var(--panel)}
 .tab-btn.active{background:var(--panel);color:var(--cyan);border:1px solid var(--border)}
 .tab-btn.active.t-live{color:var(--green);border-color:var(--green);background:rgba(0,255,136,0.07)}
@@ -636,7 +767,7 @@ footer{text-align:center;color:var(--dim);font-size:0.69rem;padding:8px 0;border
 .focus-btn:hover{border-color:var(--orange);color:var(--orange)}
 .focus-btn.on{border-color:var(--orange);color:var(--orange);background:rgba(255,136,0,0.1)}
 .mode-btn{font-size:0.69rem;padding:3px 10px;border:1px solid var(--green);border-radius:12px;background:rgba(0,255,136,0.08);color:var(--green);cursor:pointer;font-family:'Arial',sans-serif;transition:all 0.2s;margin-left:6px;letter-spacing:1px;font-weight:700}
-.mode-btn.monitor{border-color:var(--orange);color:var(--orange);background:rgba(255,136,0,0.12);animation:pulse 2s infinite}
+.mode-btn.monitor{border-color:var(--orange);color:var(--orange);background:rgba(255,136,0,0.12);animation:pulseGlow 2s infinite}
 body.focus-mode .focus-hide{display:none!important}
 body.focus-mode .focus-show{display:block!important}
 
@@ -667,7 +798,18 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 #equity_sparkline{display:block;width:100%;height:28px;margin-top:4px}
 
 /* ── IMPROVEMENT 3: SIGNAL HISTORY CHART ── */
-#signal_history_panel{height:auto!important;min-height:0!important;margin:0 12px!important;overflow:hidden!important}
+/* 2026-07-16 (Imtiyaz-reported): this panel had its own horizontal
+   margin (0 12px) that #hours_heatmap_wrap and every other GridStack
+   panel don't have — both are full-width (w:12) grid items sharing the
+   same .grid-stack-item-content wrapper (no horizontal padding there
+   either), so the 12px-per-side margin made THIS panel alone start later
+   and end earlier than Hours/the rest of the dashboard. Root cause was
+   purely this margin — .tcard-hdr's absolute positioning (line below) is
+   relative to the panel's own border-box, not affected by removing it;
+   the canvas chart (#sig_history_chart, line ~760) already reads its
+   live rendered width via c.offsetWidth on every draw, so it picks up
+   the extra ~24px automatically, no JS change needed. */
+#signal_history_panel{height:auto!important;min-height:0!important;margin:0!important;overflow:hidden!important}
 #signal_history_panel .tcard-hdr{position:absolute;left:8px;top:4px;z-index:3;height:18px;min-height:0;padding:0!important;border:0!important;background:transparent!important;font-size:0.62rem!important;line-height:18px;pointer-events:auto;cursor:grab}
 #signal_history_panel .tcard-hdr span:not(.panel-drag-handle){display:none!important}
 #signal_history_panel .sig-history-body{position:relative;padding:2px 6px 2px 118px!important;min-height:46px;display:flex;align-items:center}
@@ -683,12 +825,20 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 .refresh-sel{background:var(--panel2);border:1px solid var(--border);color:var(--dim);font-family:'Arial',sans-serif;font-size:0.69rem;padding:2px 5px;border-radius:4px;cursor:pointer}
 .refresh-sel:focus{outline:none;border-color:var(--blue)}
 /* ── RISK GRID CELLS ── */
-.r-cell{background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:3px 5px}
+/* 2026-07-16 (Fable-5 border audit, F4): .r-cell used to declare its own
+   border (1px, radius 4px) here AND again below in the shared metric-box
+   group (1px, radius 6px!important) — the second always won, so this was
+   dead weight and a specificity trap for future edits. Consolidated:
+   only the unique, non-conflicting property (padding) stays here. */
+.r-cell{padding:3px 5px}
 .r-key{font-size:0.63rem;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:0}
 .r-val{font-size:0.82rem;font-weight:700;font-family:var(--orb);line-height:1.2}
 .r-sub{font-size:0.69rem;color:var(--dim);margin-top:1px}
 
-/* Shared highlighted metric boxes */
+/* Shared highlighted metric boxes — sole source of truth for border/radius
+   on: .r-cell, .sig-hero-mini, .trade-item, .mauc, .rc, .slot-big-box,
+   .ftc-item. Inset ring removed 2026-07-16 (F1-consistency) — border +
+   outer glow only. */
 .r-cell,
 .sig-hero-mini,
 .trade-item,
@@ -699,7 +849,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   background:linear-gradient(180deg,#06131b 0%,#031018 100%)!important;
   border:1px solid var(--border)!important;
   border-radius:6px!important;
-  box-shadow:inset 0 0 0 1px rgba(0,213,255,.035),0 0 10px rgba(0,213,255,.035);
+  box-shadow:0 0 10px rgba(0,213,255,.035);
 }
 .r-cell:hover,
 .sig-hero-mini:hover,
@@ -709,7 +859,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 .slot-big-box:hover,
 .ftc-item:hover{
   border-color:#1e6b93!important;
-  box-shadow:inset 0 0 0 1px rgba(0,213,255,.08),0 0 14px rgba(0,213,255,.09);
+  box-shadow:0 0 14px rgba(0,213,255,.09);
 }
 
 /* ── FONT OVERRIDE: ALL DASHBOARD TEXT IN ARIAL ── */
@@ -803,10 +953,17 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
         <option value="60000">60s</option>
       </select>
       <select class="refresh-sel" id="theme_sel" onchange="setTheme(this.value)" title="Colour theme">
-        <option value="dark" selected>🌙 Dark</option>
-        <option value="light">☀ Light</option>
-        <option value="blue">🔵 Blue</option>
-        <option value="contrast">◐ Contrast</option>
+        <option value="dark" selected>&#127769; Dark</option>
+        <option value="neon">&#9889; Neon Trader</option>
+        <option value="tradingview">&#128202; TradingView</option>
+        <option value="bloomberg">&#128200; Bloomberg</option>
+        <option value="soft">&#9729; Soft Pro</option>
+        <option value="matrix">&#9608; Matrix</option>
+        <option value="future">&#10022; Futuristic</option>
+        <option value="xbit">&#128142; Xbit Teal</option>
+        <option value="light">&#9728; Light</option>
+        <option value="blue">&#128309; Blue</option>
+        <option value="contrast">&#9680; Contrast</option>
       </select>
       <button class="dim-btn" id="dim_btn" onclick="toggleDim()">DIM</button>
       <button class="focus-btn" id="focus_btn" onclick="toggleFocus()">⊙ Focus</button>
@@ -823,7 +980,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 
     <div style="font-size:0.69rem;color:var(--dim)">
       <span id="account_id" style="color:var(--gold)">--</span> | <span id="leverage_lbl">1:500</span>
-      <button onclick="gsToggleEdit()" id="gs_edit_btn" style="margin-left:6px;background:#21262d;color:var(--dim);border:1px solid #30363d;border-radius:4px;padding:1px 6px;font-size:0.6rem;cursor:pointer" title="Toggle Edit Layout mode">✏️ EDIT</button>
+      <button onclick="gsToggleEdit()" id="gs_edit_btn" style="margin-left:6px;background:#21262d;color:var(--dim);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.6rem;cursor:pointer" title="Toggle Edit Layout mode">✏️ EDIT</button>
     </div>
   </div>
 
@@ -896,6 +1053,12 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 <!-- AUTOTRADING BANNER (2026-07-15, Anisa: surface AutoTrading-off immediately,
      not only after a close/hedge order already failed with retcode 10027) -->
 <div id="autotrading_banner">🚫 AUTOTRADING DISABLED IN MT5 TERMINAL — BOT CANNOT CLOSE OR PROTECT OPEN TRADES 🚫</div>
+
+<!-- TRADE CLOSE CONFIRMATION BANNER (2026-07-15) — shows the moment a trade closes (incl.
+     the broker-TP-fill path whose secondary-account close was previously missing) with a
+     verified "all accounts flat" confirmation. Auto-clears after 15min (server-side) or the
+     next trade close overwrites it. -->
+<div id="trade_close_banner"></div>
 
 <!-- SL PROGRESS BAR -->
 <div class="sl-progress-wrap" id="sl_progress_wrap">
@@ -1229,6 +1392,10 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 <div class="tcard focus-hide" style="margin-bottom:4px" id="hours_heatmap_wrap">
   <div style="display:flex;align-items:center;gap:4px;padding:3px 8px 2px">
     <span style="font-size:0.69rem;letter-spacing:2px;color:var(--dim)">⏰ HOURS</span>
+    <!-- 2026-07-16 (Fable-5 audit, P0-4): these win-rates are hardcoded from a
+         Jun-2026 backtest, not live-computed — this tag stops them from being
+         mistaken for a current/rolling stat. -->
+    <span style="font-size:0.6rem;color:var(--orange);opacity:.85" title="Hardcoded from a June 2026 backtest — not live-updated">⚠ static (Jun-26 backtest)</span>
     <span style="font-size:0.66rem;color:#00d4ff;margin-left:4px">ASIAN</span>
     <div style="flex:0.5;height:1px;background:rgba(0,212,255,0.2)"></div>
     <span style="font-size:0.66rem;color:var(--green)">LONDON</span>
@@ -1244,7 +1411,7 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
      2026-07-02 Claude: removed the duplicate #sig_history_chart canvas that used to live here; it shared
      an id with the new one, was CSS-hidden dead markup, and getElementById always grabbed the other one) -->
 <div class="g2-bot">
-  <div class="tcard" id="feedback_panel" style="margin-bottom:4px;display:none;border-top:2px solid var(--gold)">
+  <div class="tcard" id="feedback_panel" style="margin-bottom:4px;display:none;border-top:3px solid var(--gold)">
     <div class="tcard-hdr">🧠 AI Learning — Rate This Trade
       <span style="margin-left:auto;font-size:0.69rem;color:var(--dim)">helps retrain model</span>
     </div>
@@ -1476,6 +1643,9 @@ let _lastConfirmedSig = 'SKIP';
 let _lastConfirmedProb = 0;
 let _lastSeenCloseTicket = null;
 let _exitInfo = null;
+// 2026-07-16 (Fable-5 audit, P0-5): last successfully-rendered broker_epoch —
+// guards against a slow/reordered poll response overwriting a newer one.
+let _lastRenderedEpoch = 0;
 let newsCountdownMins = null;
 
 const FIT_TEXT_SELECTORS = [
@@ -1993,7 +2163,7 @@ try{ const t=localStorage.getItem('qgai_tab'); if(t) switchTab(t); }catch(e){}
 
 // ── COLOUR THEME (2026-07-02 Divyesh) — dark=default; light/blue/contrast override CSS vars ──
 function setTheme(t){
-  document.body.classList.remove('theme-light','theme-blue','theme-contrast');
+  document.body.classList.remove('theme-light','theme-blue','theme-contrast','theme-neon','theme-tradingview','theme-bloomberg','theme-soft','theme-matrix','theme-future','theme-xbit');
   if(t && t!=='dark') document.body.classList.add('theme-'+t);
   const sel=document.getElementById('theme_sel'); if(sel) sel.value=t||'dark';
   try{ localStorage.setItem('qgai_theme', t||'dark'); }catch(e){}
@@ -2027,6 +2197,15 @@ let currentMode = 'live';
 let modeInitialized = false;
 async function toggleMode(){
   const newMode = currentMode === 'live' ? 'monitor' : 'live';
+  // 2026-07-16 (Fable-5 audit, P0-3): this is the dashboard's only
+  // trading-affecting control (switches the bridge between LIVE and
+  // MONITOR-only) and previously fired with zero confirmation. Gate it.
+  const ok = confirm('Switch trading mode: ' + currentMode.toUpperCase() +
+                      ' -> ' + newMode.toUpperCase() + '?\n\n' +
+                      (newMode === 'monitor'
+                        ? 'MONITOR mode: the bridge will keep watching signals but will NOT place real trades.'
+                        : 'LIVE mode: the bridge will resume placing real trades.'));
+  if(!ok) return;
   try {
     if(location.protocol==='file:'){
       // file:// mode — mode change not supported without server
@@ -2056,10 +2235,13 @@ function updateModeBtn(){
     btn.className   = 'mode-btn';
   }
 }
-// Keyboard shortcut M
+// Keyboard shortcut Ctrl+Shift+M (2026-07-16, Fable-5 audit P0-3: was a bare
+// 'M' with no modifier — one stray keypress could silently flip live trading
+// to monitor-only. Now requires a modifier combo AND the confirm() above.)
 document.addEventListener('keydown', e => {
-  if(e.key === 'm' || e.key === 'M'){
+  if((e.key === 'm' || e.key === 'M') && e.ctrlKey && e.shiftKey){
     if(document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT'){
+      e.preventDefault();
       toggleMode();
     }
   }
@@ -2512,6 +2694,12 @@ async function load(){
       el.style.color='var(--dim)';
       return;
     }
+    // 2026-07-16 (Fable-5 audit, P0-5): discard an out-of-order response —
+    // if a slower earlier request lands after a faster later one already
+    // rendered, don't let it paint the screen with stale data.
+    const _thisEpoch = d.broker_epoch||0;
+    if(_thisEpoch && _lastRenderedEpoch && _thisEpoch < _lastRenderedEpoch) return;
+    if(_thisEpoch) _lastRenderedEpoch = _thisEpoch;
     let sig = d.last_signal || {};
     // 2026-07-09 (Imtiyaz): the SIGNAL box shows the ACTIONABLE DECISION (BUY/SELL/SKIP after all gates),
     // NOT the raw model signal. The old "mirror the log's last BUY/SELL" fallback was REMOVED — it wrongly
@@ -2903,6 +3091,27 @@ async function load(){
     const atBanner = document.getElementById('autotrading_banner');
     if(atBanner){
       atBanner.className = (d.autotrading_enabled === false) ? 'show' : '';
+    }
+
+    // ── 2026-07-15: TRADE CLOSE CONFIRMATION BANNER ──────────────────
+    // Shows the last trade's close reason/PnL + whether every secondary/slave
+    // account was VERIFIED flat afterward (bridge_multi.close_secondary_accounts()
+    // re-queries positions, doesn't just trust the close order's retcode).
+    const tcBanner = document.getElementById('trade_close_banner');
+    if(tcBanner){
+      const tc = d.last_trade_close;
+      if(tc && tc.ticket){
+        const pnlTxt = (tc.pnl===null||tc.pnl===undefined) ? '' : ` | PnL $${tc.pnl>=0?'+':''}${tc.pnl.toFixed(2)}`;
+        if(tc.all_flat){
+          tcBanner.className = 'show';
+          tcBanner.textContent = `✅ TRADE #${tc.ticket} CLOSED (${tc.reason})${pnlTxt} — ALL ACCOUNTS CONFIRMED FLAT, NO TRADE OPEN`;
+        } else {
+          tcBanner.className = 'show warn';
+          tcBanner.textContent = `⚠ TRADE #${tc.ticket} CLOSED (${tc.reason})${pnlTxt} — SECONDARY ACCOUNT(S) STILL OPEN, CHECK bridge.log`;
+        }
+      } else {
+        tcBanner.className = '';
+      }
     }
 
     // ── IMPROVEMENT 1: EQUITY SPARKLINE ──────────────────────
@@ -3816,6 +4025,7 @@ async function load(){
     // other _fitPanelToGrid calls right below it.
     try { if(typeof _syncSignalLogToSignalHeight==='function') _syncSignalLogToSignalHeight(); } catch(e){}
     try { if(typeof _fitPanelToGrid==='function'){ _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_closed_trades'); } if(typeof _tightenLowerOuterGaps==='function') setTimeout(_tightenLowerOuterGaps,50); } catch(e){}
+    try { if(typeof _pinSignalHistoryBelowSignal==='function') _pinSignalHistoryBelowSignal(); } catch(e){}
 
         // ── OVERNIGHT REPLAY ─────────────────────────────────────
     // Show ALL signals from signal_history (both REPLAY and regular mode signals from overnight)
@@ -3843,7 +4053,7 @@ async function load(){
           const _rSc=_rBlk?'#555':_sc;
           const _rSigDisp=_rBlk?('<span style="text-decoration:line-through;opacity:.5">'+s.signal+'</span>'):(s.signal);
           const _rBlkBadge=_rBlk?'<span style="font-size:0.58rem;font-weight:700;color:#ff6b6b;background:#331a1a;border-radius:3px;padding:0 4px;margin-left:4px">BLK '+(s.trade_action||'').replace('BLOCK_','')+'</span>':'';
-          return '<div class="replay-row" style="background:'+_bg+';border-left:2px solid '+_rSc+';'+(_rBlk?'opacity:.5;':'')+'">'+
+          return '<div class="replay-row" style="background:'+_bg+';border-left:3px solid '+_rSc+';'+(_rBlk?'opacity:.5;':'')+'">'+
             '<span style="color:var(--dim);min-width:60px;font-size:0.72rem">'+_time+'</span>'+
             '<span style="color:'+_rSc+';font-weight:700;min-width:42px">'+_rSigDisp+'</span>'+
             '<span style="color:'+(parseFloat(_pc)>=45?'var(--gold)':'var(--dim)')+';min-width:48px;font-family:var(--orb)">'+_pc+'%</span>'+
@@ -4274,6 +4484,71 @@ function _syncSignalLogToSignalHeight(){
   log.style.height = sigH + 'px';
 }
 
+// 2026-07-16 (Imtiyaz): keep the live lower stack fixed:
+// SIGNAL/SIGNAL LOG -> Signal History -> Hours -> Closed Trades.
+// Old saved GridStack layouts can put these at the bottom after refresh; this
+// normalizes the live dashboard stack every load/poll while edit mode is off.
+function _pinSignalHistoryBelowSignal(){
+  if(!_gsGrid || _gsEditMode || _gsCurrentTab !== 'live') return;
+  var sigItem  = document.querySelector('#dashboard_grid > .grid-stack-item[gs-id="signal"]');
+  var logItem  = document.querySelector('#dashboard_grid > .grid-stack-item[gs-id="signal_log"]');
+  var histItem = document.querySelector('#dashboard_grid > .grid-stack-item[gs-id="signal_history"]');
+  var hourItem = document.querySelector('#dashboard_grid > .grid-stack-item[gs-id="hours_heatmap"]');
+  var closedItem = document.querySelector('#dashboard_grid > .grid-stack-item[gs-id="closed_trades"]');
+  if(!sigItem || !logItem || !histItem) return;
+
+  function nodeOf(el){
+    try{ return _gsGrid.engine.nodes.find(function(n){ return n.el === el; }); }catch(e){ return null; }
+  }
+  function nval(n, el, key, fallback){
+    if(n && n[key] != null) return n[key];
+    var v = parseInt(el.getAttribute('gs-' + key), 10);
+    return isNaN(v) ? fallback : v;
+  }
+
+  var sigN = nodeOf(sigItem), logN = nodeOf(logItem), histN = nodeOf(histItem), hourN = hourItem ? nodeOf(hourItem) : null, closedN = closedItem ? nodeOf(closedItem) : null;
+  var sigY = nval(sigN, sigItem, 'y', 0),  sigH = nval(sigN, sigItem, 'h', 5);
+  var logY = nval(logN, logItem, 'y', 0),  logH = nval(logN, logItem, 'h', 5);
+  var histH = Math.max(1, nval(histN, histItem, 'h', 1));
+  var desiredY = Math.max(sigY + sigH, logY + logH);
+
+  var needsHist = (
+    nval(histN, histItem, 'x', 0) !== 0 ||
+    nval(histN, histItem, 'y', 0) !== desiredY ||
+    nval(histN, histItem, 'w', 12) !== 12
+  );
+  if(needsHist){
+    _gsGrid.update(histItem, {x:0, y:desiredY, w:12, h:histH, minW:4, minH:1});
+  }
+
+  if(hourItem){
+    var hourY = desiredY + histH;
+    var hourH = Math.max(1, nval(hourN, hourItem, 'h', 2));
+    var needsHour = (
+      nval(hourN, hourItem, 'x', 0) !== 0 ||
+      nval(hourN, hourItem, 'y', 0) !== hourY ||
+      nval(hourN, hourItem, 'w', 12) !== 12
+    );
+    if(needsHour){
+      _gsGrid.update(hourItem, {x:0, y:hourY, w:12, h:hourH, minW:6, minH:1});
+    }
+
+    if(closedItem){
+      var closedY = hourY + hourH;
+      var closedH = Math.max(1, nval(closedN, closedItem, 'h', 3));
+      var needsClosed = (
+        nval(closedN, closedItem, 'x', 0) !== 0 ||
+        nval(closedN, closedItem, 'y', 0) !== closedY ||
+        nval(closedN, closedItem, 'w', 12) !== 12
+      );
+      if(needsClosed){
+        _gsGrid.update(closedItem, {x:0, y:closedY, w:12, h:closedH, minW:6, minH:1});
+      }
+    }
+  }
+  _gsGrid.compact();
+}
+
 function gsInitDashboard(){
   if(!_gsCurrentTab) _gsCurrentTab = 'live';
   var gridEl = document.createElement('div');
@@ -4300,7 +4575,7 @@ function gsInitDashboard(){
   // GridStack panel), so it can shrink to its true content height instead of
   // being bound to the grid's 56px row quantization, and sits right above the
   // grid next to the vSL/TP bar it's conceptually paired with.
-  ['danger_banner','autotrading_banner','sl_progress_wrap','panel_open_trades'].forEach(function(eid){
+  ['danger_banner','autotrading_banner','trade_close_banner','sl_progress_wrap','panel_open_trades'].forEach(function(eid){
     var el = document.getElementById(eid);
     if(el) gridEl.parentNode.insertBefore(el, gridEl);
   });
@@ -4372,6 +4647,7 @@ function gsInitDashboard(){
   try { _fitAiMarketPanel(); } catch(e){}
   try { _syncSignalLogToSignalHeight(); } catch(e){}
   try { _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_closed_trades'); } catch(e){}
+  try { _pinSignalHistoryBelowSignal(); } catch(e){}
   try { setTimeout(_tightenLowerOuterGaps,50); } catch(e){}
 
   // Canvas resize observer
@@ -4416,6 +4692,7 @@ function gsInitDashboard(){
       _gsResponsiveColumns();
       try { _syncSignalLogToSignalHeight(); } catch(e){}
       try { _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_closed_trades'); } catch(e){}
+      try { _pinSignalHistoryBelowSignal(); } catch(e){}
       try { setTimeout(_tightenLowerOuterGaps,50); } catch(e){}
     });
   });
@@ -4447,6 +4724,7 @@ function _gsApplyTabFilter(tab){
   });
   _gsGrid.compact();
   try { _syncSignalLogToSignalHeight(); } catch(e){}
+  try { _pinSignalHistoryBelowSignal(); } catch(e){}
 }
 
 // Override switchTab for GridStack
@@ -4486,6 +4764,7 @@ function switchTab(name){
   _gsRestoreLayout();
   try{ localStorage.setItem('qgai_tab', name); }catch(e){}
   if(name==='live'){
+    try{ _pinSignalHistoryBelowSignal(); }catch(e){}
     try{ drawSparkline(equityHistory, null); drawSigChart([]); }catch(e){}
   }
 }

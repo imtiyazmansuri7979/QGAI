@@ -618,6 +618,25 @@ class QGAICore:
             # TP hit by broker (position disappeared)
             if not mt5.positions_get(ticket=ticket) and ticket in self.virtual_trades:
                 log.info(f"  ✅ #{ticket} TP hit / closed by broker @ {current_price:.2f}")
+                _sec_summary = bridge_multi.close_secondary_accounts()
+                # 2026-07-15: dashboard trade-close confirmation — primary is confirmed flat by
+                # definition of this branch (positions_get returned nothing for it); overall
+                # all_flat only true if close_secondary_accounts() VERIFIED every secondary is
+                # also flat (re-queried, not assumed from the close order's retcode).
+                _all_flat = bool(_sec_summary.get("all_flat", False))
+                log.info(
+                    f"  🧾 TRADE SUMMARY #{ticket}: TP hit @ {current_price:.2f} | "
+                    f"PnL ${st['pnl_$']:+.2f} | secondaries "
+                    f"{'ALL FLAT ✅' if _all_flat else 'STILL OPEN ⚠️ — check bridge.log'}"
+                )
+                try:
+                    import bridge_dashboard as _bd
+                    _bd.record_trade_close_summary(
+                        ticket=ticket, reason="TP_BROKER", pnl=st["pnl_$"],
+                        all_flat=_all_flat, secondaries=_sec_summary.get("accounts", {}),
+                    )
+                except Exception as e:
+                    log.error(f"  ⚠️ dashboard trade-close record failed: {e}")
                 self._remove_sl_line(ticket)
                 self._forget_ticket(ticket)
 
@@ -755,8 +774,20 @@ class QGAICore:
                     sl_dist   = float(m_sl.group(1))
                     virtual_sl = float(m_vsl.group(1))
                 else:
-                    # Last-resort: reconstruct from broker SL (broker_sl = vSL × 3
-                    # historically, now × 1.5 per FAB-S4 tightening — divisor updated).
+                    # Last-resort: reconstruct from broker SL.
+                    # 🔒 Divisor DELIBERATELY kept at 1.5, NOT `broker_sl_open_mult`
+                    # (Imtiyaz, 2026-07-16 — reverted a same-session "fix" that wrongly
+                    # treated this as stale). History: 2026-07-07 FAB-S4 tightened BOTH
+                    # the trade-open broker-SL mult AND this reconstruction divisor
+                    # 3.0->1.5 together (Fable-5 rec, "halves disaster-crash risk").
+                    # 2026-07-14 widened the trade-open mult back to 3.0 (config
+                    # `broker_sl_open_mult`) for SL-hunt resistance on the BROKER-visible
+                    # stop — but this recovery-only divisor was deliberately left at 1.5.
+                    # A no-persist/no-tag recovery reconstructs a WIDER vSL at 1.5 than it
+                    # would at 3.0 (same broker_sl_dist / smaller divisor = larger
+                    # sl_dist) — intentionally erring wide in this rare fallback path so
+                    # the app's own virtual SL isn't an easy hunt target either. Do not
+                    # "sync" this to `broker_sl_open_mult` again without confirming first.
                     broker_sl_dist = abs(pos.sl - entry) if pos.sl else 0.0
                     sl_dist   = round(broker_sl_dist / 1.5, 2) if broker_sl_dist else 15.0
                     virtual_sl = (round(entry + sl_dist, 2) if direction == "SELL"

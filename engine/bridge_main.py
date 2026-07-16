@@ -278,9 +278,7 @@ def run():
     #    operator can verify the running config at a glance (no guessing).
     from bridge_constants import (
         RISK_PCT, DAILY_SL, DAILY_TP, ENABLE_DAILY_TP, RATCHET_MAX_RISK_PCT,
-        TP_MULT, TRAIL_AFTER_R, BREAKEVEN_BUFFER,
-        PARTIAL_CLOSE_ENABLED, PARTIAL_CLOSE_R, PARTIAL_CLOSE_PCT,
-        SMART_EXIT_ENABLED, MAX_SIMULTANEOUS, MAGIC,
+        MAX_SIMULTANEOUS, MAGIC,
     )
     _fl  = getattr(CFG.filters, "use_fixed_lot", False)
     _flv = getattr(CFG.filters, "fixed_lot", 0.01)

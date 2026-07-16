@@ -195,9 +195,7 @@ def main():
     range_phases = h4_df["in_range_phase"].sum()
     print(f"  H4 candles: {len(h4_df):,} | Big moves(≥2%): {big_moves} | Range phases: {range_phases}")
 
-    from features import build_trend_ratio_table, build_ob_table
-    ratio_df = build_trend_ratio_table(ohlc_df)
-    print(f"  Trend ratio built: {len(ratio_df)} H4 rows")
+    from features import build_ob_table
 
     print("  Building Order Block tables...")
     h1_ob    = build_ob_table(ohlc_df, "1h")
@@ -220,12 +218,12 @@ def main():
 
     # ── STEP 3: Feature Matrix ───────────────────────────────
     print("\n► Step 3: Building feature matrix...")
-    # FIX 2026-06-14: pass h1_ob/h4_ob/ratio tables so OB + trend-ratio
-    # features are REAL (not 999/0 fallback). Without these, the new
-    # direction-aware OB S/R features train on constants → 0 importance.
+    # FIX 2026-06-14: pass h1_ob/h4_ob tables so OB features are REAL (not
+    # 999/0 fallback). Without these, the new direction-aware OB S/R features
+    # train on constants → 0 importance.
     X, y, feat_names = build_feature_matrix(
         trades, ohlc_df, adx_df, news_df, slot_tbl,
-        h4_df=h4_df, ratio_df=ratio_df, h1_ob=h1_ob, h4_ob_df=h4_ob_df
+        h4_df=h4_df, h1_ob=h1_ob, h4_ob_df=h4_ob_df
     )
     print(f"  Feature matrix: {X.shape[0]:,} trades × {X.shape[1]} features")
     print(f"  Win rate: {y.mean()*100:.1f}% ({y.sum():,} wins / {len(y):,} trades)")
@@ -496,9 +494,8 @@ def train_directional_models():
     print(f"  Win rate: {trades['win_bin'].mean()*100:.1f}%")
     print(f"  BUY: {(trades['Type']=='BUY').sum():,} | SELL: {(trades['Type']=='SELL').sum():,}")
 
-    from features import build_h4_range_table, build_trend_ratio_table, build_ob_table
+    from features import build_h4_range_table, build_ob_table
     h4_df    = build_h4_range_table(ohlc_df)
-    ratio_df = build_trend_ratio_table(ohlc_df)
     h1_ob    = build_ob_table(ohlc_df, "1h")
     h4_ob_df = build_ob_table(ohlc_df, "4h")
     slot_tbl = joblib.load(f"{cfg.models_dir}/slot_table.pkl")
@@ -509,7 +506,7 @@ def train_directional_models():
     print("► Building feature matrix...")
     X, y, feat_names = build_feature_matrix(
         trades, ohlc_df, adx_df, news_df, slot_tbl,
-        h4_df=h4_df, ratio_df=ratio_df, h1_ob=h1_ob, h4_ob_df=h4_ob_df
+        h4_df=h4_df, h1_ob=h1_ob, h4_ob_df=h4_ob_df
     )
 
     # Add HMM state — HMM v3: keys from HMM_FEATURES (single source of truth)

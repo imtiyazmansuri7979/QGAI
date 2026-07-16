@@ -20,7 +20,7 @@ from sklearn.metrics import roc_auc_score
 from config import CFG
 from features import (load_trades, load_ohlc, load_adx, load_news,
                       build_slot_table, build_feature_matrix, FEATURE_COLS,
-                      build_h4_range_table, build_trend_ratio_table, build_ob_table)
+                      build_h4_range_table, build_ob_table)
 from xgb_model import WinProbabilityModel
 
 t0 = time.time()
@@ -43,7 +43,6 @@ print(f"  Trades: {len(trades):,} | OHLC: {len(ohlc_df):,}")
 
 # Build tables
 h4_df    = build_h4_range_table(ohlc_df)
-ratio_df = build_trend_ratio_table(ohlc_df)
 h1_ob    = build_ob_table(ohlc_df, "1h")
 h4_ob_df = build_ob_table(ohlc_df, "4h")
 
@@ -53,9 +52,14 @@ slot_tbl = build_slot_table(trades.iloc[:_slot_tr_end])
 
 # Build full feature matrix
 print("\n► Building feature matrix...")
+print("  ⚠️ NOTE (2026-07-16): corr_imp_ratio's computation was deleted from features.py —")
+print("  it is now a hardcoded 1.0 constant. Variants B/C below (dropping it) will show")
+print("  ZERO difference vs A/D for that reason alone, not as a fresh confirmation of low")
+print("  impact. The original 2026-07-09 finding (-0.014 AUC) is already recorded in")
+print("  FIXES_CHANGELOG4.md and is not reproducible by re-running this script.")
 X, y, feat_names = build_feature_matrix(
     trades, ohlc_df, adx_df, news_df, slot_tbl,
-    h4_df=h4_df, ratio_df=ratio_df, h1_ob=h1_ob, h4_ob_df=h4_ob_df
+    h4_df=h4_df, h1_ob=h1_ob, h4_ob_df=h4_ob_df
 )
 print(f"  Matrix: {X.shape[0]:,} × {X.shape[1]} features")
 

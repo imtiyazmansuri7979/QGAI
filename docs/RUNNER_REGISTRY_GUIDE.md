@@ -36,9 +36,19 @@ This uses `--allow-in-sample` and is display-only.
 
 ## OOS Proof Order
 
-1. 3-month clean screen
-2. 1-year clean OOS confirmation
-3. WFO
-4. Demo/forward check
+Full ladder + stage-pass criteria: `docs/STRATEGY_TESTING_STAGE_GATE.md`
+(single source of truth, not repeated here). Short version: 3-month clean
+screen -> 1-year clean OOS confirmation -> WFO -> Monte Carlo ->
+demo/forward check. Do not adopt features from a 3-month screen alone.
 
-Do not adopt features from a 3-month screen alone.
+## Pre-Backtest Audit
+
+Run the full checklist in `docs/PRE_BACKTEST_AUDIT.md` before starting any
+new backtest/WFO/feature-sweep run. If any CRITICAL finding turns up, do
+not start the run. Not optional — standing rule, `CLAUDE.md` 2026-07-16.
+
+## Post-Backtest Audit
+
+Run the full checklist in `docs/BACKTEST_RESULT_AUDIT.md` on every backtest/
+WFO/feature-sweep result before quoting it or writing a KEEP/DROP decision.
+Not optional — standing rule, `CLAUDE.md` 2026-07-16.

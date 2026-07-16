@@ -1,7 +1,16 @@
 # QGAI — Working Notes (where we are right now)
 
-**Updated:** 2026-07-15 · **Use:** live status / handoff. If the session breaks or
+**Updated:** 2026-07-16 · **Use:** live status / handoff. If the session breaks or
 Imtiyaz picks up, start HERE, then RULEBOOK.md → SYSTEM_OVERVIEW.md → FIXES_CHANGELOG.
+
+---
+
+## 🥇 TOP PRIORITY (Imtiyaz, 2026-07-16): Exit Model / Exit-AI work stream
+Everything else in this file (bug-audit P0, manual-copy watch, feature-sweep, validation ladder)
+is now SECOND priority. Full 5-step plan → `TASKS.md` top section. **Immediate next action:** run
+`backtest\_runners\exit_workstream\EXIT01_RUN_PostCapContinuationAudit.bat` (registry ID `EXIT01`,
+built 2026-07-13, renamed/organized into the registry 2026-07-16, never run yet — read-only, seconds) —
+its result is the decision gate for whether the TP-cap-as-trail-tighten redesign is worth doing.
 
 ---
 

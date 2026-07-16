@@ -119,7 +119,11 @@ HIGH_PROB_TIER = [
     "ts_trend_h1", "ts_trend_h4", "ts_trend_m15",
     "ts_aligned_htf", "ts_adx_switch_trend", "ts_flip_recent",
     "H1_ADX", "M30_ADX",
-    "move_8hr", "corr_imp_ratio",
+    "move_8hr",
+    # "corr_imp_ratio" removed 2026-07-16 — its computation was deleted from
+    # features.py (dead leaky code cleanup); QGAI_UNPRUNE would now be a no-op
+    # (nothing computes a real value to unprune). See features.py's
+    # _MANUAL_PRUNE comment for the full history.
     "h4_resist_dist",
     "h4_ob_strength", "h1_ob_strength",
     "trade_direction", "h4_trending_h1_aligned", "h4_ranging_h1_neutral",

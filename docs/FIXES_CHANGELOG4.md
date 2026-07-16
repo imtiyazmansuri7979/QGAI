@@ -8,6 +8,614 @@ Worked on by Anisa via Cowork. Shared PC / shared folder — this file is the hi
 
 ---
 
+## 2026-07-16 — Signal History panel width/alignment fix (Imtiyaz-reported)
+`#signal_history_panel` (`dashboard.html` CSS ~line 767) had its own
+`margin:0 12px!important` — no other GridStack panel has a horizontal
+margin like this, including `#hours_heatmap_wrap` right below it. Both
+panels are full-width (`w:12`) GridStack items sharing the identical
+`.grid-stack-item-content` wrapper (which itself has no horizontal
+padding), so this one panel alone started 12px later on the left and
+ended 12px earlier on the right than every other panel on the dashboard
+— exactly the reported symptom (both edges inset, panel reads narrower).
+Root cause was purely this single margin declaration; nothing else
+(padding, `calc()` widths, nested wrappers, grid-column spans) was
+contributing. Fixed: `margin:0!important`.
+Left untouched, confirmed not implicated: `.tcard-hdr`'s
+`position:absolute;left:8px` (relative to the panel's own border-box —
+unaffected by the outer margin) and `.sig-history-body`'s
+`padding-left:118px!important` (reserves space for the floating header
+title on the LEFT inside the panel, independent of the outer margin
+that was causing the misalignment). The chart itself
+(`#sig_history_chart`) already reads `c.offsetWidth` on every redraw
+(`drawSigChart()`, ~line 2324), so the extra ~24px of now-available width
+is picked up automatically on the next dashboard poll — no JS change
+needed for the timeline bar to use full width.
+Verified: JS parses clean, CSS braces balance 506/506. **Browser
+hard-refresh only — no bridge restart needed.**
+
+---
+
+## 2026-07-16 — Ticker + Signal Log border audit (Fable-5, follow-up) — all fixes applied, Imtiyaz approved
+Follow-up to the same day's dashboard border-consistency audit. Owner
+flagged 4 specific remaining symptoms: top ticker too visually heavy,
+bottom ticker's border invisible, the 3 ticker rows inconsistent with
+each other and the rest of the dashboard, and Signal Log having the same
+kind of inconsistency. Fable-5 identified the 3 tickers as `#risk_strip`
+(top, page-wide), `#ai_ticker_strip`/`#market_intel_box`'s embedded
+strips (middle+bottom, inside `#panel_ai_market`).
+
+**F-T1 — top ticker too heavy:** `.bb-item` pill segments had border +
+inset box-shadow, AND the nested `.bb-label` inside each pill had its OWN
+border — a border-in-border on every one of ~16 segments per ticker row.
+Removed the inset shadow (→ `var(--panel-glow)`, matching the earlier F1
+rule) and removed `.bb-label`'s border entirely (kept its background
+tint so it's still visually distinct). This changes the 2026-07-11
+"pill-in-pill" spec — Imtiyaz confirmed before applying.
+
+**F-T2 — bottom ticker border invisible:** `#panel_ai_market` had `border:0`
+stacked 1 layer deep with `!important` (plus `outline:0`/`box-shadow:none`)
+— a deliberate 2026-07-10 design choice that the earlier same-day audit's
+F7 had confirmed as "intentional, leave alone." Reversed that decision
+(Imtiyaz confirmed) — the panel keeps its `.tcard` class, so removing the
+border-killers lets it pick up the standard border-glow automatically.
+The 2 inner rows (`#ai_summary_box`, `#market_intel_box`) stay frameless
+on purpose — one shared outer frame for both ticker rows, not two
+separate ones (which would just recreate a double border between them).
+
+**F-T3 — 3 tickers inconsistent with each other + rest of dashboard:**
+`.risk-strip` (top ticker) was a flat, square, edge-to-edge band with only
+a hardcoded (non-token) bottom border — visually a different "language"
+from every rounded/gradient/glow `.tcard` panel elsewhere. Now uses the
+same treatment: gradient background, 4-side `var(--border-glow)` border,
+10px radius, outer glow. `.rs-embed` variant (the 2 tickers nested in
+`#panel_ai_market`) stays frameless — see F-T2. `.rs-div` (vertical
+divider inside the ticker) and other hardcoded `rgba(0,212,255,...)`
+values mapped to `var(--border-glow)`.
+
+**F-S1 — Signal Log's 4 different edge "strengths":** outer panel frame,
+`.sl-table-header`'s border-bottom, and `.sl-row`'s border-bottom were 3
+different colors/opacities (plus the outer `.tcard-hdr` line was nearly
+invisible against the panel background). Unified `.sl-table-header` to
+`var(--border)` and `.sl-row` to `var(--border-soft)` — the token that
+was already defined for exactly this row-separator purpose but unused.
+
+**F-S2 — Signal Log last-row double line:** `.sl-row` had no
+`:last-child` exception, so the final row's own bottom border landed
+directly on the panel's outer bottom border. Added
+`.sl-row:last-child{border-bottom:none}`.
+
+**F-S3 — Signal Log filter buttons:** `.lsf-btn.lsf-on` had an outer glow
+AND an inset ring stacked together (same one-mechanism-per-edge violation
+as the earlier F1 fix). Dropped the inset half.
+
+Verified: all JS `<script>` blocks parse clean, CSS braces balance
+(506/506, same count as after the earlier pass — pure edits, no
+orphaned rules). **Browser hard-refresh only — no backend/Python files
+touched, no bridge restart needed.**
+
+---
+
+## 2026-07-16 — Dashboard border-consistency audit (Fable-5) — all fixes applied except F6
+Fable-5 ran a full read-only CSS audit of `dashboard.html`'s border rules
+(1 `<style>` block, all inline styles, JS-generated markup). One-line
+diagnosis: border edges were rendered by up to 4 overlapping mechanisms at
+once (`border` + `outline` + inset `box-shadow` + `::before`/`::after`
+pseudo-element gradient lines), and different components used different
+subsets of the four — that's why some panels looked thick/tinted and
+others plain. Imtiyaz consulted and approved the full fix list including
+the higher-risk items.
+
+**New standardized border token set** added to `:root` (`--bw`,
+`--bw-accent`, `--border-soft`, `--border-glow`, `--border-glow-hover`,
+`--border-track`, `--panel-glow`).
+
+**F1 (main cause) — the "four-side separators" group (~30 selectors:
+`.tcard`, `.cc`, `.r-cell`, `.heat-cell`, `.price-bar`, etc.):** used to
+stack `outline:1px` (same pixel as the element's own border) + `inset
+box-shadow 0 0 0 1px` on top of a plain `border:1px`. Reduced to ONE
+mechanism: `border-color:var(--border-glow)` (only tints an edge that
+already has a border — adds none where there wasn't one) + a pure outer
+glow (`box-shadow` with no `inset`).
+
+**F2 — `.tcard::before`/`::after`** (top/right 1px gradient lines,
+stacking on top of F1's group) — removed; the border-color glow (F1) is
+now the panel's only edge treatment.
+
+**F3 — Signal Log double-line:** `.tcard-hdr`'s `border-bottom` and the
+immediately-following `.sl-table-header`'s `border-top` were two different
+colors on the same shared edge. Removed the redundant `border-top`.
+
+**F4 — `.r-cell` / `.sig-hero-mini` triple-declared border+radius:**
+`.r-cell` (and `.sig-hero-mini`) each declared their own `border`/
+`border-radius` in one place, then a shared "metric box" group
+re-declared different values with `!important` a few lines later — the
+second always won, so the first was dead weight and a trap for future
+edits (change the first, nothing visibly changes). Consolidated to one
+declaration each; the shared group's inset ring also dropped in favor of
+outer-only glow, matching F1.
+
+**F5 — border-WIDTH changing on state change (causes 1px content jitter):**
+`.heat-cell.is-now` (1px→2px on the hourly "NOW" cell) now stays 1px, gold
+highlight comes from an inset ring instead; `.tab-btn` (`border:none` →
+`border:1px` on `.active`) now starts at `1px solid transparent` so
+switching tabs doesn't shift the label; `.lc-step.active`'s
+`transform:scale(1.02)` (blurred its 1px border at fractional pixel sizes)
+removed — the existing pulse glow already signals "active".
+
+**F8 — hardcoded colors bypassing the border token:** `.rc`'s `#0d2535`,
+`.gs-toolbar button`'s `#30363d`, `#gs_edit_btn`'s inline `#30363d` → all
+now `var(--border)`; `.sig-ticker-track`, `.sig-hero-bars .sig-prob-track`,
+`.sl-progress-track`'s `#07131f` → `var(--border-track)`.
+
+**F10 — accent-bar width unified to the file's dominant 3px:**
+`#feedback_panel`'s inline `border-top` (2px→3px), `.sec`'s `border-left`
+(2px→`var(--bw-accent)`=3px), the JS-generated `.replay-row`'s inline
+`border-left` (2px→3px).
+
+**F11 — dead code:** removed unused `.sig-top`/`.sig-probs`/
+`.sig-advice-bar`/`.sig-bottom`/`.sig-state-cell`/`.sig-param` (old
+Signal Card v1 internals, confirmed zero markup usage via grep) and both
+duplicate `.lc-panel` definitions (confirmed unused); removed the no-op
+`.bb-item.title{border-width:1px}` (base already 1px); renamed the
+duplicate `@keyframes pulse` (was silently overriding the `.live` dot's
+intended opacity-blink with a box-shadow-pulse meant for
+`.slot-pill.next`/`.mode-btn.monitor`) to `pulseGlow` and repointed its 2
+real users.
+
+**F6 — NOT applied (deliberately skipped):** Fable-5's own report flagged
+this as needing panel-by-panel verification, citing real prior regression
+history in this exact area (`.grid-stack-item-content` sub-pixel height
+rounding vs. child panel height — the 2026-07-15 scrollbar-bug fixes for
+`signal`/`signal_log` live at this same spot, code comment ~line 277). A
+blanket CSS change here risks reintroducing that class of bug. Left as a
+follow-up requiring individual panel testing, not bundled into this pass.
+
+**F7 — confirmed intentional, no change:** `#panel_ai_market`'s
+`border:0` is a documented 2026-07-10 deliberate design choice (segmented
+ticker redesign, content-based height), not an oversight — verified via
+its own code comment before leaving it alone.
+
+Verified after all edits: JS `<script>` blocks parse clean (Node
+`new Function()` check on every block) and the single `<style>` block's
+CSS braces balance (506 open / 506 close). **Browser hard-refresh
+required to see these changes — no backend/Python files touched, no
+bridge restart needed.**
+
+---
+
+## 2026-07-16 — Dashboard audit (Fable-5) — all 6 P0 findings fixed
+Fable-5 ran a full read-only technical audit of `dashboard.html` (4666 lines)
++ `bridge_dashboard.py` (952 lines), tracing every UI value to its backend
+source. Verdict: "Major Fixes Required" — not visually incomplete, carries
+real data/functionality risk, though the engine trades independently of the
+dashboard so trade execution itself was never at risk. All 6 CRITICAL (P0)
+findings fixed same day, add-only/low-risk per Fable-5's own risk assessment:
+
+**P0-1 — Closed Trades / Session W-L / AI-Feedback panel permanently empty.**
+Backend sent `closed_history`; frontend read `d.closed_trades` in 3 places
+(`dashboard.html:3608, 3352-3355, 4060`) — key never matched. Fixed by
+adding a `"closed_trades": closed_history` alias in `bridge_dashboard.py`'s
+`dash` dict (~line 890) — backend-only, zero frontend changes, zero regression
+risk.
+
+**P0-2 — Protection badges (Virtual SL/Trailing/Slot/News/Directional/Test
+Mode) always showed OFF.** `dashboard.html:3412-3423` read 6 keys
+(`virtual_sl`, `trailing_sl`, `slot_day_filter`, `slot_day_combos`,
+`news_filter_active`, `directional_models`, `test_mode`) that `write_dashboard()`
+never sent — worst case, Test Mode showing green "OFF" even when actually ON.
+Added all 6 keys to `bridge_dashboard.py`'s `dash` dict, sourced from
+`bridge_constants.VIRTUAL_SL/TRAILING_SL/TEST_MODE`, `CFG.filters.use_slot_day_filter`,
+`SLOT_DAY_FILTER` dict length, and `engine_meta`'s buy/sell model AUCs.
+`news_filter_active` is hardcoded `True` — it's baked into `inference.py`'s
+pre/post-news threshold routing, not a togglable flag today.
+
+**P0-3 — Keyboard `M` silently flipped LIVE↔MONITOR trading mode, no
+confirmation.** `dashboard.html:2072-2078`. Added a `confirm()` dialog inside
+`toggleMode()` stating the mode change and its trading consequence, and
+changed the shortcut from a bare `m`/`M` to `Ctrl+Shift+M` so a stray keypress
+can no longer trigger it at all.
+
+**P0-4 — Hours Heatmap showed hardcoded June-2026 backtest win-rates with no
+"static" indication**, readable as a live/current stat. Added an inline
+"⚠ static (Jun-26 backtest)" label next to the panel title
+(`dashboard.html:~1244`).
+
+**P0-5 — Polling race condition.** `load()` fires every ~1s with no
+sequencing; a slow/reordered response could overwrite a newer one already
+rendered, showing a stale signal. Added a monotonic `broker_epoch` guard
+(`_lastRenderedEpoch`, `dashboard.html:~1494, ~2545`) — an out-of-order
+response is now discarded instead of painted.
+
+**P0-6 — TRADES ticker double-counted an open trade.** `dashboard.html:3252-3254`
+computed `totalCnt = d.total_trades_today + d.open_count`. `total_trades_today`
+came from `bridge_dashboard.py`'s `max(session.trades_today, len(closed_today_exit))`
+— `session.trades_today` is `+= 1`'d the instant a trade OPENS
+(`bridge_core.py:280`), so while that trade stays open it inflated
+`total_trades_today` above the closed count; `open_count` then added the same
+still-open trade a second time. `closed_today_exit` is independently
+re-queried fresh from MT5 history every call (no restart-staleness risk), so
+the `max()` safety net wasn't needed for it. Changed `total_trades_today` to
+`len(closed_today_exit)` (pure closed-today count) — `session.trades_today`
+itself is untouched, still used for `Trade#N` log labeling and
+`update_daily_summary()`, only the dashboard's own display value changed.
+
+All 6 fixes verified `py_compile` clean (`bridge_dashboard.py`) and JS
+syntax-clean (`dashboard.html`, all `<script>` blocks parse). P1 (10 items)
+and P2/P3 items from the same audit are logged in `docs/TASKS.md`, not yet
+actioned — Fable-5's roadmap recommends responsive-breakpoint and
+dead-code-cleanup work happen on a separate branch after full regression
+testing, not bundled with these P0 fixes. **Bridge + dashboard restart
+required to take effect; browser hard-refresh needed for the JS changes.**
+
+---
+
+## 2026-07-16 — Pre/Post-backtest audit docs refined per Fable-5 second opinion
+`docs/PRE_BACKTEST_AUDIT.md` (30-section) and `docs/BACKTEST_RESULT_AUDIT.md`
+(15-section) were created earlier the same day as standing rules. Imtiyaz
+asked for an independent Fable-5 review before adopting them as-is.
+Fable-5's core finding: content was ~90% right, but 45 sections run in full
+on every single backtest is not sustainable and would get silently skipped
+in practice — plus neither doc referenced QGAI's already-existing automated
+tools, so every audit would re-derive checks by hand. Applied all 5
+priority fixes:
+1. **Tiering** — both docs now split into Tier A (always, ~10 min) vs Tier B
+   (full checklist, only for new features/code changes/decisions), with a
+   git-hash audit stamp on pre-doc Tier B so re-audits only cover changed
+   files.
+2. **Existing-tool wiring** — pre-doc §3a now names `leakage_guard.py`
+   (already hard-wired into `backtest_replay.py`), `diag_signal_repaint.py`
+   + `build_feature_snapshot.py --verify`, `test_leakage_auc.py`, and
+   `weekly_reconcile.py` instead of re-deriving those checks from scratch.
+   Fixed §22's naming pattern to match the real registry convention
+   (`<ID>_RUN_<Name>.bat`, ID first) instead of a made-up `RUN_<ID>_<Stage>`
+   pattern. Softened §24 (per-signal model-hash logging) to accept a
+   run-level manifest link since `signals_all.csv` doesn't carry per-signal
+   hashes today.
+3. **Ladder single-source-of-truth** — `docs/STRATEGY_TESTING_STAGE_GATE.md`
+   is now the only place the 3-Month->1-Year->WFO->Monte Carlo->Forward
+   ladder is defined; post-doc §15 (renamed from "Final 3-Month Acceptance
+   Gate" to "Stage Acceptance Gate") and its Next-Action defer to it instead
+   of keeping a 3rd drifting copy. `RUNNER_REGISTRY_GUIDE.md`'s "OOS Proof
+   Order" also now points there instead of restating it.
+4. **Sample-size floors** — post-doc §9 now has concrete numbers (≥100
+   trades overall, ≥30 per cell) instead of the vague "statistically
+   meaningful," fixing a self-contradiction (the doc demands exact numbers
+   everywhere else).
+5. **Multiple-testing / data-snooping bullet** — post-doc §13 now requires
+   recording how many candidates have already been tested on the same OOS
+   window (real risk for `feature_sweep_67/`, which tests dozens of
+   candidates on one 3-month window).
+Also: merged pre-doc §20+§21 (Baseline/Config Freeze, ~60% overlapping) into
+one "Freeze & Manifest" section; merged post-doc's duplicate best-trades-
+removal test (§3/§12/§13 all ran it separately) into one run cited by the
+other two; added XAUUSD-specific session-aware cost-stress guidance (Asian
+session + NFP/FOMC/CPI spread spikes) to pre-doc §13; added holding-duration/
+exposure stats to post-doc §2; added a feature-correlation/permutation-
+importance concrete check to post-doc §8 (citing the known ADX/DI vs
+SMMA-trend ~10% disagreement as a precedent); added regime-label causality
+check to post-doc §6; fixed a typo ("or the whole engine" -> "of"). Both
+docs now cross-link each other explicitly (post-doc §1 carries forward the
+matching pre-doc's Leakage/Repaint Verdict instead of re-deriving it).
+
+---
+
+## 2026-07-16 — Final bug audit: B8/B9/B10/B11 fixes
+
+### B8 — Dashboard crash now visible (`bridge_dashboard.py:928`)
+`log.debug` → `log.warning` — dashboard write failures were completely invisible in
+production logs (debug level not printed). Any crash would silently freeze dashboard.json.
+
+### B9 — DD brake peak save failure now logged (`dd_brake.py:105`)
+Bare `pass` → `log.warning(...)`. Save failure was silent; on restart after silent failure,
+peak equity resets = DD brake bypassed = full lot size trading at actual drawdown.
+
+### B10 — DD brake balance_ops failure now logged (`dd_brake.py:129`)
+Silent `return []` → `log.warning(...)` + `return []`. When MT5 API fails for balance ops,
+deposits/withdrawals silently ignored = withdrawal counted as trading loss = phantom drawdown.
+
+### B11 — Dead imports removed from config dump (`bridge_main.py:279-284`)
+Removed unused imports: `TP_MULT`, `TRAIL_AFTER_R`, `BREAKEVEN_BUFFER`,
+`PARTIAL_CLOSE_ENABLED/R/PCT`, `SMART_EXIT_ENABLED`. These constants exist in
+`bridge_constants.py` but their code was deleted in L7b (2026-06-29). The config dump
+log line already correctly says "removed L7b" — only the dead imports were cleaned up.
+
+---
+
+## 2026-07-16 — corr_imp_ratio dead code fully deleted (Imtiyaz: option B, full cleanup)
+**Context:** Bug #5 (`corr_imp_ratio` latent lookahead) was originally just documented with a
+warning comment. Imtiyaz asked what the 2026-07-12 "permanent solution" discussion had actually
+concluded — re-read `docs/LEAKAGE_AUDIT_20260712.md`: it offered two options, (i) drop the feature,
+or (ii) fix the availability gate to be honest. The audit's own conclusion was that option (ii) would
+only yield a "16h-stale near-useless value," so (i) drop was chosen and executed on 2026-07-12 — the
+feature has been in `_MANUAL_PRUNE` since. Given that, Imtiyaz asked what further cleanup was
+possible; offered 3 options (leave as-is / delete the dead computation code / rebuild a true honest
+fix) — chose **option B: delete the dead computation code.**
+**Scope turned out larger than a simple "delete 2 functions in one file":** the computation
+(`build_trend_ratio_table()` + `get_trend_ratio_features()`) is not literally dead — it runs once at
+every engine load/reload (`inference.py`) and during every training run (`train.py`), producing a
+value that the model simply never consumes (pruned from `FEATURE_COLS`). Removing it meant tracing
+and cleaning the `ratio_df` parameter threaded through 5 files, not just deleting the two functions.
+**Files touched:**
+- `features.py` — deleted both functions; `compute_features()` now hardcodes `corr_imp_ratio=1.0`;
+  removed the `ratio_df` parameter from `compute_features()` and `build_feature_matrix()`; rewrote
+  the `_MANUAL_PRUNE` comment to reflect that the leak no longer exists in code at all (not just
+  inert-because-pruned).
+- `inference.py` — removed `self.ratio_df` init + its two `compute_features()` call-site kwargs +
+  the now-unused import.
+- `train.py` — removed both `ratio_df = build_trend_ratio_table(...)` builds and their
+  `build_feature_matrix()` kwargs (2 separate training code paths).
+- `build_feature_snapshot.py` — removed the `ratio_df` key from its `aux` dict (was unpacked via
+  `**aux` into `compute_features()` — would have raised `TypeError` otherwise).
+- `run_feature_sweep.py` — removed `"corr_imp_ratio"` from `HIGH_PROB_TIER` (the planned Tier-2 test
+  list) since `QGAI_UNPRUNE`-ing it is now a pure no-op — nothing computes a real value to unprune.
+- `test_leakage_auc.py` (still reachable via `Start\6_Test_Leakage_AUC.bat`) and `test_ablation_10.py`
+  (via `Start\7_Ablation_10_Tests.bat`) — removed their now-broken `build_trend_ratio_table`
+  imports/calls so they don't crash if re-run; added a printed runtime note that their
+  corr_imp_ratio comparison is no longer a fresh measurement (the column is now a hardcoded
+  constant, so dropping it changes nothing — the original 2026-07-09 AUC finding stands on its own
+  as historical record, not reproducible by re-running these scripts).
+- **Deliberately left untouched:** `auc_volume_compare.py`, `test_tickvol_feature.py` — not
+  referenced by any bat in `backtest\_runners` or `Start\`, so not part of any active workflow; they
+  will raise an `ImportError` if anyone runs them directly in the future (acceptable — loud failure,
+  not a silent wrong result, and effort wasn't spent fixing scripts nothing currently calls).
+**Side-effect found and accepted (cosmetic, not trading-related):** `bridge_dashboard.py`'s "Market
+Structure" panel computes `phase_score` with `× 1.2 if corr_imp_ratio < 0.5 else 1.0` — since
+`corr_imp_ratio` is now permanently `1.0`, that condition can never be true again, so `phase_score`
+loses its occasional 1.2× bump. This is a **display-only dashboard score**, not part of any trading
+decision (win_prob, lot sizing, entry/exit are untouched) — confirmed by reading the surrounding
+`build_market_intel`-style function before proceeding.
+**Verified:** `python -m py_compile` clean on all 11 touched `.py` files individually and together.
+Full-repo grep confirms no remaining functional references to the deleted functions (2 intentional
+comment mentions in `features.py` explaining the history, and the 2 deliberately-untouched orphan
+scripts noted above).
+**Not yet done:** a live/backtest smoke run to confirm `corr_imp_ratio=1.0` flows through end-to-end
+with no behavior change to the model (expected zero change, since the column was already pruned from
+`FEATURE_COLS` — this is pure removal of unused computation, not a feature/threshold change).
+
+## 2026-07-16 — Bug #1 REVERTED (2nd revert of the day) — in_range_phase train/serve mismatch was intentional
+**What happened:** earlier the same day, the deep bug audit flagged `inference.py`'s regime-aware
+`in_range_phase` override (built 2026-07-12) as an unintended train/serve skew — the override runs
+in the live/backtest decision path but `train.py` trains on a flat 0.5% cutoff via a direct
+`compute_features()` call that never goes through it. Fixed by flipping `QGAI_REGIME_INRANGE`'s
+default from `"1"` (ON) to `"0"` (OFF), so live would match what the model was actually trained on.
+**Imtiyaz corrected it: "aa bug nathi koi moto farak nahato etale me jem nu tem j raky hatu"** (this
+isn't a bug, the difference wasn't big, so I had deliberately kept it as it was).
+**Clarified which claim this was** (asked directly, since it could have meant either "the R-impact is
+small so don't bother" or "I already knew about the mismatch itself and chose to accept it") —
+confirmed: **the train/serve mismatch was already known and deliberately accepted when this feature
+was built on 2026-07-12, not something the audit newly uncovered.**
+**Reverted:** `inference.py` — `QGAI_REGIME_INRANGE` default restored `"0"` → `"1"` (ON), comment
+rewritten to record the history and an explicit "do not flip this default again without confirming"
+warning. `py_compile` clean.
+**Docs corrected:** `TASKS.md` P0 item #1 changed to "❌ REVERTED — was NOT a bug"; the "FS67-02 is
+stale" flag added earlier today is WITHDRAWN — FS67-02 ran under this same ON default, which is the
+actual intended live behavior, so its numbers were never stale. `FILTERS_MASTER.md` row #14 + a new
+CHANGE LOG row (older DISABLED entry kept intact, not deleted, per this file's own convention of
+preserving history).
+**Note on the separate 2026-07-12 A/B finding:** that full-year test (OFF beat ON by +1.7R) stands as
+an honest, undisputed result — Imtiyaz's point here is that the margin is small enough not to act on,
+not that the test itself was wrong. Both facts coexist: the A/B result is real, and the decision to
+not act on a 1.7R/808-trade difference is also a legitimate, informed call.
+**Lesson (2nd occurrence in one session, same root cause as Bug #7's revert above):** an audit
+finding that two related values "should" match — whether it's a config divisor or a train/serve
+feature computation — is a hypothesis to raise, not license to change. This is now a 2-for-2 day for
+audit findings that turned out to be intentional design decisions once actually asked about. Memory
+file `feedback_confirm_before_settings.md` updated with this as a 3rd documented occurrence.
+
+## 2026-07-16 — Bug #7 REVERTED — the `/1.5` recovery divisor was intentional, not stale (Imtiyaz caught it)
+**What happened:** the 2026-07-15 deep bug audit flagged `bridge_core.py recover_open_trades()`'s
+last-resort vSL-reconstruction fallback (fires only when a recovered position has NO persist-file
+entry AND NO `VSL=`/`SL=` comment tag) for using a hardcoded `/1.5` divisor while
+`CFG.filters.broker_sl_open_mult` (the trade-open broker-SL multiplier) had been widened to 3.0 on
+2026-07-14 — reasoning "these two should match, so 1.5 must be stale." That fix (reading
+`broker_sl_open_mult` live instead of the hardcoded `1.5`) shipped 2026-07-15 and was verified via
+`py_compile` + a Gujarati bug-detail explanation to Imtiyaz.
+**Imtiyaz flagged it 2026-07-16: "this not bug, i did it for sl hunter, check this in history."**
+Investigated properly per the standing rule (treat a raised flag as serious, trace before
+concluding) — checked git history + `FIXES_CHANGELOG4.md`'s own record:
+- **2026-07-07 (FAB-S4 entry, this same file):** "Broker SL tightened `3.0 → 1.5×`
+  (`bridge_core.py:215/221` **+ last-resort reconstruction divisor**). Fable-5 recommendation.
+  Halves disaster-crash risk." — confirms the `1.5` in THIS recovery fallback was deliberately set
+  as part of a Fable-5-recommended safety tightening, together with (but not identical in later
+  history to) the trade-open multiplier.
+- **2026-07-14 entry (same file, read again carefully):** the widening back to 3.0 explicitly names
+  only `broker_sl_open_mult` (used in `execute()`'s trade-open formula) and
+  `broker_sl_trail_buffer_mult` (used in `_sync_broker_sl()`'s live trailing formula) as the two
+  values changed — it does **not** mention the recovery-fallback divisor at all.
+**Conclusion: the 07-14 change deliberately left this recovery-only divisor at 1.5** — not an
+oversight. Mechanically: on a no-persist/no-tag recovery, dividing by the SMALLER 1.5 (vs. the
+BROKER-visible stop's 3.0) reconstructs a WIDER app-internal vSL than "syncing" to 3.0 would — i.e.
+the app's own virtual stop errs on the wide side specifically so IT isn't an easy SL-hunt target
+either, in this one rare fallback path where the app has no real record of the original sl_dist to
+fall back on.
+**Reverted:** `bridge_core.py` — restored the hardcoded `/1.5`, replaced yesterday's comment with a
+fuller one documenting this exact history and an explicit "do not sync this to `broker_sl_open_mult`
+again without confirming first" warning, so a future audit pass doesn't re-flag the same thing.
+`py_compile` clean.
+**Docs corrected:** `TASKS.md`'s P0 item #7 changed from "✅ FIXED" to "❌ REVERTED — was NOT a bug",
+with the full history trail kept visible (not deleted) so the reasoning survives for next time.
+**Lesson (adds to the existing "confirm before changing risk/trading/config settings" precedent,
+2026-07-07 `manual_risk_pct` case):** "two config values that look like they should match" is not
+automatically a bug — sometimes they're deliberately different for a documented reason. This is the
+SAME class of mistake as the standing CLAUDE.md rule about un-verified A/B "decisions," just in the
+opposite direction: here the code was right and the audit's assumption was wrong, rather than the
+code silently not matching a made decision. Both directions need the same discipline: check history
+before acting on an apparent inconsistency.
+
+## 2026-07-16 — Remaining 2026-07-15 deep-bug-audit items closed out (#2 retracted, #3/#4/#5 fixed)
+**Context:** Imtiyaz asked to fix the rest of the 7-bug audit list after bug #1. Went through
+#2-#5 in order.
+**#2 — Backtest ratchet-trail bar-`i` lookahead — INVESTIGATED, RETRACTED (not a real bug).**
+The original audit claim was that `backtest_replay.py`'s trailing stop for bar `i` uses bar `i`'s
+own close, applied against bar `i`'s own low/high — a lookahead. Read `trend_signal.py`'s
+`compute_trend()` and `SimTrade.update()`/`ratchet_bar()` in `backtest_replay.py` line-by-line to
+check: `ratchet_bar()` computes the new trail line (using bar `i`'s close only to pick which side,
+BUY or SELL, is active) and **stores** it into `virtual_sl` — it never checks bar `i`'s own low/high
+against that new value. The low/high check happens in `update()`, called BEFORE `ratchet_bar()` each
+bar, always against the OLD `virtual_sl` set by a prior bar's close. The new line only gets tested
+starting bar `i+1` onward — exactly matching live's bar-close-driven update cycle (bar closes → new
+trail computed → applies going forward). The HTF line variant was checked too: it uses
+`merge_asof(direction="backward")` with an explicit forming/non-forming timestamp offset, and the
+code already has a "NO lookahead" comment justifying it. **No code change; past WFO/backtest numbers
+are unaffected — this audit finding is retracted as a false positive**, likely from not tracing the
+call order between `update()` and `ratchet_bar()` carefully enough the first time.
+**#3 — `bridge_multi.manage_secondary_manual_accounts()` primary-reconnect-skip — FIXED.** Removed
+the `touched` boolean gate entirely; `_reconnect_primary()` now runs unconditionally after the
+secondary-account loop regardless of whether any secondary succeeded, instead of only when at least
+one did. Previously, if every secondary failed to initialize/login in one cycle, the primary
+connection (killed unconditionally at the top of the function) was never restored. Currently a
+no-op in practice (`slave_manual_manager_enabled=False` since 2026-07-15, so the function returns
+before reaching this code) but now safe if that flag is ever re-enabled.
+**#4 — `dd_brake.py` 500-ticket applied-deals cap — FIXED.** The `applied_balance_deals` list
+previously capped growth by keeping only the highest 500 ticket numbers — on an account with >500
+balance-type deals (deposits/withdrawals/credits/corrections) in the 120-day window `_balance_ops()`
+queries, older-but-still-in-window tickets could get evicted and then look "new" again, causing a
+double-count into the DD-brake peak. Fixed: `applied` is now intersected with whatever
+`_balance_ops()` currently returns (i.e. still inside its 120-day window) whenever this cycle's read
+is verified trustworthy (`_connection_matches(key)` True); falls back to a generous 2000-ticket
+defensive cap only when the connection didn't match this cycle (no reliable window snapshot to prune
+against safely that cycle). Since a ticket that ages out of the 120-day window can never reappear in
+`ops` again, pruning by window membership instead of by count carries no double-count risk no matter
+how many balance ops an account posts.
+**#5 — `corr_imp_ratio` latent double-lookahead — documented, no functional change.** Added an
+explicit `⚠️ 2026-07-16` warning line to the existing `_MANUAL_PRUNE` comment (`features.py:1536`)
+telling anyone tempted to set `QGAI_UNPRUNE=corr_imp_ratio` for research that the swing-detection
+future-bar leak is only inert because the feature is pruned, and that `build_trend_ratio_table()`'s
+lookahead needs fixing first if it's ever unpruned. Feature itself unchanged (stays pruned).
+**Verified:** `py_compile` clean on `bridge_multi.py`, `dd_brake.py`, `features.py`. All 7 items from
+the 2026-07-15 audit are now closed (4 fixed today + 2 fixed 2026-07-15 + 1 retracted as a false
+positive). `TASKS.md`'s P0 table updated with final status per item.
+
+## 2026-07-16 — Bug #1 (in_range_phase train/serve skew) fixed — regime-aware override disabled
+**Context:** Following up on the 2026-07-15 deep bug audit's P0 item #1. Ran FS67-02 (Tier1 Active
+3-month feature screen) first — it flagged `in_range_phase` as a DROP_CANDIDATE (+4.0R if removed),
+which was a useful trigger to fix the underlying skew before trusting that number, since a 3-month
+screen alone is never final proof (per the stage-gate rule) and this feature's measurement was
+already suspect.
+**Decision (Imtiyaz, asked for the choice explicitly):** make live match what the model was actually
+trained on, rather than retrain + WFO re-gate the model to match live's regime-aware behavior.
+**Fix:** `inference.py`'s existing `QGAI_REGIME_INRANGE` master toggle (built 2026-07-12) — default
+flipped `"1"` (ON) → `"0"` (OFF). The block that recomputes `in_range_phase` using a per-regime
+|H4 move| cutoff (Trending/Ranging 0.5%, Volatile 0.6%) no longer overrides the value
+`compute_features()` already produced (flat 0.5% for every regime) — the same code path `train.py`
+uses. No retrain needed; purely a live/backtest decision-path change.
+**Verified:** `py_compile inference.py` clean. Confirmed the toggle is env-driven and the one existing
+bat that exercises both states explicitly (`Run_InRange_RegimeSwap_AB_FullYear.bat`) sets
+`QGAI_REGIME_INRANGE` itself for each arm, so the default flip doesn't affect that A/B test either
+way. Takes effect on next bridge restart (live) / next backtest run.
+**Docs:** `FILTERS_MASTER.md` — new row #14 in the ENTRY filters table + a dated CHANGE LOG entry
+(master rule: both updated together, per CLAUDE.md). `TASKS.md` P0 bug-list item #1 marked fixed.
+**⚠️ FS67-02's entire sweep is now stale, not just the `in_range_phase` row — confirmed by checking
+`backtest_replay.py`: it runs backtests through this SAME `LiveInferenceEngine.decide()` (line 326),
+so the regime-aware override was ACTIVE (default was still `"1"`/ON) for FS67-02's baseline AND all
+27 ablation runs, not just the one that removed `in_range_phase` itself. Every number in
+`FS67-02_tier1_active_SUMMARY.csv` (baseline +18.3R and every ablation delta) was generated under the
+buggy regime-aware setting. **FS67-02 needs a full re-run now that the default is OFF** before any of
+its DROP_CANDIDATE / CORE_KEEP / REGIME_OR_DIRECTIONAL_KEEP verdicts are trusted — not only
+`in_range_phase`'s.
+**🔴 Second discovery (Imtiyaz caught it): this exact toggle already had a full-year A/B verdict from
+2026-07-12, and it was NEVER wired into the code.** `TASKS.md`'s DONE table (2026-07-11 section) has
+"in_range_phase REGIME-SWAP A/B FULL YEAR REJECTED (2026-07-12)": a full-year replay of A
+(`QGAI_REGIME_INRANGE=0`, OFF) vs B (`QGAI_REGIME_INRANGE=1`, ON) found **A beat B by +1.7R**
+(+206.6R vs +204.9R, 808 trades, same WR/PF/DD) — decision recorded as "keep
+`QGAI_REGIME_INRANGE=0`; do not adopt regime-swap ON." A full-repo grep confirms `QGAI_REGIME_INRANGE`
+is set as an actual environment variable NOWHERE — not in any `Start\*.bat` live-launch script, not
+in `config.py`, not in any backtest runner — except inside `Run_InRange_RegimeSwap_AB_FullYear.bat`
+itself (which sets both arms explicitly for the test). That means the code's own default (`"1"`,
+i.e. ON) was the operative value everywhere else for the ~4 days since that decision was made: the
+**live bridge ran the rejected ON setting continuously since 2026-07-12**, and every backtest number
+quoted since then — `OOS1Y-01` (+338.5R), the current-model 53-week WFO (+282.7R), `FS67-01`'s
+3-month baseline, and `FS67-02` — was measured with the rejected setting active, not the one the team
+had already decided to keep. Today's default flip (made for the unrelated train/serve-skew reason
+above) happens to also finally apply the 2026-07-12 decision — same fix, two independent
+justifications now agreeing. **No separate action needed for this discovery** beyond what's already
+being done (FS67-02 re-run); flagging it so `OOS1Y-01`/53-week-WFO numbers are read with this caveat
+if they're ever revisited, and as a reminder that an A/B "decision" in the docs is not the same as a
+config default actually shipped in code — worth a spot-check next time any A/B test's winner is
+declared, not just for this one flag.
+
+## 2026-07-15 — Deep bug audit (Claude, on request) — 2 live bugs fixed, several latent/dormant found
+**Context:** Imtiyaz asked for a deep bug hunt across the whole engine. Two parallel review passes
+(core trading/risk + inference/backtest) read every core file end-to-end; each finding below was
+re-verified by directly reading the flagged code before being reported or fixed (per the CLAUDE.md
+rule to investigate raised flags properly rather than dismiss/trust blindly).
+**FIXED (both confirmed live-impacting, both isolated one-line-scope changes):**
+1. **Broker TP-fill never closed secondary/slave accounts** — `bridge_core.py` (~line 619): every
+   OTHER close path (vSL breach, FLIP_CLOSE, SMART_CLOSE, daily-SL, daily-TP, opposite-signal) calls
+   `bridge_multi.close_secondary_accounts()` to flatten mirrored secondary positions; the "broker
+   filled the TP itself, position just disappeared" path was missing that call — the ONLY exit path
+   that skipped it. Secondaries have their own broker-side TP so they usually self-close, but a
+   requote/spread difference on that broker could leave a secondary position open and unmanaged
+   after the primary is already gone (nothing re-checks it afterward). **Fix:** added the same
+   `bridge_multi.close_secondary_accounts()` call used by every other exit path.
+   **Follow-up same day (Imtiyaz: dashboard should show a trade-summary message + confirm no
+   trade is open):**
+   - `bridge_multi.close_secondary_accounts()` now RE-QUERIES each secondary's open positions
+     right before disconnecting (instead of trusting the close order's retcode) and returns a
+     summary dict `{"all_flat": bool, "accounts": {name: {closed, failed, remaining_open}}}`.
+     `all_flat` is only True if every secondary was verified to have zero matching-magic
+     positions left open — a "DONE" retcode with a slow terminal position-cache refresh can no
+     longer be mistaken for a confirmed close.
+   - `bridge_core.py`'s TP-hit-by-broker path now logs a `🧾 TRADE SUMMARY` line (ticket, PnL,
+     verified all-flat state) and calls new `bridge_dashboard.record_trade_close_summary()`,
+     which persists to `logs/last_trade_close.json` (restart-safe, same pattern as
+     `last_trade_signal.json`) with a 15-minute freshness window so a stale entry never shows as
+     "just happened" after a restart.
+   - `bridge_dashboard.write_dashboard()` exposes this as `last_trade_close` in the dashboard
+     JSON; `dashboard.html` gets a new `#trade_close_banner` (green = confirmed flat, amber =
+     a secondary is still open — check `bridge.log`) shown as a plain sibling above the grid,
+     same visual family as the existing `autotrading_banner`/`danger_banner`.
+   - **Scope:** only wired into the newly-fixed broker-TP-fill path (the path this whole entry is
+     about) — the other exit paths (vSL/FLIP/SMART_CLOSE/daily-SL/TP) already had working
+     secondary-close calls and were not touched.
+   - **Verified:** `py_compile` clean on all 3 edited `.py` files; a Node.js syntax check of every
+     `<script>` block in `dashboard.html` passed (`new Function()` on each block, no parse
+     errors). Live browser re-verification not done this round (this file:// dashboard needs the
+     live bridge writing `dashboard.json` to meaningfully test the banner's data path) — please
+     hard-refresh and confirm the banner appears correctly the next time a broker-TP-fill close
+     happens.
+2. **Restart-recovery vSL-distance fallback used a stale divisor (1.5) after `broker_sl_open_mult`
+   was widened to 3.0 on 2026-07-14** — `bridge_core.py` `recover_open_trades()` (~line 761). This
+   last-resort path only fires when a recovered position has NO persist-file entry AND NO
+   `VSL=`/`SL=` tag in its comment (i.e. an older/clean-tag position recovered after a bridge
+   restart) — it reconstructs `sl_dist` from the broker-side SL distance assuming it was set at the
+   old 1.5× multiplier. Since 2026-07-14 the live multiplier is 3.0×, so this path was silently
+   reconstructing a vSL **2× wider** than the trade actually had — half the intended protection on
+   any trade recovered through this fallback. **Fix:** reads `CFG.filters.broker_sl_open_mult` live
+   instead of a hardcoded `1.5`, so it always matches whatever the config currently says.
+**Verified:** `py_compile bridge_core.py` clean; `CFG.filters` access pattern matches ~10 other
+existing call sites in the same file (no new import needed). Not yet live-fire-tested (both paths
+are rare-edge-case fallbacks) — takes effect on next bridge restart.
+**Found but NOT fixed (dormant / low-impact, logged for awareness, no action taken without
+confirming first per standing rule):**
+- `bridge_multi.manage_secondary_manual_accounts()`: if EVERY secondary account fails to
+  initialize/login in one cycle, `touched` stays False and the primary MT5 connection (killed
+  unconditionally at the top of the function) is never reconnected. **Currently dormant** —
+  `slave_manual_manager_enabled=False` since earlier today (see the entry below), so this whole
+  function returns early before reaching the bug. Would need re-checking if that flag is ever
+  re-enabled.
+- `in_range_phase` train/serve skew: `inference.py`'s regime-aware in-range threshold override
+  (0.5%/0.5%/0.6% by regime) only runs in the live/backtest decision path (`get_signal()`), not in
+  `train.py`'s direct `compute_features()` call used for training — so the model trains on a global
+  0.5% cutoff but is served regime-specific cutoffs live. Affects roughly the ~10% of bars where
+  Volatile-regime `|h4_move_pct|` falls between 0.5-0.6%. Not fixed — needs a decision on which
+  behavior is correct (make training regime-aware too, or make live match training) before touching.
+- Backtest ratchet-trail lookahead: `backtest_replay.py`'s trailing-stop line for bar `i` is computed
+  using bar `i`'s own close (`compute_trend`'s `_buyL[i]`/`_sellL[i]`), then used to trail the stop
+  DURING bar `i`'s own processing — live can only trail using the PREVIOUS closed bar's line. Small
+  per-trade bias, but applies to every ratchet-managed backtest trade — a candidate root cause worth
+  keeping in mind next time backtest vs. live parity is checked.
+- `corr_imp_ratio` (already pruned from the live model) still carries its original double-lookahead
+  (swing detection reads 3 future H4 bars) — latent only; would resurface if ever restored via
+  `QGAI_UNPRUNE`.
+- `dd_brake.py`'s `applied_balance_deals` list caps at the 500 highest ticket numbers — an account
+  with >500 balance operations in the 120-day window could have an old deposit/withdrawal evicted
+  from the "already applied" set and re-applied, double-counting it into the peak. Theoretical unless
+  an account posts very frequent balance-type deals (interest/rebates).
+**Full detail / file:line list:** kept in this entry; no separate document created (per the "no
+new document per change" rule) — reference this entry if any of the "found but not fixed" items are
+picked up later.
+
 ## 2026-07-15 — NEW: mirror PRIMARY manual trades to SLAVE accounts, each at its own 3% risk (Imtiyaz) — BUILT, default OFF
 **Request (Imtiyaz):** "if I open a manual trade in primary, it should copy to slaves, sized on 3%
 risk of that slave."

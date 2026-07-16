@@ -124,6 +124,56 @@ def _remember_last_trade_signal(sig):
         return sig
 
 
+def _ltc_path():
+    """2026-07-15: path for the persisted last-trade-CLOSE summary (dashboard confirmation
+    banner) — mirrors `_lts_path()`'s restart-safe pattern, separate file so it never collides
+    with the last-SIGNAL cache."""
+    try:
+        return Path(CFG.paths.logs_dir) / "last_trade_close.json"
+    except Exception:
+        return Path("logs") / "last_trade_close.json"
+
+
+def record_trade_close_summary(ticket, reason: str, pnl: float | None, all_flat: bool,
+                                secondaries: dict | None = None):
+    """2026-07-15: called right after a trade (+ its mirrored secondary copies) closes, so the
+    dashboard can show a plain-language "trade closed, here's the confirmed status" banner
+    instead of the operator having to infer it from bridge.log. `all_flat` must be a VERIFIED
+    check (re-queried positions), not assumed from an order-send retcode — see
+    `bridge_multi.close_secondary_accounts()`'s own re-verify step. Persists to
+    logs/last_trade_close.json (restart-safe) and is read back in `write_dashboard()`."""
+    try:
+        import time as _time
+        payload = {
+            "ticket": ticket,
+            "reason": reason,
+            "pnl": round(float(pnl), 2) if pnl is not None else None,
+            "all_flat": bool(all_flat),
+            "secondaries": secondaries or {},
+            "closed_at": _time.time(),
+        }
+        _ltc_path().write_text(json.dumps(payload, default=str), encoding="utf-8")
+    except Exception as e:
+        log.error(f"  ⚠️ record_trade_close_summary failed: {e}")
+
+
+def _read_last_trade_close(max_age_sec: float = 900.0):
+    """Read back the persisted trade-close summary if it's still fresh (default 15 min) —
+    stale entries return None so the dashboard banner doesn't show a closed trade from hours
+    ago as if it just happened."""
+    try:
+        import time as _time
+        p = _ltc_path()
+        if not p.exists():
+            return None
+        data = json.loads(p.read_text(encoding="utf-8"))
+        if _time.time() - float(data.get("closed_at", 0)) > max_age_sec:
+            return None
+        return data
+    except Exception:
+        return None
+
+
 def is_allowed_slot(bar_time) -> bool:
     if not CFG.filters.use_slot_day_filter or not SLOT_DAY_FILTER:
         return True
@@ -547,7 +597,20 @@ def write_dashboard(session, virtual_trades, current_price, last_signal=None,
         losses     = sum(1 for d in closed_today_exit if d.profit < 0)
         gross_pnl  = round(sum(d.profit + d.commission + d.swap for d in closed_today_exit), 2)
         win_rate   = round(wins / len(closed_today_exit) * 100, 1) if closed_today_exit else 0.0
-        total_trades_today = max(session.trades_today, len(closed_today_exit))
+        # 2026-07-16 (Fable-5 audit, P0-6): this used to be
+        # max(session.trades_today, len(closed_today_exit)). session.trades_today
+        # is an in-memory counter that's += 1'd the instant a trade OPENS
+        # (bridge_core.py), so while that trade is still open it inflates this
+        # number above the closed count. The dashboard ticker then adds
+        # d.open_count on top (dashboard.html ~3252-3254) — double-counting
+        # that same still-open trade. closed_today_exit is independently
+        # re-queried fresh from MT5 history every call (line ~577 above), so
+        # it needs no restart-safety max() — it's already accurate. This
+        # display-only value now reports pure closed-today count; open
+        # positions are still shown via open_count, just not summed in twice.
+        # session.trades_today itself is untouched — still used for Trade#N
+        # log labeling (bridge_core.py) and daily_summary (bridge_session.py).
+        total_trades_today = len(closed_today_exit)
 
         # ── Session stats ─────────────────────────────────────
         profits_all = [round(d.profit + d.commission + d.swap, 2) for d in closed_today_exit]
@@ -835,7 +898,23 @@ def write_dashboard(session, virtual_trades, current_price, last_signal=None,
             "open_trades":        open_trades,
             "open_count":         len(open_trades),
             "closed_history":     closed_history,
+            # 2026-07-16 (Fable-5 audit, P0-1): frontend reads d.closed_trades
+            # in 3 places (Closed Trades table, today W/L strip, AI Feedback
+            # panel) but this key was never sent — only closed_history was.
+            # Alias so those panels stop showing permanently empty/zero.
+            "closed_trades":      closed_history,
             "total_closed_today": len(closed_today_exit),
+            # 2026-07-16 (Fable-5 audit, P0-2): Protection badges (Virtual SL,
+            # Trailing, Slot Filter, News Filter, BUY+SELL directional, Test
+            # Mode) read these 6 keys but none were ever sent — badges always
+            # showed a hardcoded-looking "OFF" regardless of real state.
+            "virtual_sl":          True,   # bridge_constants.VIRTUAL_SL — always on, not user-togglable
+            "trailing_sl":         True,   # bridge_constants.TRAILING_SL — always on, not user-togglable
+            "slot_day_filter":     bool(CFG.filters.use_slot_day_filter),
+            "slot_day_combos":     len(SLOT_DAY_FILTER) if CFG.filters.use_slot_day_filter else 0,
+            "news_filter_active":  True,   # baked into inference.py's pre/post-news threshold routing, always active
+            "directional_models":  bool(engine_meta.get("buy_model_auc")) and bool(engine_meta.get("sell_model_auc")) if engine_meta else False,
+            "test_mode":           bool(TEST_MODE),
             # Shadow slots
             "shadow_slots":       get_shadow_summary(),
             # Today slots
@@ -848,6 +927,10 @@ def write_dashboard(session, virtual_trades, current_price, last_signal=None,
             # MT5 terminal, instead of only discovering it reactively after a
             # close/hedge order already failed (retcode 10027).
             "autotrading_enabled": _sys_health.get("autotrading", {}).get("trade_allowed"),
+            # 2026-07-15: trade-close confirmation banner data (see the TP-hit-by-broker
+            # secondary-close fix, bridge_core.py) — None once the close is >15min old or
+            # never happened this session, so the banner auto-clears on its own.
+            "last_trade_close":   _read_last_trade_close(),
             # FIX #B5: SIGNAL LOG / HISTORY + real NEWS FILTER numbers
             "signal_history":     get_signal_history(40),
             "news_status":        _news_state,
@@ -871,7 +954,7 @@ def write_dashboard(session, virtual_trades, current_price, last_signal=None,
         os.replace(tmp_path, str(dash_path))
 
     except Exception as e:
-        log.debug(f"Dashboard write failed: {e}")
+        log.warning(f"Dashboard write failed: {e}")
 
 
 # ── Mode helpers ──────────────────────────────────────────────

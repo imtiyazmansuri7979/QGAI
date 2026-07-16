@@ -59,7 +59,7 @@ if exist "%HIST_SIG_DIR%\backtest_signals*.csv" (
 )
 
 echo [5/7] Starting LIVE trading bridge (own window)...
-start "QGAI Bridge" /min cmd /k "cd /d %ENG% && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& "%PY%" bridge_main.py"
+start "QGAI Bridge" /min cmd /k "call C:\QGAI\backtest\_runners\_console_theme.bat && cd /d %ENG% && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& "%PY%" bridge_main.py"
 
 echo [6/7] Starting dashboard server :8000 (own window)...
 start "QGAI Dashboard Server" /min cmd /k "cd /d %ENG% && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& "%PY%" serve.py"

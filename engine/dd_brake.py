@@ -33,12 +33,15 @@ State file: logs/dd_peak.json  ->
 """
 from __future__ import annotations
 import json
+import logging
 import os
 import tempfile
 from datetime import datetime
 from pathlib import Path
 
 from config import CFG
+
+log = logging.getLogger(__name__)
 
 _STATE = Path(__file__).resolve().parent / "logs" / "dd_peak.json"
 
@@ -101,8 +104,8 @@ def _save(d: dict) -> None:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(d, f, indent=2)
         os.replace(tmp, _STATE)
-    except Exception:
-        pass  # sizing must never crash on a persist failure
+    except Exception as e:
+        log.warning(f"DD peak save failed (peak lost on restart): {e}")
 
 
 def _balance_ops() -> list[tuple[int, float]]:
@@ -125,7 +128,8 @@ def _balance_ops() -> list[tuple[int, float]]:
             if v is not None:
                 bal_types.add(v)
         return [(int(dl.ticket), float(dl.profit)) for dl in deals if dl.type in bal_types]
-    except Exception:
+    except Exception as e:
+        log.warning(f"DD brake balance_ops failed (deposits/withdrawals ignored): {e}")
         return []
 
 
@@ -156,7 +160,8 @@ def risk_scale(current_equity: float, account_id: str | None = None) -> float:
 
     # Only trust balance-history if MT5 is verifiably connected to THIS
     # account right now (see _connection_matches docstring for why).
-    ops = _balance_ops() if _connection_matches(key) else []
+    _conn_ok = _connection_matches(key)
+    ops = _balance_ops() if _conn_ok else []
 
     if peak <= 0 or not has_field:
         # First establishment OR one-time migration of a pre-existing peak:
@@ -179,10 +184,26 @@ def risk_scale(current_equity: float, account_id: str | None = None) -> float:
     if eq > peak:
         peak = eq
 
+    # 2026-07-16 bug fix: previously capped to the highest 500 ticket numbers,
+    # which could EVICT a ticket still inside the 120-day window on an account
+    # with >500 balance-type deals in that window — the evicted ticket would
+    # then look "new" again next time _balance_ops() returned it and get
+    # double-counted into the peak. Fix: prune to tickets _balance_ops()
+    # currently returns (still inside its 120-day window) instead of pruning
+    # by count — anything that ages OUT of that window can never reappear in
+    # `ops` again, so it's always safe to forget, with no double-count risk.
+    # Only prune this way when this cycle's `ops` read is trustworthy (i.e.
+    # MT5 was actually connected to THIS account) — otherwise keep `applied`
+    # as-is and just bound growth defensively.
+    if _conn_ok:
+        applied = applied & {t for t, _ in ops}
+    else:
+        applied = set(sorted(applied)[-2000:])
+
     d[key] = {
         "peak_equity": round(peak, 2),
         "updated": _now_iso(),
-        "applied_balance_deals": sorted(applied)[-500:],   # cap growth
+        "applied_balance_deals": sorted(applied),
     }
     _save(d)
 

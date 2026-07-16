@@ -207,7 +207,7 @@ def adx_strength_soft_block(sig, base_threshold, cfg=CFG):
 
 from features import (compute_features, load_ohlc, load_adx,
                       load_news, build_h4_range_table,
-                      build_trend_ratio_table, build_ob_table,
+                      build_ob_table,
                       FEATURE_COLS, STATE_FEATURE_MAP)
 from hmm_model import MarketStateHMM
 from xgb_model import WinProbabilityModel
@@ -470,11 +470,9 @@ class LiveInferenceEngine:
 
         print("  Building H4 tables...")
         self.h4_df    = build_h4_range_table(self.ohlc_df)
-        self.ratio_df = build_trend_ratio_table(self.ohlc_df)
         self.h1_ob    = build_ob_table(self.ohlc_df, "1h")
         self.h4_ob_df = build_ob_table(self.ohlc_df, "4h")
         print(f"  H4 range   : {len(self.h4_df):,} candles ✅")
-        print(f"  Trend ratio: {len(self.ratio_df):,} candles ✅")
         print(f"  H1 OB table: {self.h1_ob['bull_ob'].sum()} bull | {self.h1_ob['bear_ob'].sum()} bear ✅")
         print(f"  H4 OB table: {self.h4_ob_df['bull_ob'].sum()} bull | {self.h4_ob_df['bear_ob'].sum()} bear ✅")
 
@@ -722,7 +720,6 @@ class LiveInferenceEngine:
             news_df    = self.news_df,
             slot_table = self.slot_tbl,
             h4_df      = self.h4_df,
-            ratio_df   = self.ratio_df,
             h1_ob      = self.h1_ob,
             h4_ob_df   = self.h4_ob_df,
         )
@@ -748,8 +745,14 @@ class LiveInferenceEngine:
         # go through this SAME LiveInferenceEngine.decide(). Master toggle:
         # env QGAI_REGIME_INRANGE=0 disables (falls back to the original
         # global-0.5% in_range_phase from compute_features). Default ON.
-        # ⚠️ 1-month evidence only — FULL-YEAR + WFO CONFIRM PENDING (TASKS.md).
-        # REVERT: delete this block (in_range_phase keeps its compute_features value).
+        # 🔒 2026-07-16 — a same-session "fix" briefly flipped this default to
+        # OFF, reasoning that live serving a regime-aware value while
+        # `train.py` trains on a flat 0.5% cutoff (train.py calls
+        # compute_features() directly, never through decide()) was an
+        # unintended train/serve skew. REVERTED same day (Imtiyaz): this
+        # train/serve difference was already known and deliberately accepted
+        # when this feature was built 2026-07-12 — not a bug. Do not flip
+        # this default again without confirming first.
         if os.environ.get("QGAI_REGIME_INRANGE", "1") != "0":
             _REGIME_INRANGE_THRESH = {"Trending": 0.5, "Volatile": 0.6, "Ranging": 0.5}
             _rit = _REGIME_INRANGE_THRESH.get(hmm_state_name, 0.5)
@@ -1063,7 +1066,6 @@ class LiveInferenceEngine:
                 news_df    = self.news_df,
                 slot_table = self.slot_tbl,
                 h4_df      = self.h4_df,
-                ratio_df   = self.ratio_df,
                 h1_ob      = self.h1_ob,
                 h4_ob_df   = self.h4_ob_df,
             )

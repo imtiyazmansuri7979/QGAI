@@ -26,6 +26,20 @@ _ANSI_MAGENTA = "\033[95m"
 _ANSI_CYAN = "\033[96m"
 _ANSI_WHITE = "\033[97m"
 _ANSI_BOLD = "\033[1m"
+_ANSI_BG_RED = "\033[48;2;92;49;43m"
+_ANSI_BG_GREEN = "\033[48;2;42;83;49m"
+_ANSI_BG_BLUE = "\033[48;2;18;52;74m"
+
+
+def _apply_bridge_console_theme():
+    """Set the bridge CMD window to a dark editor-like base theme."""
+    if os.environ.get("QGAI_NO_COLOR") or os.environ.get("NO_COLOR"):
+        return
+    if os.name == "nt" and os.environ.get("QGAI_BRIDGE_CONSOLE_THEME", "1") != "0":
+        try:
+            os.system("color 0F")
+        except Exception:
+            pass
 
 
 def _enable_console_color():
@@ -64,13 +78,17 @@ class _BridgeConsoleFormatter(logging.Formatter):
     }
 
     KEYWORD_COLORS = [
-        (r"\b(ERROR|failed|fail|halt|DAILY RATCHET HIT|NO broker SL)\b", _ANSI_RED + _ANSI_BOLD),
-        (r"\b(WARNING|Force-closing|DD BRAKE|SPREAD GUARD|SKIP|Outside slot)\b", _ANSI_YELLOW + _ANSI_BOLD),
-        (r"\b(connected|reconnected|ready|loaded|complete|UNLOCKED|OK|ALIVE)\b", _ANSI_GREEN + _ANSI_BOLD),
-        (r"\b(vSL|RATCHET|ratchet|TP|SL|ENTRY GATES)\b", _ANSI_CYAN + _ANSI_BOLD),
+        (r"\b(ERROR|FAILED|failed|fail|halt|DAILY RATCHET HIT|NO broker SL)\b", _ANSI_BG_RED + _ANSI_WHITE + _ANSI_BOLD),
+        (r"\b(BUY|LONG|ENTRY BUY)\b", _ANSI_BG_GREEN + _ANSI_GREEN + _ANSI_BOLD),
+        (r"\b(SELL|SHORT|ENTRY SELL)\b", _ANSI_BG_RED + _ANSI_RED + _ANSI_BOLD),
+        (r"\b(SKIP|BLOCK|BLOCKED|Outside slot|SPREAD GUARD|DD BRAKE|Force-closing)\b", _ANSI_YELLOW + _ANSI_BOLD),
+        (r"\b(WARNING|watch|stale|timeout)\b", _ANSI_YELLOW + _ANSI_BOLD),
+        (r"\b(connected|reconnected|ready|loaded|complete|UNLOCKED|OK|ALIVE|DONE|saved)\b", _ANSI_GREEN + _ANSI_BOLD),
+        (r"\b(vSL|RATCHET|ratchet|TP|SL|ENTRY GATES|win_prob|prob|threshold)\b", _ANSI_CYAN + _ANSI_BOLD),
         (r"\b(manual|Secondary|Primary|multi)\b", _ANSI_MAGENTA + _ANSI_BOLD),
-        (r"\b(XAUUSD(?:\.pc)?|M15|H1|H4)\b", _ANSI_BLUE + _ANSI_BOLD),
+        (r"\b(XAUUSD(?:s|\.pc)?|M15|M30|H1|H4|D1)\b", _ANSI_BLUE + _ANSI_BOLD),
         (r"[$][0-9,]+(?:\.[0-9]+)?", _ANSI_GREEN + _ANSI_BOLD),
+        (r"\b\d+(?:\.\d+)?%", _ANSI_YELLOW + _ANSI_BOLD),
         (r"\b[+-]?[0-9]+(?:\.[0-9]+)?R\b", _ANSI_YELLOW + _ANSI_BOLD),
     ]
 
@@ -105,6 +123,7 @@ class _BridgeConsoleFormatter(logging.Formatter):
 
 def _setup_bridge_logging():
     Path(CFG.paths.logs_dir).mkdir(parents=True, exist_ok=True)
+    _apply_bridge_console_theme()
 
     logger = logging.getLogger("QGAI")
     logger.setLevel(logging.INFO)

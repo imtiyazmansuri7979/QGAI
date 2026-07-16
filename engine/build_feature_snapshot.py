@@ -59,7 +59,6 @@ def _load_all():
     aux = dict(
         slot_table=F.build_slot_table(trades),
         h4_df=F.build_h4_range_table(ohlc),
-        ratio_df=F.build_trend_ratio_table(ohlc),
         h1_ob=F.build_ob_table(ohlc, "1h"),
         h4_ob_df=F.build_ob_table(ohlc, "4h"),
     )

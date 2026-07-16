@@ -52,7 +52,7 @@ The old snapshot kept OB/SR as active. The current code list below shows the lat
 | # | Feature Name | Alias | Indicator |
 |---|---|---|---|
 | 1 | `15_min_slot` | time_15min_slot | Clock |
-| 2 | `slot_win_rate` | time_hourly_winrate | Historical WR |
+| 2 | `slot_win_rate` | time_1hr_winrate | Historical WR |
 | 3 | `slot_cos` | time_cyclical_encoding | Clock |
 | 4 | `day_of_week` | time_weekday | Calendar |
 | 5 | `price_pos` | bb_price_position | Bollinger Band |
