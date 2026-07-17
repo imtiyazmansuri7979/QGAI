@@ -2515,10 +2515,10 @@ function drawSigChart(history){
           ctx.fillText(text, cx, cy);
         };
         // GROUP 1 (top): side + price, stacked tight
-        // BUY bar is now bright cyan -> text goes BLACK for max contrast
+        // BUY bar is bright cyan -> top 2 rows (side+price) green, rest black
         const _f1 = _fitFont(sideTxt, _fBase);
-        _hLabel(sideTxt, cx, 2, isBuy?'#000000':'#FF073A', 'top');
-        _hLabel(txt, cx, 2+_f1+2, isBuy?'#000000':'#00FFFF', 'top');
+        _hLabel(sideTxt, cx, 2, isBuy?'#008a3c':'#FF073A', 'top');
+        _hLabel(txt, cx, 2+_f1+2, isBuy?'#008a3c':'#00FFFF', 'top');
         // GROUP 2: time — anchored at the bar's own TOP edge, so it starts
         // right where the bar begins (never straddles bar/background)
         if(tm) _hLabel(tm, cx, h - barH, isBuy?'#000000':'#FF9F1C', 'top');
