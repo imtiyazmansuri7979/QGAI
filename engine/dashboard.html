@@ -2521,7 +2521,7 @@ function drawSigChart(history){
         // GROUP 2: time — anchored at the bar's own TOP edge, so it starts
         // right where the bar begins (never straddles bar/background)
         // SELL time matches the bottom prob% yellow (looked good)
-        if(tm) _hLabel(tm, cx, h - barH, isBuy?'#000000':'#FFFF00', 'top');
+        if(tm) _hLabel(tm, cx, h - barH + 4, isBuy?'#000000':'#FFFF00', 'top');
         // GROUP 3 (bottom): prob%
         _hLabel(prob.toFixed(0)+'%', cx, h-2, isBuy?'#000000':'#FFFF00', 'bottom');
       }
