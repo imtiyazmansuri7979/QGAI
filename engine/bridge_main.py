@@ -4,6 +4,9 @@ Main run loop: bar detection, signal evaluation, trade dispatch.
 Entry point: python bridge_main.py
 """
 import sys
+import os
+import subprocess
+import atexit
 import MetaTrader5 as mt5
 import time
 import pandas as pd
@@ -26,6 +29,50 @@ import bridge_manual  # L13: manual-trade manager (config-gated, default OFF) â
 
 # â”€â”€ Inference engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 from inference import LiveInferenceEngine, trend_pullback_block, trend_pullback_generate, smma_mtf_soft_block, adx_strength_soft_block
+
+
+# â”€â”€ Singleton lock (2026-07-17, Imtiyaz rule 8): refuse to start a second â”€â”€
+# bridge_main.py while one is already running. Two live processes independently
+# managing order flow (manual-hedge top-up/trim, vSL ratchet, etc.) could race
+# and double-hedge / place conflicting orders.
+_LOCK_FILE = Path(CFG.paths.logs_dir) / "bridge.lock"
+
+
+def _pid_alive(pid):
+    if os.name == "nt":
+        try:
+            out = subprocess.check_output(
+                ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
+                stderr=subprocess.DEVNULL, text=True, timeout=5)
+            return str(pid) in out
+        except Exception:
+            return False
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+def _acquire_singleton_lock():
+    my_pid = os.getpid()
+    if _LOCK_FILE.exists():
+        try:
+            old_pid = int((_LOCK_FILE.read_text(encoding="utf-8") or "0").strip())
+        except Exception:
+            old_pid = None
+        if old_pid and old_pid != my_pid and _pid_alive(old_pid):
+            log.error(f"ðŸš« Another bridge_main.py is already running (PID {old_pid}). "
+                      f"Refusing to start a duplicate â€” two live processes could race and "
+                      f"double-hedge / place conflicting orders. If that process is actually "
+                      f"dead, delete {_LOCK_FILE} and restart.")
+            sys.exit(1)
+    try:
+        _LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _LOCK_FILE.write_text(str(my_pid), encoding="utf-8")
+        atexit.register(lambda: _LOCK_FILE.unlink(missing_ok=True))
+    except Exception as e:
+        log.warning(f"bridge singleton-lock write failed (continuing anyway): {e}")
 
 
 # â”€â”€ Live OHLC / ADX helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -163,6 +210,7 @@ def _ask_resume(signal, price, win_prob, timeout):
 # â”€â”€ Main run loop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def run():
+    _acquire_singleton_lock()
     log.info("=" * 50)
     log.info("  QUANT GOLD AI v2 — Bridge Starting")
     log.info("=" * 50)

@@ -229,7 +229,7 @@ class FilterConfig:
     # Price-based (golden rule): scale with price instead of fixed $.
     ratchet_sl_min_pct       : float = 0.18   # min 1R SL distance = 0.18% of price (~$8 @ 4339). Was fixed $8.
     breakeven_buf_pct        : float = 0.05   # breakeven SL offset = 0.05% of price (~$2 @ 4339). Was fixed $2.
-    risk_pct                 : float = 3.0
+    risk_pct                 : float = 1.0
     # ── Broker-side backstop SL self-heal + wide-trail (2026-07-14, Imtiyaz) ──
     # Context: the broker-side SL sent at trade open (entry ± sl_dist*1.5) was
     # manually deleted mid-trade with no code path to restore or re-trail it —
@@ -254,7 +254,7 @@ class FilterConfig:
     # A manual trade = an XAUUSD position with magic 0 (the bot uses magic 202600).
     # ⚠️ Places REAL hedge orders → DEMO-TEST HEAVILY. Master switch default OFF.
     manual_manager_enabled   : bool  = True   # 2026-06-29 ENABLED for DEMO-primary test (manage manual trades on demo). Set False to stop.
-    manual_risk_pct          : float = 3.0    # 2026-06-29 Anisa: SEPARATE 3% pool for manual trades (bot risk_pct=3% + manual 3% = 6% total, two independent risk budgets). cap manual-trade risk at this % of equity.
+    manual_risk_pct          : float = 1.0    # 2026-07-17 Imtiyaz: SEPARATE 1% pool for manual trades (bot risk_pct=1% + manual 1%, two independent risk budgets). cap manual-trade risk at this % of equity — hedge recomputed EVERY tick (see bridge_manual.py _manage_hedge).
     manual_sl_pct            : float = 1.0    # SL distance for the manual leg = this % of price
     manual_target_tp_pct     : float = 2.0    # 2026-06-29 TEST: close/hedge both legs at 2% profit. 0 = off.
     manual_hedge_magic       : int   = 202699  # magic stamped on the bot's hedge orders (to track them)
@@ -282,7 +282,7 @@ class FilterConfig:
     # risking >3% — proportional would faithfully mirror that over-risk. If even the broker minimum
     # would breach this ceiling the copy is SKIPPED (can't be placed safely); otherwise the lot is
     # capped down to the ceiling. Set 0 to disable the cap.
-    manual_copy_max_risk_pct : float = 3.0
+    manual_copy_max_risk_pct : float = 1.0
     manual_copy_sl_basis : str = "floor"  # only used by "fixed_risk" mode: "floor" = manual_risk_pct (3% of entry) | "sl" = manual_sl_pct (1%). Ignored in proportional mode (still sets the copy's broker SL/TP levels).
     # ── STUCK-TRADE MANUAL-PROTECT (2026-07-01, Imtiyaz) — if the bot's own close keeps
     # failing at the broker (e.g. retcode 10027 AutoTrading-off, caught live 2026-07-01 on

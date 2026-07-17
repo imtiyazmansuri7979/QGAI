@@ -8,6 +8,47 @@ Worked on by Anisa via Cowork. Shared PC / shared folder â€” this file is t
 
 ---
 
+## 2026-07-17 — Manual-trade risk manager: hedge now recomputed every tick
+
+Imtiyaz's spec (9 numbered rules): combined manual-trade risk must never exceed
+1% equity, checked on EVERY tick (not just when a manual position is first
+detected), with the hedge topping up on lot growth and trimming down (partial
+close) on lot shrink — never left over- or under-sized.
+
+**Code (`bridge_manual.py`):**
+- New `_partial_close(pos, sym, volume, tag)` — reduces one hedge position by
+  a given lot amount instead of only ever closing it fully.
+- New `_manage_hedge(sym, is_buy, V, avg_entry, eq, cs)` — computes
+  `allowed_lot = (equity × manual_risk_pct%) / (contract_size × avg_entry ×
+  manual_sl_pct%)` and `required_hedge = max(0, V - allowed_lot)` fresh every
+  tick, then:
+  - tops up (opens more hedge) if required > current hedge
+  - trims down (partial/full closes) if required < current hedge
+  - closes outright any hedge sitting on the wrong side (stale from a manual
+    direction flip)
+- `manage()` now calls `_manage_hedge()` unconditionally every tick (was
+  previously only inside the `if st is None` first-detection branch — the old
+  one-shot hedge-open code there was removed).
+- Net-zero manual (self-hedged by hand, e.g. equal BUY+SELL manual lots) now
+  also drops any stray bot-hedge — previously this case returned early and
+  left an orphaned hedge as pure reverse risk.
+
+**Config (`config.py`):** `risk_pct` 3.0→**1.0**, `manual_risk_pct`
+3.0→**1.0**, `manual_copy_max_risk_pct` 3.0→**1.0**.
+
+**Verified before implementing:** only 1 `bridge_main.py` + 1 `serve.py`
+process running (no duplicate bridge instances) — Imtiyaz's rule 8.
+`py_compile` clean on `bridge_manual.py` and `config.py`.
+
+⚠️ **Places REAL hedge-open/partial-close orders on funded accounts.**
+DEMO-test the full worked example before trusting live: open a manual BUY
+larger than the 1%-allowed lot → confirm SELL hedge opens for the excess →
+partial-close part of the BUY → confirm hedge trims down proportionally →
+confirm no over-hedge remains. Full detail + reversal instructions in
+`docs/FILTERS_MASTER.md` CHANGE LOG (same date).
+
+---
+
 ## 2026-07-17 — FS67-25 SHAP interaction screen DONE + bug fix
 
 `analyze_feature_interactions.py` (FS67-25) initially failed:

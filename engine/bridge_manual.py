@@ -4,8 +4,12 @@ bridge_manual.py - L13 MANUAL-TRADE MANAGER (config-gated, default OFF).
 Treats ALL your manual XAUUSD trades (magic 0; the bot uses 202600) as ONE combined
 position: sums the net lots, takes the volume-weighted average entry, and runs ONE
 ratcheting vSL for the whole group. Anisa's spec (2026-06-29):
-  - cap combined risk at manual_risk_pct (SEPARATE pool from the bot's risk_pct; 3%+3%=6% total):
+  - cap combined risk at manual_risk_pct (SEPARATE pool from the bot's risk_pct):
     if the combined lot is bigger than the risk-equivalent volume, HEDGE the excess.
+    2026-07-17 (Imtiyaz): recomputed EVERY tick (_manage_hedge below), not just once
+    on first detection -- top up when the manual lot grows, trim (partial close) the
+    hedge when it shrinks, so it never over- or under-covers the live manual exposure
+    (an over-sized leftover hedge would itself become a reverse risk).
   - ratchet ONE VIRTUAL vSL up the 2-SMMA line (HTF/H1). 2026-06-30 (Anisa): the vSL is NOT
     placed on the broker/terminal (don't expose the stop to the market / stop-hunting) â€” the
     bot CLOSES all legs on a virtual breach (vSL or the manual_risk_pct floor), tracked like the
@@ -187,6 +191,88 @@ def _close(pos, sym, tag="manual-close"):
     return r
 
 
+def _partial_close(pos, sym, volume, tag="manual-hedge-trim"):
+    """Reduce ONE hedge position by `volume` lots (partial close), leaving the rest
+    open. 2026-07-17 (Imtiyaz): needed so the hedge can be trimmed DOWN proportionally
+    when the manual position shrinks, instead of only ever fully closing a leg."""
+    volume = round(float(volume), 2)
+    if volume <= 0:
+        return None
+    otype = mt5.ORDER_TYPE_SELL if pos.type == 0 else mt5.ORDER_TYPE_BUY
+    tick = mt5.symbol_info_tick(sym)
+    if not tick:
+        return None
+    price = tick.bid if pos.type == 0 else tick.ask
+    if TEST_MODE:
+        log.info(f"TEST manual-mgr [NOT SENT] partial-close #{pos.ticket} {volume}/{pos.volume}")
+        return None
+    req = {"action": mt5.TRADE_ACTION_DEAL, "symbol": sym, "volume": volume,
+           "type": otype, "position": pos.ticket, "price": price, "deviation": 20,
+           "magic": _hedge_magic(), "comment": tag[:31],
+           "type_time": mt5.ORDER_TIME_GTC, "type_filling": mt5.ORDER_FILLING_IOC}
+    r = mt5.order_send(req)
+    for fill in (mt5.ORDER_FILLING_FOK, mt5.ORDER_FILLING_RETURN):
+        if r is None or r.retcode == 10030:
+            req["type_filling"] = fill; r = mt5.order_send(req)
+    if r is None or r.retcode != mt5.TRADE_RETCODE_DONE:
+        log.warning(f"manual-mgr partial-close failed ({tag}): {getattr(r,'retcode',None)} {mt5.last_error()}")
+    return r
+
+
+def _manage_hedge(sym, is_buy, V, avg_entry, eq, cs):
+    """Recompute the required opposite-side hedge on EVERY tick (2026-07-17, Imtiyaz
+    spec). Caps combined manual risk at manual_risk_pct by hedging only the lot ABOVE
+    the risk-equivalent volume (using manual_sl_pct as the risk-distance basis, same
+    convention the original one-shot hedge used — just now re-evaluated continuously
+    instead of once at first detection):
+
+      allowed_lot    = (equity * manual_risk_pct%) / (contract_size * avg_entry * manual_sl_pct%)
+      required_hedge = max(0, V - allowed_lot)
+
+    - required_hedge > current hedge  -> TOP UP (open more, same opposite side)
+    - required_hedge < current hedge  -> TRIM DOWN (partial/full close of hedge legs)
+    - a hedge sitting on the WRONG side (stale from a manual direction flip) is closed
+      outright so it can never sit there silently doubling risk instead of covering it.
+    """
+    risk_pct = float(_f("manual_risk_pct", 1.0))
+    sl_pct   = float(_f("manual_sl_pct", 1.0)) / 100.0
+    sl_dist  = avg_entry * sl_pct
+    risk_usd = eq * risk_pct / 100.0
+    allowed_lot    = (risk_usd / (cs * sl_dist)) if (cs * sl_dist) > 0 else V
+    required_hedge = max(0.0, round(V - allowed_lot, 2))
+
+    hedges = _positions(_hedge_magic(), sym)
+    correct_type = mt5.ORDER_TYPE_SELL if is_buy else mt5.ORDER_TYPE_BUY
+    wrong_side = [h for h in hedges if h.type != correct_type]
+    for h in wrong_side:
+        _close(h, sym, "manual-hedge-flip-close")
+        log.warning(f"ðŸ”€ [{sym}] hedge #{h.ticket} was on the wrong side (manual direction "
+                    f"flipped) -> closed")
+
+    correct_side  = [h for h in hedges if h.type == correct_type]
+    current_hedge = round(sum(h.volume for h in correct_side), 2)
+    diff = round(required_hedge - current_hedge, 2)
+
+    if diff > 0.01:
+        _send_market(correct_type, diff, "manual-hedge-topup", sym)
+        log.info(f"ðŸ›¡ [{sym}] hedge TOP-UP +{diff} lot | manual {V} lot, allowed {allowed_lot:.2f} "
+                 f"@ {risk_pct:.1f}% risk -> hedge {current_hedge:.2f}→{required_hedge:.2f}")
+    elif diff < -0.01:
+        trim = abs(diff)
+        remaining = trim
+        for h in correct_side:
+            if remaining <= 0.005:
+                break
+            take = min(h.volume, remaining)
+            if take >= h.volume - 0.001:
+                _close(h, sym, "manual-hedge-trim")
+            else:
+                _partial_close(h, sym, take, "manual-hedge-trim")
+            remaining -= take
+        log.info(f"âœ‚ï¸ [{sym}] hedge TRIM -{trim:.2f} lot | manual {V} lot, allowed {allowed_lot:.2f} "
+                 f"@ {risk_pct:.1f}% risk -> hedge {current_hedge:.2f}→{required_hedge:.2f}")
+
+
 def _mirror_open(direction, sl_dist, tp_p, primary_lot=None, primary_equity=None):
     """Mirror a NEW primary manual trade to the secondaries (config-gated, default
     OFF). `primary_lot`/`primary_equity` drive proportional sizing â€” the slave copies
@@ -231,11 +317,10 @@ def manage(sym=None, mirror_to_slaves=False):
             return
         eq = float(info.equity)
         cs = _contract_size(sym)
-        risk_usd = eq * float(_f("manual_risk_pct", 6.0)) / 100.0
         sl_pct  = float(_f("manual_sl_pct", 1.0)) / 100.0
         tp_pct  = float(_f("manual_target_tp_pct", 0.0) or 0.0)
         buf_pct = float(_f("ratchet_buf_pct", 0.20)) / 100.0
-        max_pct = float(_f("manual_risk_pct", 6.0)) / 100.0
+        max_pct = float(_f("manual_risk_pct", 1.0)) / 100.0
 
         manual = _positions(0, sym)
         if not manual:
@@ -256,12 +341,23 @@ def manage(sym=None, mirror_to_slaves=False):
         sell_vol = sum(p.volume for p in manual if p.type == 1)
         net = buy_vol - sell_vol
         if abs(net) < 1e-6:
-            return                                  # fully self-hedged manually -> no net risk
+            # fully self-hedged manually -> no net risk. Drop any stray bot-hedge too
+            # (2026-07-17): a leftover hedge here would sit unopposed and become a
+            # reverse risk in its own right, exactly the failure mode Imtiyaz flagged.
+            for h in _positions(_hedge_magic(), sym):
+                _close(h, sym, "manual-hedge-cleanup-netzero")
+            return
         is_buy = net > 0
         side = [p for p in manual if (p.type == 0) == is_buy]
         tot  = sum(p.volume for p in side)
         avg_entry = (sum(p.volume * p.price_open for p in side) / tot) if tot else manual[0].price_open
         V = abs(net)
+
+        # â”€â”€ hedge is recomputed EVERY tick, not just on first detection (2026-07-17,
+        # Imtiyaz spec): top up when V grows, trim down (partial close) when V shrinks,
+        # so an over-sized manual position never sits under-hedged and a shrunk one
+        # never sits over-hedged (over-hedge = the hedge itself becomes reverse risk).
+        _manage_hedge(sym, is_buy, V, avg_entry, eq, cs)
 
         tick = mt5.symbol_info_tick(sym)
         cur  = (tick.bid if is_buy else tick.ask) if tick else avg_entry
@@ -283,15 +379,10 @@ def manage(sym=None, mirror_to_slaves=False):
             bridge_ratchet, _rst = None, None
 
         st = _managed.get(key)
-        # â”€â”€ first time for this combined position: 6% backstop + excess hedge â”€â”€
+        # â”€â”€ first time for this combined position: vSL init/recovery + slave mirror â”€â”€
+        # (excess-hedge sizing itself is handled every tick by _manage_hedge above,
+        # not just here on first detection)
         if st is None:
-            sl_dist   = avg_entry * sl_pct
-            risk6_lot = (risk_usd / (cs * sl_dist)) if (cs * sl_dist) > 0 else V
-            if V > risk6_lot + 1e-6:
-                excess = round(V - risk6_lot, 2)
-                otype  = mt5.ORDER_TYPE_SELL if is_buy else mt5.ORDER_TYPE_BUY
-                _send_market(otype, excess, "manual-excess-hedge combined", sym)
-                log.info(f"ðŸ›¡ [{sym}] COMBINED {V} lot > {max_pct*100:.0f}%-lot {risk6_lot:.2f} -> hedged excess {excess}")
             # 2026-06-30 (Anisa): SL is VIRTUAL â€” do NOT place a broker SL on the terminal
             # (don't expose the stop to the market / stop-hunting). The bot CLOSES the position
             # on a virtual breach (floor / vSL below). âš ï¸ if the bot is OFF, the manual has no
@@ -450,7 +541,7 @@ def dashboard_status(sym=None):
         tick = mt5.symbol_info_tick(sym)
         cur = (tick.bid if is_buy else tick.ask) if tick else avg_entry
         st = _managed.get(key, {})
-        max_pct = float(_f("manual_risk_pct", 3.0)) / 100.0
+        max_pct = float(_f("manual_risk_pct", 1.0)) / 100.0
         floor = (avg_entry - avg_entry * max_pct) if is_buy else (avg_entry + avg_entry * max_pct)
         vsl = float(st.get("vsl") or floor)
 
