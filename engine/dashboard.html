@@ -2511,10 +2511,10 @@ function drawSigChart(history){
           const f = _fitFont(text, _fBase);
           ctx.font = 'bold '+f+'px Arial,sans-serif';
           ctx.textAlign = 'center'; ctx.textBaseline = baseline;
-          ctx.lineJoin = 'round'; ctx.strokeStyle = '#0a0e14'; ctx.lineWidth = Math.max(2, f*0.22);
-          ctx.strokeText(text, cx, cy);
+          ctx.shadowColor = 'rgba(255,255,255,0.65)'; ctx.shadowBlur = Math.max(3, f*0.3);
           ctx.fillStyle = color;
           ctx.fillText(text, cx, cy);
+          ctx.shadowBlur = 0;
         };
         // GROUP 1 (top): side + price, stacked tight — high-contrast white/gold
         const _f1 = _fitFont(sideTxt, _fBase);
