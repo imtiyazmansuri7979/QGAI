@@ -2519,9 +2519,9 @@ function drawSigChart(history){
         // mirror of how the time label grows DOWNWARD from the same edge
         const barTop = h - barH;
         const _fPrice = _fitFont(txt, _fBase);
-        _hLabel(txt, cx, barTop - 4, isBuy?'#39FF14':'#FF073A', 'bottom');
+        _hLabel(txt, cx, barTop - 4, isBuy?'#39FF14':'#ff2255', 'bottom');
         const _fSide = _fitFont(sideTxt, _fBase);
-        _hLabel(sideTxt, cx, barTop - 4 - _fPrice - 2, isBuy?'#39FF14':'#FF073A', 'bottom');
+        _hLabel(sideTxt, cx, barTop - 4 - _fPrice - 2, isBuy?'#39FF14':'#ff2255', 'bottom');
         // GROUP 2: time — anchored at the bar's top edge, growing DOWNWARD into the bar
         // SELL time matches the bottom prob% yellow (looked good)
         if(tm) _hLabel(tm, cx, barTop + 4, isBuy?'#000000':'#FFFF00', 'top');
