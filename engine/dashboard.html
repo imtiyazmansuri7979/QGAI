@@ -2504,8 +2504,9 @@ function drawSigChart(history){
           ctx.fillText(text, cx, cy);
         };
         _hLabel(sideTxt, cx, 2, isBuy?'#00ff88':'#ff2d55');
-        _hLabel(txt, cx, 2+_f+2, '#00f5ff');
-        if(tm) _hLabel(tm+' '+prob.toFixed(0)+'%', cx, 2+(_f+2)*2, '#ffe066');
+        _hLabel(txt, cx, 2+(_f+2)*1, '#00f5ff');
+        if(tm) _hLabel(tm, cx, 2+(_f+2)*2, '#cfe6ff');
+        _hLabel(prob.toFixed(0)+'%', cx, 2+(_f+2)*3, '#ffe066');
       }
     }
   });
