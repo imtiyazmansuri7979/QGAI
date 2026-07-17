@@ -1,18 +1,15 @@
 ﻿# QGAI â€” Tasks (priority order)
 
-### âœ… DONE â€” 2026-07-17 Manual-trade hedge: recompute every tick + risk 3%â†’1%
-Imtiyaz's 9-rule spec: combined manual risk capped at 1% equity, checked EVERY
-tick (not just on first detection) â€” hedge tops up when the manual lot grows,
-trims down (new partial-close support) when it shrinks, closes outright if
-caught on the wrong side after a direction flip. `bridge_manual.py`: new
-`_partial_close()` + `_manage_hedge()`, wired into `manage()` unconditionally
-every tick (old one-shot hedge-open code removed). Net-zero manual now also
-drops stray hedges. Config: `risk_pct`/`manual_risk_pct`/
-`manual_copy_max_risk_pct` all 3.0â†’**1.0**. Verified no duplicate bridge
-process running. `py_compile` clean. âš ï¸ **DEMO-test before trusting on funded
-accounts** â€” places real hedge/partial-close orders. Full detail:
+### âœ… DONE â€” 2026-07-17 Manual-trade risk: CUT-based protection (v2)
+Imtiyaz changed approach from hedge-based (v1, same day) to CUT-based: excess
+manual lot is partial-closed DIRECTLY from the manual positions (largest first),
+no opposite-side hedge orders. `bridge_manual.py`: removed `_manage_hedge()`,
+new `_enforce_risk_cap()` + `_cleanup_stale_hedges()`. `manual_floating()` now
+only sums magic=0. Config RESTORED: `risk_pct`/`manual_risk_pct`/
+`manual_copy_max_risk_pct` = **3.0**, `daily_loss_limit_pct` = **9.0**.
+`py_compile` clean. Full detail:
 `docs/FILTERS_MASTER.md` CHANGE LOG + `docs/FIXES_CHANGELOG4.md` (2026-07-17).
-**ACTION REQUIRED: restart live bridge to load this fix.**
+**ACTION REQUIRED: restart live bridge to load this change.**
 
 ### DONE - 2026-07-16 LIVE SAFETY FIX: manual vSL enforcement
 Manual BUY had dashboard vSL `4022.08`, but bridge heartbeat later showed price `4016.61` and no close fired. Root cause: `bridge_manual.py` enforced vSL only when a fresh ratchet line was available; if line read failed, the previously displayed vSL was not checked. Fixed by enforcing previous stored vSL every tick before recalculating the fresh line. Also changed `bridge_main.py` so manual-manager errors are logged instead of silently ignored. Compile check passed.

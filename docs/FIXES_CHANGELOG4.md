@@ -8,44 +8,35 @@ Worked on by Anisa via Cowork. Shared PC / shared folder â€” this file is t
 
 ---
 
-## 2026-07-17 — Manual-trade risk manager: hedge now recomputed every tick
+## 2026-07-17 — Manual-trade risk manager: CUT-based protection (v2)
 
-Imtiyaz's spec (9 numbered rules): combined manual-trade risk must never exceed
-1% equity, checked on EVERY tick (not just when a manual position is first
-detected), with the hedge topping up on lot growth and trimming down (partial
-close) on lot shrink — never left over- or under-sized.
+**Replaces hedge-based v1 (same day).** Imtiyaz changed the approach: instead of
+opening opposite-side hedge orders for excess manual lot, the excess is
+**partial-closed directly** from the manual positions themselves. No hedge orders
+at all — simpler, no reverse-risk from stale hedges.
 
 **Code (`bridge_manual.py`):**
-- New `_partial_close(pos, sym, volume, tag)` — reduces one hedge position by
-  a given lot amount instead of only ever closing it fully.
-- New `_manage_hedge(sym, is_buy, V, avg_entry, eq, cs)` — computes
-  `allowed_lot = (equity × manual_risk_pct%) / (contract_size × avg_entry ×
-  manual_sl_pct%)` and `required_hedge = max(0, V - allowed_lot)` fresh every
-  tick, then:
-  - tops up (opens more hedge) if required > current hedge
-  - trims down (partial/full closes) if required < current hedge
-  - closes outright any hedge sitting on the wrong side (stale from a manual
-    direction flip)
-- `manage()` now calls `_manage_hedge()` unconditionally every tick (was
-  previously only inside the `if st is None` first-detection branch — the old
-  one-shot hedge-open code there was removed).
-- Net-zero manual (self-hedged by hand, e.g. equal BUY+SELL manual lots) now
-  also drops any stray bot-hedge — previously this case returned early and
-  left an orphaned hedge as pure reverse risk.
+- Removed `_manage_hedge()` (old hedge top-up/trim logic).
+- New `_enforce_risk_cap(sym, is_buy, positions, avg_entry, eq, cs)` — computes
+  `allowed_lot = (equity × manual_risk_pct%) / (contract_size × price ×
+  manual_sl_pct%)`, if total > allowed, partial-closes the excess from the
+  manual positions (largest first). Called every tick.
+- New `_cleanup_stale_hedges(sym)` — closes any leftover hedge positions
+  (magic 202699) from the old logic. Called on every tick + every close-all path.
+- `_partial_close()` kept (reused for cutting manual positions).
+- `_send_market()` no longer called for hedging (kept in file for potential
+  future use but not invoked by any current code path).
+- `manual_floating()` now only sums magic=0 positions (no hedge magic).
 
-**Config (`config.py`):** `risk_pct` 3.0→**1.0**, `manual_risk_pct`
-3.0→**1.0**, `manual_copy_max_risk_pct` 3.0→**1.0**.
+**Config (`config.py`):** `risk_pct`=**3.0**, `manual_risk_pct`=**3.0**,
+`manual_copy_max_risk_pct`=**3.0**, `daily_loss_limit_pct`=**9.0** (all
+restored to original values).
 
-**Verified before implementing:** only 1 `bridge_main.py` + 1 `serve.py`
-process running (no duplicate bridge instances) — Imtiyaz's rule 8.
+**Example:** equity $73,000, 3% risk, SL 1% of price (~$40), contract 100 →
+allowed ≈ 0.55 lot. User opens 12 lot BUY → bot partial-closes ~11.45 lot
+immediately. No SELL hedge. Remaining ~0.55 lot managed by vSL/floor/TP.
+
 `py_compile` clean on `bridge_manual.py` and `config.py`.
-
-⚠️ **Places REAL hedge-open/partial-close orders on funded accounts.**
-DEMO-test the full worked example before trusting live: open a manual BUY
-larger than the 1%-allowed lot → confirm SELL hedge opens for the excess →
-partial-close part of the BUY → confirm hedge trims down proportionally →
-confirm no over-hedge remains. Full detail + reversal instructions in
-`docs/FILTERS_MASTER.md` CHANGE LOG (same date).
 
 ---
 

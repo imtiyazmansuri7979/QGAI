@@ -1,24 +1,20 @@
 """
 bridge_manual.py - L13 MANUAL-TRADE MANAGER (config-gated, default OFF).
 
+CUT-BASED PROTECTION (2026-07-17, Imtiyaz v2):
 Treats ALL your manual XAUUSD trades (magic 0; the bot uses 202600) as ONE combined
-position: sums the net lots, takes the volume-weighted average entry, and runs ONE
-ratcheting vSL for the whole group. Anisa's spec (2026-06-29):
-  - cap combined risk at manual_risk_pct (SEPARATE pool from the bot's risk_pct):
-    if the combined lot is bigger than the risk-equivalent volume, HEDGE the excess.
-    2026-07-17 (Imtiyaz): recomputed EVERY tick (_manage_hedge below), not just once
-    on first detection -- top up when the manual lot grows, trim (partial close) the
-    hedge when it shrinks, so it never over- or under-covers the live manual exposure
-    (an over-sized leftover hedge would itself become a reverse risk).
-  - ratchet ONE VIRTUAL vSL up the 2-SMMA line (HTF/H1). 2026-06-30 (Anisa): the vSL is NOT
-    placed on the broker/terminal (don't expose the stop to the market / stop-hunting) â€” the
-    bot CLOSES all legs on a virtual breach (vSL or the manual_risk_pct floor), tracked like the
-    bot's own trades. âš ï¸ if the bot is OFF, the manual has NO protection (explicit trade-off).
-    Breach (trend turns / floor) -> close ALL manual legs + hedges.
-  - target TP (manual_target_tp_pct) on the combined avg -> close ALL.
+position. If total lot exceeds the risk-equivalent allowed_lot, the EXCESS is
+partial-closed IMMEDIATELY (no opposite-side hedge). Remaining allowed lot is
+managed with one ratcheting virtual SL + floor + TP.
 
-Also manages trades that were ALREADY open when the manager started.
-WARNING: places REAL orders. Master switch defaults False. DEMO-TEST. Respects TEST_MODE.
+  - allowed_lot = (equity * manual_risk_pct%) / (contract * price * manual_sl_pct%)
+  - excess = max(0, total_lot - allowed_lot) -> partial-close from the manual positions
+  - ratchet ONE VIRTUAL vSL up the 2-SMMA line (HTF/H1). vSL is NOT placed on the
+    broker (don't expose the stop to stop-hunting). Bot CLOSES on virtual breach.
+  - target TP (manual_target_tp_pct) on the combined avg -> close ALL.
+  - any STALE hedge positions (magic 202699) from old logic are cleaned up automatically.
+
+WARNING: places REAL close orders. Master switch defaults False. DEMO-TEST. Respects TEST_MODE.
 """
 import json
 import re
@@ -116,10 +112,6 @@ def _load_state_vsl(key, sym, is_buy, avg_entry, volume):
     return None
 
 def _recover_vsl_from_log(sym, is_buy, avg_entry, floor):
-    """Last-resort restart recovery for the current live incident.
-    Future restarts use manual_vsl_state.json; this scans the existing bridge log
-    for the latest sane manual ratchet value when no state file exists yet.
-    """
     try:
         if not _BRIDGE_LOG.exists():
             return None
@@ -139,29 +131,6 @@ def _recover_vsl_from_log(sym, is_buy, avg_entry, floor):
     except Exception as e:
         log.warning(f"manual-vsl log recovery failed: {e}")
     return None
-
-def _send_market(otype, volume, comment, sym):
-    volume = round(float(volume), 2)
-    if volume <= 0:
-        return None
-    tick = mt5.symbol_info_tick(sym)
-    if not tick:
-        return None
-    price = tick.ask if otype == mt5.ORDER_TYPE_BUY else tick.bid
-    req = {"action": mt5.TRADE_ACTION_DEAL, "symbol": sym, "volume": volume,
-           "type": otype, "price": price, "deviation": 20, "magic": _hedge_magic(),
-           "comment": comment[:31], "type_time": mt5.ORDER_TIME_GTC,
-           "type_filling": mt5.ORDER_FILLING_IOC}
-    if TEST_MODE:
-        log.info(f"TEST manual-mgr [NOT SENT] {comment} vol={volume} @ {price:.2f}")
-        return None
-    r = mt5.order_send(req)
-    for fill in (mt5.ORDER_FILLING_FOK, mt5.ORDER_FILLING_RETURN):
-        if r is None or r.retcode == 10030:
-            req["type_filling"] = fill; r = mt5.order_send(req)
-    if r is None or r.retcode != mt5.TRADE_RETCODE_DONE:
-        log.warning(f"manual-mgr order failed ({comment}): {getattr(r,'retcode',None)} {mt5.last_error()}")
-    return r
 
 def _set_sl(pos, sl_price, sym):
     if TEST_MODE:
@@ -191,10 +160,8 @@ def _close(pos, sym, tag="manual-close"):
     return r
 
 
-def _partial_close(pos, sym, volume, tag="manual-hedge-trim"):
-    """Reduce ONE hedge position by `volume` lots (partial close), leaving the rest
-    open. 2026-07-17 (Imtiyaz): needed so the hedge can be trimmed DOWN proportionally
-    when the manual position shrinks, instead of only ever fully closing a leg."""
+def _partial_close(pos, sym, volume, tag="manual-risk-cut"):
+    """Partial-close ONE position by `volume` lots, leaving the rest open."""
     volume = round(float(volume), 2)
     if volume <= 0:
         return None
@@ -219,65 +186,51 @@ def _partial_close(pos, sym, volume, tag="manual-hedge-trim"):
     return r
 
 
-def _manage_hedge(sym, is_buy, V, avg_entry, eq, cs):
-    """Recompute the required opposite-side hedge on EVERY tick (2026-07-17, Imtiyaz
-    spec). Caps combined manual risk at manual_risk_pct by hedging only the lot ABOVE
-    the risk-equivalent volume (using manual_sl_pct as the risk-distance basis, same
-    convention the original one-shot hedge used — just now re-evaluated continuously
-    instead of once at first detection):
+def _cleanup_stale_hedges(sym):
+    """Close any leftover hedge positions (magic 202699) from the old hedge-based logic."""
+    for h in _positions(_hedge_magic(), sym):
+        _close(h, sym, "stale-hedge-cleanup")
+        log.warning(f"[{sym}] stale hedge #{h.ticket} from old logic -> closed")
 
-      allowed_lot    = (equity * manual_risk_pct%) / (contract_size * avg_entry * manual_sl_pct%)
-      required_hedge = max(0, V - allowed_lot)
 
-    - required_hedge > current hedge  -> TOP UP (open more, same opposite side)
-    - required_hedge < current hedge  -> TRIM DOWN (partial/full close of hedge legs)
-    - a hedge sitting on the WRONG side (stale from a manual direction flip) is closed
-      outright so it can never sit there silently doubling risk instead of covering it.
+def _enforce_risk_cap(sym, is_buy, positions, avg_entry, eq, cs):
+    """CUT-BASED (2026-07-17, Imtiyaz v2): if total manual lot exceeds the
+    risk-equivalent allowed_lot, partial-close the excess from the manual
+    positions themselves (largest first). No opposite-side hedge.
+
+      allowed_lot = (equity * manual_risk_pct%) / (contract_size * price * manual_sl_pct%)
+      excess      = max(0, total_lot - allowed_lot) -> partial-close immediately
     """
-    risk_pct = float(_f("manual_risk_pct", 1.0))
+    _cleanup_stale_hedges(sym)
+
+    risk_pct = float(_f("manual_risk_pct", 3.0))
     sl_pct   = float(_f("manual_sl_pct", 1.0)) / 100.0
     sl_dist  = avg_entry * sl_pct
     risk_usd = eq * risk_pct / 100.0
-    allowed_lot    = (risk_usd / (cs * sl_dist)) if (cs * sl_dist) > 0 else V
-    required_hedge = max(0.0, round(V - allowed_lot, 2))
+    total_lot = round(sum(p.volume for p in positions), 2)
+    allowed_lot = round((risk_usd / (cs * sl_dist)), 2) if (cs * sl_dist) > 0 else total_lot
+    excess = round(total_lot - allowed_lot, 2)
 
-    hedges = _positions(_hedge_magic(), sym)
-    correct_type = mt5.ORDER_TYPE_SELL if is_buy else mt5.ORDER_TYPE_BUY
-    wrong_side = [h for h in hedges if h.type != correct_type]
-    for h in wrong_side:
-        _close(h, sym, "manual-hedge-flip-close")
-        log.warning(f"ðŸ”€ [{sym}] hedge #{h.ticket} was on the wrong side (manual direction "
-                    f"flipped) -> closed")
+    if excess <= 0.01:
+        return
 
-    correct_side  = [h for h in hedges if h.type == correct_type]
-    current_hedge = round(sum(h.volume for h in correct_side), 2)
-    diff = round(required_hedge - current_hedge, 2)
+    remaining = excess
+    for p in sorted(positions, key=lambda x: x.volume, reverse=True):
+        if remaining <= 0.005:
+            break
+        take = min(p.volume, remaining)
+        if take >= p.volume - 0.005:
+            _close(p, sym, "manual-risk-cut")
+        else:
+            _partial_close(p, sym, take, "manual-risk-cut")
+        remaining = round(remaining - take, 2)
 
-    if diff > 0.01:
-        _send_market(correct_type, diff, "manual-hedge-topup", sym)
-        log.info(f"ðŸ›¡ [{sym}] hedge TOP-UP +{diff} lot | manual {V} lot, allowed {allowed_lot:.2f} "
-                 f"@ {risk_pct:.1f}% risk -> hedge {current_hedge:.2f}→{required_hedge:.2f}")
-    elif diff < -0.01:
-        trim = abs(diff)
-        remaining = trim
-        for h in correct_side:
-            if remaining <= 0.005:
-                break
-            take = min(h.volume, remaining)
-            if take >= h.volume - 0.001:
-                _close(h, sym, "manual-hedge-trim")
-            else:
-                _partial_close(h, sym, take, "manual-hedge-trim")
-            remaining -= take
-        log.info(f"âœ‚ï¸ [{sym}] hedge TRIM -{trim:.2f} lot | manual {V} lot, allowed {allowed_lot:.2f} "
-                 f"@ {risk_pct:.1f}% risk -> hedge {current_hedge:.2f}→{required_hedge:.2f}")
+    log.info(f"[{sym}] CUT excess {excess:.2f} lot | was {total_lot:.2f} -> allowed {allowed_lot:.2f} "
+             f"@ {risk_pct:.1f}% risk ({sl_pct*100:.1f}% SL dist)")
 
 
 def _mirror_open(direction, sl_dist, tp_p, primary_lot=None, primary_equity=None):
-    """Mirror a NEW primary manual trade to the secondaries (config-gated, default
-    OFF). `primary_lot`/`primary_equity` drive proportional sizing â€” the slave copies
-    mirror the risk ACTUALLY taken here, not a blanket risk_pct. Never raises â€” a
-    mirror failure must not break local management of the real position."""
+    """Mirror a NEW primary manual trade to the secondaries (config-gated, default OFF)."""
     try:
         import bridge_multi
         bridge_multi.execute_manual_copy_to_secondaries(
@@ -300,12 +253,8 @@ def manage(sym=None, mirror_to_slaves=False):
     """Combine all manual trades into ONE position and run ONE ratcheting vSL.
     No-op unless enabled. Call from the live loop (primary account).
 
-    `mirror_to_slaves` (2026-07-15, Imtiyaz): when True, a NEW combined manual
-    position is also mirrored onto every secondary account (each sized from its
-    OWN equity at risk_pct), and the copies are closed whenever this position
-    ends. ONLY the primary call site passes True â€” the slave-side manager must
-    never mirror (that would copy a slave's own trade back out to other slaves).
-    Gated again inside bridge_multi by `manual_copy_to_slaves_enabled`.
+    CUT-BASED (2026-07-17 v2): excess lot is partial-closed from the manual
+    positions themselves -- no opposite-side hedge orders.
     """
     if not _enabled():
         return
@@ -320,32 +269,24 @@ def manage(sym=None, mirror_to_slaves=False):
         sl_pct  = float(_f("manual_sl_pct", 1.0)) / 100.0
         tp_pct  = float(_f("manual_target_tp_pct", 0.0) or 0.0)
         buf_pct = float(_f("ratchet_buf_pct", 0.20)) / 100.0
-        max_pct = float(_f("manual_risk_pct", 1.0)) / 100.0
+        max_pct = float(_f("manual_risk_pct", 3.0)) / 100.0
 
         manual = _positions(0, sym)
         if not manual:
-            for h in _positions(_hedge_magic(), sym):
-                _close(h, sym, "manual-cleanup-hedge")
-            # Only fire the mirror-close on the HAD->GONE transition (pop returns the
-            # old state), never on every tick while simply no manual trade exists â€”
-            # otherwise this would reconnect to every slave once per monitor tick.
+            _cleanup_stale_hedges(sym)
             _had = _managed.pop(key, None) is not None
             _drop_state(key)
             if _had and mirror_to_slaves:
-                log.info(f"ðŸ”€ [{sym}] manual position gone (closed by hand / broker) -> closing slave copies")
+                log.info(f"[{sym}] manual position gone (closed by hand / broker) -> closing slave copies")
                 _mirror_close()
             return
 
-        # â”€â”€ COMBINE all manual legs into one net position â”€â”€
+        # -- COMBINE all manual legs into one net position --
         buy_vol  = sum(p.volume for p in manual if p.type == 0)
         sell_vol = sum(p.volume for p in manual if p.type == 1)
         net = buy_vol - sell_vol
         if abs(net) < 1e-6:
-            # fully self-hedged manually -> no net risk. Drop any stray bot-hedge too
-            # (2026-07-17): a leftover hedge here would sit unopposed and become a
-            # reverse risk in its own right, exactly the failure mode Imtiyaz flagged.
-            for h in _positions(_hedge_magic(), sym):
-                _close(h, sym, "manual-hedge-cleanup-netzero")
+            _cleanup_stale_hedges(sym)
             return
         is_buy = net > 0
         side = [p for p in manual if (p.type == 0) == is_buy]
@@ -353,23 +294,15 @@ def manage(sym=None, mirror_to_slaves=False):
         avg_entry = (sum(p.volume * p.price_open for p in side) / tot) if tot else manual[0].price_open
         V = abs(net)
 
-        # â”€â”€ hedge is recomputed EVERY tick, not just on first detection (2026-07-17,
-        # Imtiyaz spec): top up when V grows, trim down (partial close) when V shrinks,
-        # so an over-sized manual position never sits under-hedged and a shrunk one
-        # never sits over-hedged (over-hedge = the hedge itself becomes reverse risk).
-        _manage_hedge(sym, is_buy, V, avg_entry, eq, cs)
+        # -- CUT excess lot immediately (2026-07-17 v2, Imtiyaz): partial-close
+        # the manual positions themselves if total lot > allowed_lot. No hedge.
+        _enforce_risk_cap(sym, is_buy, side, avg_entry, eq, cs)
 
         tick = mt5.symbol_info_tick(sym)
         cur  = (tick.bid if is_buy else tick.ask) if tick else avg_entry
-        max_dist = avg_entry * max_pct   # 3% floor distance (from avg entry â€” risk cap)
+        max_dist = avg_entry * max_pct
         floor0 = (avg_entry - max_dist) if is_buy else (avg_entry + max_dist)
 
-        # ratchet line state (HTF H1 if live config uses it, else M15)
-        # 2026-07-15 (Imtiyaz): pass THIS account's symbol (sym) â€” on a secondary
-        # account whose symbol â‰  primary (e.g. "XAUUSDs" vs "XAUUSD"), the old
-        # symbol-less call fetched the PRIMARY symbol's bars on the slave
-        # connection â†’ copy_rates failed â†’ line None â†’ vSL never ratcheted (only
-        # the wide floor protected the slave manual trade).
         try:
             import bridge_ratchet
             _use_htf = bool(_f("ratchet_htf_sl", False))
@@ -379,64 +312,44 @@ def manage(sym=None, mirror_to_slaves=False):
             bridge_ratchet, _rst = None, None
 
         st = _managed.get(key)
-        # â”€â”€ first time for this combined position: vSL init/recovery + slave mirror â”€â”€
-        # (excess-hedge sizing itself is handled every tick by _manage_hedge above,
-        # not just here on first detection)
+        # -- first time for this combined position: vSL init/recovery + slave mirror --
         if st is None:
-            # 2026-06-30 (Anisa): SL is VIRTUAL â€” do NOT place a broker SL on the terminal
-            # (don't expose the stop to the market / stop-hunting). The bot CLOSES the position
-            # on a virtual breach (floor / vSL below). âš ï¸ if the bot is OFF, the manual has no
-            # protection â€” that is the explicit trade-off.
             recovered_vsl = _load_state_vsl(key, sym, is_buy, avg_entry, V)
             if recovered_vsl is None:
                 recovered_vsl = _recover_vsl_from_log(sym, is_buy, avg_entry, floor0)
             st = {"vsl": recovered_vsl}
             _managed[key] = st
-            log.info(f"ðŸ›¡ [{sym}] COMBINED manual {V} lot @ avg {avg_entry:.2f} -> VIRTUAL vSL ON "
-                     f"({max_pct*100:.0f}% floor @ {(avg_entry - max_dist) if is_buy else (avg_entry + max_dist):.2f}, NO broker SL â€” bot closes on breach)")
+            log.info(f"[{sym}] COMBINED manual {V} lot @ avg {avg_entry:.2f} -> VIRTUAL vSL ON "
+                     f"({max_pct*100:.0f}% floor @ {(avg_entry - max_dist) if is_buy else (avg_entry + max_dist):.2f}, NO broker SL)")
             if recovered_vsl is not None:
-                log.warning(f"ðŸ›¡ [{sym}] restored manual vSL {recovered_vsl:.2f} after restart/log recovery")
+                log.warning(f"[{sym}] restored manual vSL {recovered_vsl:.2f} after restart/log recovery")
                 _save_state(key, sym, is_buy, avg_entry, V, recovered_vsl)
-            # â”€â”€ mirror this NEW manual trade to the slaves (2026-07-15, Imtiyaz) â”€â”€
-            # Sizing basis: "floor" (default) = the manual's real max-loss distance
-            # (manual_risk_pct), so a slave risks its own risk_pct if price reaches
-            # that floor â€” the faithful mirror of the primary's risk. "sl" uses the
-            # tighter manual_sl_pct, which makes the slave lot ~3x bigger.
             if mirror_to_slaves and recovered_vsl is None:
                 _basis = str(_f("manual_copy_sl_basis", "floor")).lower()
                 _copy_sl_dist = max_dist if _basis == "floor" else (avg_entry * sl_pct)
                 _tp_points = int((avg_entry * tp_pct / 100.0) / (mt5.symbol_info(sym).point or 0.01)) if tp_pct > 0 else 0
-                # Pass THIS account's real net lot (V) + equity so each slave can mirror the
-                # risk actually taken here (proportional mode), instead of a blanket risk_pct.
                 _risk_pct_taken = (V * cs * _copy_sl_dist / eq * 100.0) if eq > 0 else 0.0
-                log.info(f"ðŸ”€ [{sym}] NEW manual detected -> mirroring {('BUY' if is_buy else 'SELL')} to slaves "
+                log.info(f"[{sym}] NEW manual detected -> mirroring {('BUY' if is_buy else 'SELL')} to slaves "
                          f"| primary {V} lot @ ${eq:,.0f} eq (~{_risk_pct_taken:.2f}% risk vs {_basis} SL ${_copy_sl_dist:.2f}) "
                          f"| tp={_tp_points}pts")
                 _mirror_open("BUY" if is_buy else "SELL", _copy_sl_dist, _tp_points,
                              primary_lot=V, primary_equity=eq)
             elif mirror_to_slaves:
-                log.info(f"ðŸ”€ [{sym}] restored existing manual vSL; not re-mirroring slave copies")
+                log.info(f"[{sym}] restored existing manual vSL; not re-mirroring slave copies")
 
-        # â”€â”€ L13 fix (2026-06-29): line-INDEPENDENT floor breach â€” enforce the {max_pct} cap even
-        # when the ratchet line is unavailable (trend against the position) or already broken. If
-        # price is past the floor, close ALL now (else an underwater manual sits unmanaged because
-        # the breach-check below only runs when `line` exists, and the broker SL gets rejected). â”€â”€
+        # -- floor breach: enforce the risk cap even when ratchet line is unavailable --
         if (is_buy and cur <= floor0) or ((not is_buy) and cur >= floor0):
-            log.warning(f"ðŸ”» [{sym}] COMBINED past {max_pct*100:.0f}% floor @ {floor0:.2f} (price {cur:.2f}) -> closing ALL manual + hedges")
-            for p in manual:
+            log.warning(f"[{sym}] COMBINED past {max_pct*100:.0f}% floor @ {floor0:.2f} (price {cur:.2f}) -> closing ALL manual")
+            for p in _positions(0, sym):
                 _close(p, sym, "manual-floor-close")
-            for h in _positions(_hedge_magic(), sym):
-                _close(h, sym, "manual-floor-hedge-close")
+            _cleanup_stale_hedges(sym)
             _managed.pop(key, None)
             _drop_state(key)
             if mirror_to_slaves:
                 _mirror_close()
             return
 
-        # â”€â”€ ratchet ONE VIRTUAL vSL up the 2-SMMA line (NOT placed on the broker); breach -> close all â”€â”€
-        # Always enforce the last ratcheted vSL, even if the ratchet line is
-        # unavailable on this tick. If the dashboard shows a vSL, that virtual
-        # stop must remain active until the manual position is flat.
+        # -- ratchet ONE VIRTUAL vSL (NOT placed on the broker); breach -> close all --
         prev_vsl = st.get("vsl")
         if prev_vsl is not None:
             try:
@@ -444,11 +357,10 @@ def manage(sym=None, mirror_to_slaves=False):
             except Exception:
                 prev_vsl = None
         if prev_vsl is not None and ((is_buy and cur <= prev_vsl) or ((not is_buy) and cur >= prev_vsl)):
-            log.info(f"Ã°Å¸â€Â» [{sym}] COMBINED previous vSL hit @ {prev_vsl:.2f} (price {cur:.2f}) -> closing ALL manual + hedges")
-            for p in manual:
+            log.info(f"[{sym}] COMBINED previous vSL hit @ {prev_vsl:.2f} (price {cur:.2f}) -> closing ALL manual")
+            for p in _positions(0, sym):
                 _close(p, sym, "manual-vsl-close")
-            for h in _positions(_hedge_magic(), sym):
-                _close(h, sym, "manual-vsl-hedge-close")
+            _cleanup_stale_hedges(sym)
             _managed.pop(key, None)
             _drop_state(key)
             if mirror_to_slaves:
@@ -462,7 +374,7 @@ def manage(sym=None, mirror_to_slaves=False):
             except Exception:
                 line = None
         if line:
-            _lbuf = line * buf_pct   # 2026-06-30 (Anisa): buffer = 0.20% of the LIVE line (like the indicator / bot), not fixed-from-entry
+            _lbuf = line * buf_pct
             vsl   = (line - _lbuf) if is_buy else (line + _lbuf)
             floor = (avg_entry - max_dist) if is_buy else (avg_entry + max_dist)
             vsl   = max(vsl, floor) if is_buy else min(vsl, floor)
@@ -470,30 +382,28 @@ def manage(sym=None, mirror_to_slaves=False):
             if prev is not None:
                 vsl = max(prev, vsl) if is_buy else min(prev, vsl)
             if (is_buy and cur <= vsl) or ((not is_buy) and cur >= vsl):
-                log.info(f"ðŸ”» [{sym}] COMBINED vSL hit @ {vsl:.2f} (price {cur:.2f}) -> closing ALL manual + hedges")
-                for p in manual:
+                log.info(f"[{sym}] COMBINED vSL hit @ {vsl:.2f} (price {cur:.2f}) -> closing ALL manual")
+                for p in _positions(0, sym):
                     _close(p, sym, "manual-vsl-close")
-                for h in _positions(_hedge_magic(), sym):
-                    _close(h, sym, "manual-vsl-hedge-close")
+                _cleanup_stale_hedges(sym)
                 _managed.pop(key, None)
                 _drop_state(key)
                 if mirror_to_slaves:
                     _mirror_close()
                 return
             if vsl != prev:
-                log.info(f"ðŸ”¼ [{sym}] COMBINED vSL ratchet -> {vsl:.2f} (line {line:.2f}) [VIRTUAL â€” not on broker]")
+                log.info(f"[{sym}] COMBINED vSL ratchet -> {vsl:.2f} (line {line:.2f}) [VIRTUAL]")
             st["vsl"] = vsl
             _save_state(key, sym, is_buy, avg_entry, V, vsl)
 
-        # â”€â”€ target TP on the combined average â”€â”€
+        # -- target TP on the combined average --
         if tp_pct > 0 and tick:
             move_pct = ((cur - avg_entry) / avg_entry * 100.0) * (1 if is_buy else -1)
             if move_pct >= tp_pct:
-                log.info(f"ðŸŽ¯ [{sym}] COMBINED hit target TP {tp_pct}% (move {move_pct:.2f}%) -> closing ALL")
-                for p in manual:
+                log.info(f"[{sym}] COMBINED hit target TP {tp_pct}% (move {move_pct:.2f}%) -> closing ALL")
+                for p in _positions(0, sym):
                     _close(p, sym, "manual-tp-close")
-                for h in _positions(_hedge_magic(), sym):
-                    _close(h, sym, "manual-tp-hedge-close")
+                _cleanup_stale_hedges(sym)
                 _managed.pop(key, None)
                 _drop_state(key)
                 if mirror_to_slaves:
@@ -502,15 +412,13 @@ def manage(sym=None, mirror_to_slaves=False):
         log.warning(f"manual manager (manage {sym}) error: {e}")
 
 
-# â”€â”€ L8 isolation: floating P&L of the manual legs + their hedges â”€â”€
 def manual_floating(sym=None):
     if not _enabled():
         return 0.0
     sym = sym or SYMBOL
     try:
-        hm = _hedge_magic()
         return float(sum(p.profit for p in (mt5.positions_get(symbol=sym) or [])
-                         if p.magic in (0, hm)))
+                         if p.magic == 0))
     except Exception:
         return 0.0
 
@@ -541,7 +449,7 @@ def dashboard_status(sym=None):
         tick = mt5.symbol_info_tick(sym)
         cur = (tick.bid if is_buy else tick.ask) if tick else avg_entry
         st = _managed.get(key, {})
-        max_pct = float(_f("manual_risk_pct", 1.0)) / 100.0
+        max_pct = float(_f("manual_risk_pct", 3.0)) / 100.0
         floor = (avg_entry - avg_entry * max_pct) if is_buy else (avg_entry + avg_entry * max_pct)
         vsl = float(st.get("vsl") or floor)
 
