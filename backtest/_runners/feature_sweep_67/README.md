@@ -145,6 +145,21 @@ proposed a 3-runner replacement (all 2026-07-17):
   by more than FS67-26's noise floor, bisect (split in half, recurse
   on the responsible half) to isolate which subset was mispruned.
 
+`FS67-26` came back **DONE 2026-07-17**: same 25-feature live model,
+same H2 window, 3 seeds (42/43/44) — `total_R` = 82.9R / 70.1R / 87.3R
+(mean 80.1R). **NOISE FLOOR = range (max−min) = 17.2R.** This is how
+much `total_R` moves from random seed ALONE, features held constant.
+
+**⚠️ This directly undermines the FS67-22/23 "keep 15_min_slot+M15_ADX"
+conclusion.** FS67-22 measured -15.2R for the drop (WFO), FS67-23
+measured -20.7R (single-split H2) — both deltas are close to or only
+modestly larger than the 17.2R noise floor measured on the SAME H2
+window. This does not prove the FS67-22/23 result is noise (both runs
+used a fixed default seed, not compared across seeds directly), but it
+means the delta can no longer be treated as clearly-signal without
+a same-seeds-vs-different-features comparison. **Do not treat the
+15_min_slot+M15_ADX drop-cost as settled until this is resolved.**
+
 Any feature that looks useful still needs:
 
 1. Clean 1-year confirmation

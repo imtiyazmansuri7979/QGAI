@@ -94,8 +94,17 @@ runners, all built:
   features (excl. `corr_imp_ratio`, no-op) restored together vs current live —
   tests the actual shipped cumulative-pruning decision directly.
 
-**🔴 PRIORITY — run order (not started yet):**
-1. `FS67-26` (noise floor) — establishes the threshold everything else is judged against
+**✅ DONE — FS67-26 noise floor calibration (2026-07-17):** 3 seeds
+(42/43/44), same 25-feature live model, same H2 window. `total_R` =
+82.9R / 70.1R / 87.3R (mean 80.1R). **NOISE FLOOR = 17.2R** (range).
+**⚠️ This is close to FS67-22's -15.2R and FS67-23's -20.7R deltas for
+dropping `15_min_slot`+`M15_ADX`** — those deltas can no longer be
+treated as clearly-signal without a same-seed comparison. Do not treat
+the drop-cost as settled. See README §Backtest Timing Reference /
+registry section for full detail.
+
+**🔴 PRIORITY — run order (remaining):**
+1. ~~`FS67-26` (noise floor)~~ ✅ DONE — 17.2R noise floor established
 2. `FS67-25` (SHAP screen) — free, ranks candidate hidden pairs
 3. `FS67-24` (revised, restore-value) — Timing/ADX_DI dropped-member restore test
 4. `FS67-27` (cumulative restore) — validates the full pruning decision; bisect if it fails

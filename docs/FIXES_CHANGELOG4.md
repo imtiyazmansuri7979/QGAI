@@ -8,6 +8,32 @@ Worked on by Anisa via Cowork. Shared PC / shared folder â€” this file is t
 
 ---
 
+## 2026-07-17 — FS67-26 noise floor calibration DONE — 17.2R
+
+3 seeds (42/43/44 via new `QGAI_SEED` env var), same 25-feature live
+model, same H2 window (2025-12-29 to 2026-06-29) as FS67-22/23/24/27.
+`total_R`: seed 42 = 82.9R (475 trades), seed 43 = 70.1R (485 trades),
+seed 44 = 87.3R (508 trades). Mean 80.1R. **Noise floor (range,
+max−min) = 17.2R** — this is how much total_R moves from random seed
+alone, with the feature set held completely identical.
+
+**Why this matters:** FS67-22 (WFO) measured -15.2R and FS67-23
+(single-split) measured -20.7R for dropping `15_min_slot`+`M15_ADX`.
+Both deltas sit close to or only modestly above the 17.2R noise floor
+measured on the same window. This doesn't disprove FS67-22/23 (both
+ran on a fixed default seed, not directly seed-compared), but it means
+the "keep both features" conclusion can no longer be quoted as clean
+signal without a same-seed apples-to-apples check. Flagged in
+`backtest/_runners/feature_sweep_67/README.md` and `docs/TASKS.md` —
+**do not revert the `15_min_slot`+`M15_ADX` live drop based on
+FS67-22/23 alone; this noise-floor result must be reconciled first.**
+
+Next in run order: FS67-25 (SHAP interaction screen) → FS67-24
+(revised restore-value) → FS67-27 (cumulative restore), each judged
+against this 17.2R threshold.
+
+---
+
 ## 2026-07-17 — `gate_reversal_entries` enabled live (flip-bypass fix)
 
 Live incident: SELL signal at 05:00 was blocked by filters (🚫, 51.59% Ranging)
