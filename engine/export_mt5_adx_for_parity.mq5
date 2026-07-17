@@ -9,7 +9,12 @@
 //+------------------------------------------------------------------+
 #property script_show_inputs
 
-input string   Symbol_ = "";          // blank = use the current chart's symbol (_Symbol)
+// 2026-07-17: Symbol_ input REMOVED. MT5 remembers the last-used input
+// value per script+chart, so a manually-typed "XAUUSD" kept overriding
+// the intended blank/auto-detect default even when the field looked
+// empty in the dialog — always use the ACTUAL chart's symbol instead
+// (whatever broker suffix it has, e.g. XAUUSD.pc) so there is no
+// symbol-name input to get wrong.
 input int      ADX_Period = 14;
 input int      Bars_To_Export = 200;
 input string   Out_File = "adx_mt5_export.csv";   // written to MQL5\Files\
@@ -17,8 +22,8 @@ input int      Max_Wait_Seconds = 10;             // how long to wait for the in
 
 void OnStart()
 {
-   string sym = (Symbol_ == "") ? _Symbol : Symbol_;
-   Print("Using symbol: ", sym, "  (chart symbol was: ", _Symbol, ")");
+   string sym = _Symbol;   // always the symbol of the chart this script is attached to
+   Print("Using symbol: ", sym);
 
    ENUM_TIMEFRAMES tfs[4] = {PERIOD_M15, PERIOD_M30, PERIOD_H1, PERIOD_H4};
    string tf_names[4] = {"M15", "M30", "H1", "H4"};
