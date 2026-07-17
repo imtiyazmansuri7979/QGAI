@@ -3586,19 +3586,23 @@ the always-correct path.
 (`feature_importance.csv`: `H4_ADX=0.0433`, `h4_adx_slope=0.0388`, `h1_adx_slope=0.0384` — sane).
 
 **Full-proof migration artifacts (per Imtiyaz's explicit "start from first" enterprise-migration
-request):**
-- Backup: `C:\QGAI_BACKUPS\PRE_EMA_ADX_MIGRATION_20260717_203557\` (13,073/13,073 files verified)
-- Wilder-era archive (read-only): `C:\QGAI_ARCHIVE\ADX_WILDER\WILDER-REG-001\` (10,965 files,
-  1.441GB, all SHA-256 hashed, 9 registry CSVs)
-- New EMA project scaffold: `C:\QGAI_EMA_ADX\` (categorized source copy + registry, `EADX-001`
-  logged)
-- Audit: `C:\QGAI_MIGRATION\audit\WILDER_TO_EMA_ADX_AUDIT.md`
-- Final report: `C:\QGAI_MIGRATION\WILDER_TO_EMA_MIGRATION_REPORT.md`
+request, later consolidated into ONE folder per Imtiyaz's follow-up correction — 2026-07-17
+evening):**
+- Everything old (backup + Wilder-era archive + audit/report) lives under one folder:
+  `C:\OLD_QGAI\` — `QGAI_BACKUPS\PRE_EMA_ADX_MIGRATION_20260717_203557\` (13,073/13,073 files
+  verified), `QGAI_ARCHIVE\ADX_WILDER\WILDER-REG-001\` (10,965 files, 1.441GB, all SHA-256
+  hashed, 9 registry CSVs), `QGAI_MIGRATION\` (audit + final report).
+- `C:\QGAI` itself was NOT duplicated into a separate new project folder — Imtiyaz asked to keep
+  one QGAI. The new MT5-parity diagnostic tools were folded into `engine/`
+  (`export_python_adx_for_mt5_parity.py`, `export_mt5_adx_for_parity.mq5`,
+  `compare_adx_parity.py`), and a lightweight registry added at
+  `backtest/_runners/adx_ema_migration/` (same README+result-folder convention as
+  `exit_workstream/` and `feature_sweep_67/`).
 
 **Remaining before any live/trading decision:**
 1. Test 1 (live MT5 `iADX()` numeric parity) — toolkit built, Python side tested working,
    requires Imtiyaz to manually run the `.mq5` half in MT5
-   (`C:\QGAI_EMA_ADX\11_runners\EADX-002_RUN_MT5ParityTest_Step1_PythonExport.bat`)
+   (`backtest/_runners/adx_ema_migration/ADXMIG-01_RUN_MT5ParityTest.bat`)
 2. Fresh 3-month OOS backtest on the retrained model + full `docs/BACKTEST_RESULT_AUDIT.md`
    pass — no post-fix backtest has been run yet. Do NOT skip to 1-year/WFO (standing rule:
    current validation stage is 3-month OOS only).

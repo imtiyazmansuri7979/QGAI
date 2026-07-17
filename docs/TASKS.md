@@ -40,14 +40,16 @@ to `h4_adx_roll`/`h1_adx_roll`/`h4_adx_slope`/`h1_adx_slope`/`ts_adx_switch_tren
 false docstring claim of EMA parity), and both `research_smma_adx_*.py` scripts (git commit
 `e1ce9fc`). `indicators_merged.csv` regenerated + verified, model retrained
 (2026-07-17T20:15:55, sane feature importances). Per Imtiyaz's explicit "start from first, full
-enterprise migration" request: full backup (`C:\QGAI_BACKUPS\PRE_EMA_ADX_MIGRATION_20260717_203557`),
-read-only Wilder-era archive with SHA-256 hashes on 10,965 files
-(`C:\QGAI_ARCHIVE\ADX_WILDER\WILDER-REG-001`), new categorized project scaffold
-(`C:\QGAI_EMA_ADX`), full audit + migration report (`C:\QGAI_MIGRATION\`). Detail:
-`docs/BUG_LOG.md` §S, `docs/FIXES_CHANGELOG4.md` 2026-07-17.
+enterprise migration" request: full backup + read-only Wilder-era archive (SHA-256 hashes on
+10,965 files) + audit + migration report, all consolidated under one folder
+(`C:\OLD_QGAI\` — `QGAI_BACKUPS\`, `QGAI_ARCHIVE\ADX_WILDER\WILDER-REG-001\`, `QGAI_MIGRATION\`).
+`C:\QGAI` itself was left untouched (still the one live project); the new MT5-parity diagnostic
+tools were folded into `engine/` and a lightweight registry added at
+`backtest/_runners/adx_ema_migration/` (same convention as `exit_workstream/`), not a separate
+duplicate project tree. Detail: `docs/BUG_LOG.md` §S, `docs/FIXES_CHANGELOG4.md` 2026-07-17.
 **Remaining:** MT5 live-terminal ADX parity confirmation (toolkit built at
-`C:\QGAI_EMA_ADX\11_runners\EADX-002_RUN_MT5ParityTest_Step1_PythonExport.bat`, needs Imtiyaz
-to run the `.mq5` half), fresh 3-month OOS backtest on the retrained model + `BACKTEST_RESULT_AUDIT.md`
+`backtest/_runners/adx_ema_migration/ADXMIG-01_RUN_MT5ParityTest.bat`, needs Imtiyaz to run the
+`.mq5` half), fresh 3-month OOS backtest on the retrained model + `BACKTEST_RESULT_AUDIT.md`
 pass before any keep/drop decision.
 
 ---
