@@ -872,8 +872,8 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
    matches the 6px used on the other 3 sides — chart gets the freed
    ~112px of width). 2026-07-16 (Imtiyaz). */
 #signal_history_panel .tcard-hdr{position:absolute;left:0;top:0;z-index:3;width:100%;height:18px;min-height:0;padding:0!important;border:0!important;background:transparent!important;pointer-events:auto;cursor:grab}
-#signal_history_panel .sig-history-body{position:relative;padding:2px 6px;min-height:72px;display:flex;align-items:center}
-#sig_history_chart{display:block;width:100%;height:72px;margin:0}
+#signal_history_panel .sig-history-body{position:relative;padding:2px 6px;min-height:92px;display:flex;align-items:center}
+#sig_history_chart{display:block;width:100%;height:92px;margin:0}
 .g2-bot > .tcard:first-child:not(#feedback_panel){display:none}
 .g2-bot > .tcard:last-child{grid-column:1 / -1}
 
@@ -2494,19 +2494,19 @@ function drawSigChart(history){
         const txt = pr.toFixed(0);
         const sideTxt = isBuy ? '▲BUY' : '▼SELL';
         const tm  = _hhmm(s.bar_time);
-        const _f = 8;
+        const _f = 12;
         const _hLabel = function(text, cx, cy, color){
           ctx.font = 'bold '+_f+'px Arial,sans-serif';
           ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-          ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+          ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.lineJoin = 'round';
           ctx.strokeText(text, cx, cy);
           ctx.fillStyle = color;
           ctx.fillText(text, cx, cy);
         };
         _hLabel(sideTxt, cx, 2, isBuy?'#00ff88':'#ff2d55');
-        _hLabel(txt, cx, 2+(_f+2)*1, '#00f5ff');
-        if(tm) _hLabel(tm, cx, 2+(_f+2)*2, '#cfe6ff');
-        _hLabel(prob.toFixed(0)+'%', cx, 2+(_f+2)*3, '#ffe066');
+        _hLabel(txt, cx, 2+(_f+3)*1, '#00f5ff');
+        if(tm) _hLabel(tm, cx, 2+(_f+3)*2, '#cfe6ff');
+        _hLabel(prob.toFixed(0)+'%', cx, 2+(_f+3)*3, '#ffe066');
       }
     }
   });
