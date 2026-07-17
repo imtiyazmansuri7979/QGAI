@@ -950,8 +950,18 @@ def write_dashboard(session, virtual_trades, current_price, last_signal=None,
         tmp_path  = str(dash_path) + ".tmp"
         with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(dash, f, default=str)
-        import os
-        os.replace(tmp_path, str(dash_path))
+        import os, time as _time
+        # 2026-07-17: os.replace() intermittently hit WinError 5 (Access is
+        # denied) — a transient lock from AV/indexer briefly holding the
+        # destination file, not a real permission problem (retry clears it).
+        for _attempt in range(5):
+            try:
+                os.replace(tmp_path, str(dash_path))
+                break
+            except PermissionError:
+                if _attempt == 4:
+                    raise
+                _time.sleep(0.05 * (_attempt + 1))
 
     except Exception as e:
         log.warning(f"Dashboard write failed: {e}")
