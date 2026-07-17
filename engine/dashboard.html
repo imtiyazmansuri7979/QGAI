@@ -2514,14 +2514,15 @@ function drawSigChart(history){
           ctx.fillStyle = color;
           ctx.fillText(text, cx, cy);
         };
-        // GROUP 1 (top): side + price, stacked tight — both fluorescent red on SELL
+        // GROUP 1 (top): side + price, anchored at the BAR's own top edge
+        // (not the box top) with a small padding, stacked tight
+        const barTop = h - barH;
         const _f1 = _fitFont(sideTxt, _fBase);
-        _hLabel(sideTxt, cx, 2, isBuy?'#39FF14':'#FF073A', 'top');
-        _hLabel(txt, cx, 2+_f1+2, isBuy?'#39FF14':'#FF073A', 'top');
-        // GROUP 2: time — anchored at the bar's own TOP edge, so it starts
-        // right where the bar begins (never straddles bar/background)
+        _hLabel(sideTxt, cx, barTop + 4, isBuy?'#39FF14':'#FF073A', 'top');
+        _hLabel(txt, cx, barTop + 4 + _f1 + 2, isBuy?'#39FF14':'#FF073A', 'top');
+        // GROUP 2: time — stacked below group 1, still within the bar
         // SELL time matches the bottom prob% yellow (looked good)
-        if(tm) _hLabel(tm, cx, h - barH + 4, isBuy?'#000000':'#FFFF00', 'top');
+        if(tm) _hLabel(tm, cx, barTop + 4 + (_f1+2)*2, isBuy?'#000000':'#FFFF00', 'top');
         // GROUP 3 (bottom): prob%
         _hLabel(prob.toFixed(0)+'%', cx, h-2, isBuy?'#000000':'#FFFF00', 'bottom');
       }
