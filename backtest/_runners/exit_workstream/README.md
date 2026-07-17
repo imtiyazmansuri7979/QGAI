@@ -19,14 +19,14 @@ Current priority: this work stream is **TOP PRIORITY** as of 2026-07-16 — see
 | ID | Runner | Result folder | Status |
 |---|---|---|---|
 | `EXIT01` | `EXIT01_RUN_PostCapContinuationAudit.bat` | `EXIT01_post_cap_continuation_audit` (3-mo) + `EXIT01_post_cap_continuation_audit_OOS1Y` (1-yr) | DONE 2026-07-17 |
+| `EXIT01b` | `EXIT01b_RUN_SkipAvailableMove_OOS1Y.bat` | `EXIT01b_skip_available_move_OOS1Y` | DONE 2026-07-17 |
+| `EXIT03` | `EXIT03_RUN_PeakRatchetLock_TEST.bat` (2-wk, 2 arms) + `EXIT03_RUN_PeakRatchetLock_OOS3M.bat` (3-mo, 10 arms) | `EXIT03_peak_ratchet_lock_TEST` / `EXIT03_peak_ratchet_lock_OOS3M` | READY — run TEST first |
 
-Reserved (not yet built — will be added here once implemented, per the
-sequencing in `docs/TASKS.md`):
+Reserved (not yet built):
 
-- `EXIT02` — TP-cap-as-trail-tighten redesign + WFO A/B (EXIT01 shows +28R left on table over 1Y — worth exploring)
-- `EXIT03` — switch north-star metric to MFE-capture (methodology change, no runner of its own)
-- `EXIT04` — grow trade sample (longer backtest windows / more regimes)
-- `EXIT05` — exit-AI phase 1 binary gating classifier (blocked on EXIT01-04)
+- `EXIT02` — partial-exit-at-cap (rejected by Fable-5: big-winner-dependency FAIL on 1Y data)
+- `EXIT04` — two-speed trailing SL (tighter trail in Ranging, wider in Volatile)
+- `EXIT05` — exit-AI phase 1 binary gating classifier (blocked on EXIT03-04)
 
 ## Stage Gate
 

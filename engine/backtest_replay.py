@@ -87,7 +87,8 @@ LOGS = Path(CFG.paths.logs_dir)
 # ════════════════════════════════════════════════════════════════
 class SimTrade:
     def __init__(self, direction, entry_time, entry_price, sl_dist, risk_usd, sig, features,
-                 ratchet=False, ratchet_buf=0.0, ratchet_buf_pct=0.0):
+                 ratchet=False, ratchet_buf=0.0, ratchet_buf_pct=0.0,
+                 peak_lock_trigger=0.0, peak_lock_floor=0.0):
         self.direction   = direction              # "BUY" / "SELL"
         self.entry_time  = entry_time
         self.entry       = entry_price
@@ -123,6 +124,8 @@ class SimTrade:
             # no partial / BE / R-trail — line + flip decide; TP = far cap
             self.tp2 = None
         self.tp_equity_usd = None   # equity-based TP $ target (set externally)
+        self.peak_lock_trigger = peak_lock_trigger
+        self.peak_lock_floor   = peak_lock_floor
 
     def ratchet_bar(self, time, line, flip, close_px):
         """Per-bar (close) ratchet step: one-way line trail + flip exit.
@@ -187,6 +190,13 @@ class SimTrade:
         bar_hi_r = self._r(h if s == 1 else l)   # best price of bar in R
         self.peak_r = max(self.peak_r, self.realized_r / max(PARTIAL_CLOSE_PCT, 1e-9)
                           if False else bar_hi_r)  # peak of full-position R
+
+        # 0.5) Peak-lock profit floor: once peak_r >= trigger, raise SL to lock floor_R
+        if self.peak_lock_trigger > 0 and self.peak_r >= self.peak_lock_trigger:
+            floor_price = self.entry + s * (self.peak_lock_floor * self.sl_dist)
+            if (s == 1 and floor_price > self.virtual_sl) or (s == -1 and floor_price < self.virtual_sl):
+                self.virtual_sl = round(floor_price, 2)
+                self.trailing = True
 
         # 1) Virtual SL first (worst case)
         sl_touched = (l <= self.virtual_sl) if s == 1 else (h >= self.virtual_sl)
@@ -299,6 +309,7 @@ def run(args):
         args.tp_equity_pct, args.max_open, args.tp_mode, args.sl_mode, args.trail_mode,
         args.runner, args.pred_dirs, args.dd_brake, args.fixed_lot, args.max_lot,
         args.no_trail, args.stop_trail, TRAIL_MODE,
+        args.peak_lock_trigger, args.peak_lock_floor,
         _env_sig, _model_sig,
     )
     print("=" * 64)
@@ -438,6 +449,12 @@ def run(args):
                                       + (_h1s[_valid] <= 0).astype(int)
                                       + (_h4s[_valid] <= 0).astype(int))
         print(f"⚡ ADX-DEATH exit ON | K={_adx_death_k} N={_adx_death_n} min_r={_adx_death_min_r}")
+
+    # ── Peak-lock profit floor (EXIT03) ────────────────────────────────────
+    _pk_trigger = float(os.environ.get("QGAI_PEAK_LOCK_TRIGGER", 0) or 0) or args.peak_lock_trigger
+    _pk_floor   = float(os.environ.get("QGAI_PEAK_LOCK_FLOOR", 0) or 0) or args.peak_lock_floor
+    if _pk_trigger > 0:
+        print(f"⚡ PEAK-LOCK ON | trigger {_pk_trigger}R → floor {_pk_floor}R")
 
     print(f"Bars to replay : {len(idx_all):,}  ({args.date_from} → {args.date_to})")
     print(f"Start equity   : ${args.equity:,.2f} | risk/trade {args.risk}% | "
@@ -917,7 +934,8 @@ def run(args):
                 sig["_tp1_dist"], sig["_tp2_dist"] = round(tp1d, 2), round(tp2d, 2)
             _st_obj = SimTrade(direction, nxt["datetime"], entry,
                                         sl_dist, risk_usd, sig, feats,
-                ratchet=_r_trade, ratchet_buf=_r_buf, ratchet_buf_pct=_buf_pct)
+                ratchet=_r_trade, ratchet_buf=_r_buf, ratchet_buf_pct=_buf_pct,
+                peak_lock_trigger=_pk_trigger, peak_lock_floor=_pk_floor)
             # equity-based TP: store $ profit target = equity% at entry
             if args.tp_equity_pct is not None and args.tp_equity_pct > 0:
                 _st_obj.tp_equity_usd = equity * args.tp_equity_pct / 100.0
@@ -992,7 +1010,8 @@ def run(args):
     rep.append("=" * 64)
     rep.append("⚡ QGAI AI REPLAY BACKTEST — REPORT")
     rep.append(f"Period         : {args.date_from} → {args.date_to}")
-    rep.append(f"Modes          : TP={args.tp_mode} | SL={args.sl_mode} | trail={args.trail_mode} | runner={args.runner} | pred dirs={args.pred_dirs}")
+    _pk_tag = f" | peak-lock {_pk_trigger}R→{_pk_floor}R" if _pk_trigger > 0 else ""
+    rep.append(f"Modes          : TP={args.tp_mode} | SL={args.sl_mode} | trail={args.trail_mode} | runner={args.runner} | pred dirs={args.pred_dirs}{_pk_tag}")
     _shadow_env = os.environ.get("QGAI_SHADOW_SKIPS", "").strip().lower()
     if _shadow_env:
         rep.append(f"⚠ SHADOW-SKIPS MODE = '{_shadow_env}' — R below is COUNTERFACTUAL missed-profit")
@@ -1154,6 +1173,10 @@ if __name__ == "__main__":
                     help="ignore any existing checkpoint for this exact config and start fresh "
                          "(checkpoint auto-saves every 500 bars + on Ctrl+C, so a stopped run "
                          "resumes automatically by default — use this flag to force a clean restart).")
+    ap.add_argument("--peak-lock-trigger", type=float, default=0.0,
+                    help="peak-ratchet profit lock: once peak R >= this value, raise SL to lock floor. 0=off.")
+    ap.add_argument("--peak-lock-floor", type=float, default=0.0,
+                    help="floor R to lock when peak-lock triggers (e.g. 0.4 = lock +0.4R profit)")
     ap.add_argument("--allow-in-sample", action="store_true",
                     help="EXPLICIT override for the data-leakage guard (2026-07-13). By default, "
                          "backtest_replay.py refuses to run if any model's training/validation/"
