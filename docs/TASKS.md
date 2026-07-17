@@ -103,9 +103,23 @@ treated as clearly-signal without a same-seed comparison. Do not treat
 the drop-cost as settled. See README §Backtest Timing Reference /
 registry section for full detail.
 
+**✅ DONE — FS67-25 SHAP interaction screen (2026-07-17), + bug fix:**
+Script initially failed (missing `hmm_state` — the script skipped
+train.py's separate HMM-state-append step; fixed by mirroring it,
+loading the existing `hmm_model.pkl`, no refit). After the fix: 26
+active features, 325 pairs ranked. `interaction_matrix_flagged.csv`
+came back empty — **by design, not a bug**: SHAP interactions can only
+be computed for features actually IN the model, so already-dropped
+features (`15_min_slot`/`M15_ADX`) can never appear in a flagged pair.
+**Real finding:** 9 of the top 40 pairs cross Timing (`slot_win_rate`,
+`day_of_week`) with ADX_DI (`H4_DI_diff`, `h4_adx_slope`, etc.) —
+the same Timing↔ADX_DI pattern Imtiyaz originally flagged via
+`15_min_slot`+`M15_ADX`, recurring among the surviving family members.
+Strengthens the case for `FS67-24`. Full detail in README registry.
+
 **🔴 PRIORITY — run order (remaining):**
 1. ~~`FS67-26` (noise floor)~~ ✅ DONE — 17.2R noise floor established
-2. `FS67-25` (SHAP screen) — free, ranks candidate hidden pairs
+2. ~~`FS67-25` (SHAP screen)~~ ✅ DONE — Timing↔ADX_DI pattern confirmed recurring
 3. `FS67-24` (revised, restore-value) — Timing/ADX_DI dropped-member restore test
 4. `FS67-27` (cumulative restore) — validates the full pruning decision; bisect if it fails
 **House rule: TEST-run first where a _TEST.bat exists (FS67-24 has one).**

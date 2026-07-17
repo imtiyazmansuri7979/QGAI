@@ -8,6 +8,45 @@ Worked on by Anisa via Cowork. Shared PC / shared folder â€” this file is t
 
 ---
 
+## 2026-07-17 — FS67-25 SHAP interaction screen DONE + bug fix
+
+`analyze_feature_interactions.py` (FS67-25) initially failed:
+"Model expects features not in current build_feature_matrix output:
+['hmm_state']". Root cause: the script only called
+`build_feature_matrix()`, but `train.py` gets `hmm_state` from a
+SEPARATE step — it loads the already-fitted `hmm_model.pkl` and
+predicts+appends `hmm_state` as an extra column afterward
+(`get_hmm_states()` in train.py). Fixed by mirroring that exact
+approach in `analyze_feature_interactions.py` (load existing
+`hmm_model.pkl`, no refit — avoids a leakage/mismatch vs what the
+live model actually trained on).
+
+After the fix: 26 active features, 325 feature pairs ranked by mean
+|SHAP interaction|. `interaction_matrix_flagged.csv` came back empty
+— **by design, not a bug**: the flag checks `_ZERO_IMP` membership,
+but SHAP interactions can only be computed for features actually
+present in the model's columns; already-dropped features
+(`15_min_slot`/`M15_ADX`) aren't in the model at all, so can never
+appear in a pair. This screen only ranks interactions AMONG currently
+-active features.
+
+**Real finding:** 9 of the top 40 ranked pairs cross a Timing feature
+(`slot_win_rate` or `day_of_week`) with an ADX_DI feature
+(`H4_DI_diff`, `h4_adx_slope`, `h1_adx_slope`, `H1_DI_diff`, `H4_ADX`,
+`M15_DI_diff`, `M30_DI_diff`) — top: `slot_win_rate`+`H4_DI_diff`
+(0.00883). This is the same Timing↔ADX_DI cross-family pattern
+Imtiyaz originally flagged via `15_min_slot`+`M15_ADX` — it recurs
+among the surviving family members, strengthening (not proving) the
+case that `FS67-24`'s restore-value test is targeting a real pattern.
+Top single interaction overall (any family): `H4_DI_diff`+`move_1hr`
+(ADX_DI×Momentum, 0.01122). Full ranked list:
+`backtest/results/feature_sweep_67/FS67-25_shap_interactions/interaction_matrix_full.csv`.
+
+Next in run order: FS67-24 (revised restore-value) → FS67-27
+(cumulative restore).
+
+---
+
 ## 2026-07-17 — FS67-26 noise floor calibration DONE — 17.2R
 
 3 seeds (42/43/44 via new `QGAI_SEED` env var), same 25-feature live

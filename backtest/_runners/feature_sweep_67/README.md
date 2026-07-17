@@ -160,6 +160,40 @@ means the delta can no longer be treated as clearly-signal without
 a same-seeds-vs-different-features comparison. **Do not treat the
 15_min_slot+M15_ADX drop-cost as settled until this is resolved.**
 
+`FS67-25` came back **DONE 2026-07-17** (after a bug fix — see below):
+26-feature live model, 325 feature pairs ranked by mean |interaction|.
+**`interaction_matrix_flagged.csv` is empty by design, not a bug** —
+the flagging logic checks whether either side of a pair is in `_ZERO_IMP`
+(the pruned-feature set), but SHAP interaction values can only be
+computed for features actually present in the model's 26 columns —
+already-dropped features like `15_min_slot`/`M15_ADX` aren't in the
+model at all, so they can never appear in a pair. This screen can only
+rank interactions AMONG CURRENTLY-ACTIVE features, not test dropped
+ones directly.
+
+**Real finding from the full ranked list:** 9 of the top 40 pairs pair
+a **Timing** feature (`slot_win_rate` or `day_of_week`) with an
+**ADX_DI** feature (`H4_DI_diff`, `h4_adx_slope`, `h1_adx_slope`,
+`H1_DI_diff`, `H4_ADX`, `M15_DI_diff`, `M30_DI_diff`) — e.g.
+`slot_win_rate`+`H4_DI_diff` (0.00883), `slot_win_rate`+`h4_adx_slope`
+(0.00612), `day_of_week`+`H4_DI_diff` (0.00546). This is the SAME
+Timing↔ADX_DI cross-family pattern Imtiyaz originally flagged via
+`15_min_slot`+`M15_ADX` — it recurs among the surviving family members
+too, not just the one pair. Strengthens the case that `FS67-24`
+(Timing/ADX_DI restore-value test) is targeting a real pattern, not a
+one-off coincidence. Top single interaction overall: `H4_DI_diff`+
+`move_1hr` (ADX_DI×Momentum, 0.01122).
+
+**Bug found + fixed during this run:** `analyze_feature_interactions.py`
+initially failed — "Model expects features not in current
+build_feature_matrix output: ['hmm_state']". Root cause: the script
+only called `build_feature_matrix()`, but `train.py` does NOT get
+`hmm_state` from that function — it loads the separately-fitted
+`hmm_model.pkl` and appends `hmm_state` as an extra column afterward.
+Fixed by mirroring train.py's exact approach (load existing
+`hmm_model.pkl`, no refit — avoids a leakage/mismatch vs what the live
+model actually trained on).
+
 Any feature that looks useful still needs:
 
 1. Clean 1-year confirmation
