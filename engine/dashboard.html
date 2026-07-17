@@ -2511,17 +2511,17 @@ function drawSigChart(history){
           const f = _fitFont(text, _fBase);
           ctx.font = 'bold '+f+'px Arial,sans-serif';
           ctx.textAlign = 'center'; ctx.textBaseline = baseline;
-          ctx.shadowColor = 'rgba(255,255,255,0.65)'; ctx.shadowBlur = Math.max(3, f*0.3);
+          ctx.shadowColor = 'rgba(255,255,255,0.85)'; ctx.shadowBlur = Math.max(4, f*0.4);
           ctx.fillStyle = color;
           ctx.fillText(text, cx, cy);
           ctx.shadowBlur = 0;
         };
         // GROUP 1 (top): side + price, stacked tight
         const _f1 = _fitFont(sideTxt, _fBase);
-        _hLabel(sideTxt, cx, 2, isBuy?'#5EE6A8':'#FF6B81', 'top');
-        _hLabel(txt, cx, 2+_f1+2, '#F3F6FA', 'top');
+        _hLabel(sideTxt, cx, 2, isBuy?'#7BFFC9':'#FF8FA3', 'top');
+        _hLabel(txt, cx, 2+_f1+2, '#FFFFFF', 'top');
         // GROUP 2 (middle): time
-        if(tm) _hLabel(tm, cx, h/2, '#9EB2C7', 'middle');
+        if(tm) _hLabel(tm, cx, h/2, '#C3D9EC', 'middle');
         // GROUP 3 (bottom): prob%
         _hLabel(prob.toFixed(0)+'%', cx, h-2, '#FFFFFF', 'bottom');
       }
