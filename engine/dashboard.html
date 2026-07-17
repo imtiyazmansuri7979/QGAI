@@ -2473,17 +2473,17 @@ function drawSigChart(history){
     const isBuy = s.signal==='BUY', isSell=s.signal==='SELL';
     const _sBlk = ((s.trade_action||'').indexOf('BLOCK_')===0);
     if(_sBlk && (isBuy||isSell)){
-      ctx.fillStyle = isBuy?'rgba(0,255,238,0.15)':'rgba(255,34,85,0.15)';
+      ctx.fillStyle = isBuy?'rgba(0,255,136,0.15)':'rgba(255,34,85,0.15)';
       ctx.fillRect(x, h-barH, bw-1, barH);
       ctx.save(); ctx.beginPath(); ctx.rect(x, h-barH, bw-1, barH); ctx.clip();
-      ctx.strokeStyle = isBuy?'rgba(0,255,238,0.25)':'rgba(255,34,85,0.25)';
+      ctx.strokeStyle = isBuy?'rgba(0,255,136,0.25)':'rgba(255,34,85,0.25)';
       ctx.lineWidth = 1;
       for(var _hi=-(bw+barH); _hi<bw+barH; _hi+=5){
         ctx.beginPath(); ctx.moveTo(x+_hi, h); ctx.lineTo(x+_hi+barH, h-barH); ctx.stroke();
       }
       ctx.restore();
     } else {
-      ctx.fillStyle = isBuy?'rgba(0,255,238,0.88)':isSell?'rgba(255,34,85,0.7)':'rgba(30,74,106,0.7)';
+      ctx.fillStyle = isBuy?'rgba(0,255,136,0.88)':isSell?'rgba(255,34,85,0.7)':'rgba(30,74,106,0.7)';
       ctx.fillRect(x, h-barH, bw-1, barH);
     }
     // entry price + time — 3 groups (BUY/SELL+price / time / prob%) spread
@@ -2519,9 +2519,9 @@ function drawSigChart(history){
         // mirror of how the time label grows DOWNWARD from the same edge
         const barTop = h - barH;
         const _fPrice = _fitFont(txt, _fBase);
-        _hLabel(txt, cx, barTop - 4, isBuy?'#39FF14':'#ff2255', 'bottom');
+        _hLabel(txt, cx, barTop - 4, isBuy?'#00ff88':'#ff2255', 'bottom');
         const _fSide = _fitFont(sideTxt, _fBase);
-        _hLabel(sideTxt, cx, barTop - 4 - _fPrice - 2, isBuy?'#39FF14':'#ff2255', 'bottom');
+        _hLabel(sideTxt, cx, barTop - 4 - _fPrice - 2, isBuy?'#00ff88':'#ff2255', 'bottom');
         // GROUP 2: time — anchored at the bar's top edge, growing DOWNWARD into the bar
         // SELL time matches the bottom prob% yellow (looked good)
         if(tm) _hLabel(tm, cx, barTop + 4, isBuy?'#000000':'#FFFF00', 'top');
