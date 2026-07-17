@@ -9,13 +9,17 @@
 //+------------------------------------------------------------------+
 #property script_show_inputs
 
-input string   Symbol_ = "XAUUSD";
+input string   Symbol_ = "";          // blank = use the current chart's symbol (_Symbol)
 input int      ADX_Period = 14;
 input int      Bars_To_Export = 200;
 input string   Out_File = "adx_mt5_export.csv";   // written to MQL5\Files\
+input int      Max_Wait_Seconds = 10;             // how long to wait for the indicator to warm up
 
 void OnStart()
 {
+   string sym = (Symbol_ == "") ? _Symbol : Symbol_;
+   Print("Using symbol: ", sym, "  (chart symbol was: ", _Symbol, ")");
+
    ENUM_TIMEFRAMES tfs[4] = {PERIOD_M15, PERIOD_M30, PERIOD_H1, PERIOD_H4};
    string tf_names[4] = {"M15", "M30", "H1", "H4"};
 
@@ -29,12 +33,36 @@ void OnStart()
 
    for(int t = 0; t < 4; t++)
    {
-      int handle = iADX(Symbol_, tfs[t], ADX_Period);
+      int avail = Bars(sym, tfs[t]);
+      Print(tf_names[t], ": ", avail, " bars available on this chart/symbol");
+      if(avail < ADX_Period * 3)
+      {
+         Print("  SKIP — not enough bar history loaded for ", tf_names[t],
+               " (need history downloaded first — open that timeframe's chart and scroll back, or increase 'Max bars in chart' in Terminal options)");
+         continue;
+      }
+
+      int handle = iADX(sym, tfs[t], ADX_Period);
       if(handle == INVALID_HANDLE)
       {
          Print("Failed to create iADX handle for ", tf_names[t], " error ", GetLastError());
          continue;
       }
+
+      // The indicator handle is created asynchronously — BarsCalculated()
+      // can be 0 (or -1) right after iADX() returns. Wait until it has
+      // actually computed at least ADX_Period*2 bars before CopyBuffer,
+      // otherwise CopyBuffer silently returns 0 (this was the root cause
+      // of the first parity-test run producing an empty CSV).
+      int waited_ms = 0;
+      int calculated = BarsCalculated(handle);
+      while(calculated < ADX_Period * 2 && waited_ms < Max_Wait_Seconds * 1000)
+      {
+         Sleep(200);
+         waited_ms += 200;
+         calculated = BarsCalculated(handle);
+      }
+      Print(tf_names[t], ": BarsCalculated=", calculated, " after ", waited_ms, "ms wait");
 
       double adx_buf[], plus_di_buf[], minus_di_buf[];
       ArraySetAsSeries(adx_buf, true);
@@ -48,14 +76,15 @@ void OnStart()
 
       if(copied_adx <= 0)
       {
-         Print("CopyBuffer failed for ", tf_names[t], " error ", GetLastError());
+         Print("CopyBuffer failed for ", tf_names[t], " error ", GetLastError(),
+               " (BarsCalculated was ", calculated, ")");
          IndicatorRelease(handle);
          continue;
       }
 
       for(int i = 0; i < copied_adx; i++)
       {
-         datetime bar_time = iTime(Symbol_, tfs[t], i + 1);   // matches shift=1 above (last CLOSED bar)
+         datetime bar_time = iTime(sym, tfs[t], i + 1);   // matches shift=1 above (last CLOSED bar)
          string bar_close_str = TimeToString(bar_time + PeriodSeconds(tfs[t]), TIME_DATE|TIME_SECONDS);
          FileWrite(fh, tf_names[t], bar_close_str,
                    DoubleToString(adx_buf[i], 4),

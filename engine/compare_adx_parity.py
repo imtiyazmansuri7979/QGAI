@@ -21,6 +21,12 @@ def main():
     py = pd.read_csv(args.python)
     mt = pd.read_csv(args.mt5)
 
+    # Normalize timestamp format — MT5's TimeToString uses dots (2026.07.17
+    # 18:45:00), the Python export uses dashes (2026-07-17 18:45:00). Parse
+    # both to a common string so the merge key actually matches.
+    py["bar_close_time"] = pd.to_datetime(py["bar_close_time"]).dt.strftime("%Y-%m-%d %H:%M:%S")
+    mt["bar_close_time"] = pd.to_datetime(mt["bar_close_time"], format="%Y.%m.%d %H:%M:%S").dt.strftime("%Y-%m-%d %H:%M:%S")
+
     merged = py.merge(mt, on=["timeframe", "bar_close_time"], how="outer", indicator=True)
     only_py = merged[merged["_merge"] == "left_only"]
     only_mt = merged[merged["_merge"] == "right_only"]

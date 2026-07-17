@@ -43,6 +43,16 @@ def main():
     df[time_col] = pd.to_datetime(df[time_col])
     df = df.set_index(time_col).sort_index()
 
+    # resample() bins are labeled by the bin's LEFT edge = bar OPEN time
+    # (same convention as ohlc_merged.csv's own "time" column — see
+    # build_indicators.py's "bar_close = tdf['time'] + timedelta(tf_min)"
+    # pattern used throughout this codebase). Add the period so
+    # bar_close_time is a TRUE close time, matching the MT5 script's
+    # iTime(...)+PeriodSeconds convention — otherwise every row is off
+    # by exactly one bar and the merge in compare_adx_parity.py finds
+    # nothing.
+    period_minutes = {"M15": 15, "M30": 30, "H1": 60, "H4": 240}
+
     rows = []
     for tf_name, rule in [("M15", None), ("M30", "30min"), ("H1", "1h"), ("H4", "4h")]:
         tdf = df.resample(rule).agg({"open": "first", "high": "max",
@@ -52,10 +62,11 @@ def main():
         tail["adx"] = adx.reindex(tail.index)
         tail["plus_di"] = pdi.reindex(tail.index)
         tail["minus_di"] = ndi.reindex(tail.index)
+        close_offset = pd.Timedelta(minutes=period_minutes[tf_name])
         for ts, r in tail.iterrows():
             rows.append({
                 "timeframe": tf_name,
-                "bar_close_time": ts.strftime("%Y-%m-%d %H:%M:%S"),
+                "bar_close_time": (ts + close_offset).strftime("%Y-%m-%d %H:%M:%S"),
                 "python_adx": round(r["adx"], 4) if pd.notna(r["adx"]) else "",
                 "python_plus_di": round(r["plus_di"], 4) if pd.notna(r["plus_di"]) else "",
                 "python_minus_di": round(r["minus_di"], 4) if pd.notna(r["minus_di"]) else "",
