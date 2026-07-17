@@ -2497,7 +2497,7 @@ function drawSigChart(history){
         const sideTxt = bw>=26 ? (isBuy?'▲BUY':'▼SELL') : (isBuy?'▲B':'▼S');
         const tm  = _hhmm(s.bar_time);
         const colW = bw - 1;
-        const _fBase = Math.max(7, Math.min(13, bw*0.42));
+        const _fBase = Math.max(6, Math.min(10, bw*0.34));
         const _fitFont = function(text, maxFont){
           let f = maxFont;
           ctx.font = '900 '+f+'px Arial,sans-serif';
