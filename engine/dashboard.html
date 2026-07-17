@@ -104,11 +104,11 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
 .hdr-pcell:last-child{border-right:1px solid var(--border)}
 .hdr-plbl{font-size:0.66rem;letter-spacing:1.8px;color:var(--dim);text-transform:uppercase;margin-bottom:0;line-height:1}
 .hdr-pval{font-family:var(--orb);font-size:1.13rem;font-weight:700;white-space:nowrap;line-height:1}
-.hdr-mid{padding:3px 4px;display:grid;grid-template-columns:minmax(0,1fr) 63px;grid-template-rows:auto auto;align-items:center;gap:2px 4px;min-width:0;background:rgba(0,10,20,.35);border:1px solid var(--border);border-radius:8px;box-shadow:var(--panel-glow);overflow:hidden;align-self:center;min-height:51px}
-.hdr-status{grid-column:1;grid-row:1;font-size:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:flex-end;gap:4px;min-width:0}
+.hdr-mid{padding:3px 6px;display:grid;grid-template-columns:minmax(0,1fr) 63px;grid-template-rows:auto auto;align-items:center;gap:2px 4px;min-width:0;background:rgba(0,10,20,.35);border:1px solid var(--border);border-radius:8px;box-shadow:var(--panel-glow);overflow:hidden;align-self:center;min-height:51px}
+.hdr-status{grid-column:1;grid-row:1;font-size:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0;width:100%}
 .hdr-status #updated{font-size:0!important}
 .hdr-status #updated::after{content:'SYNC';font-size:0.70rem;color:var(--cyan);letter-spacing:1px}
-.hdr-control-row{grid-column:1;grid-row:2;display:grid!important;grid-template-columns:33px 46px 62px;grid-auto-rows:18px;align-items:center;justify-self:end;justify-content:end;width:max-content;gap:2px 4px!important;font-size:0.6rem!important;color:var(--dim);min-width:0;max-width:100%;overflow:hidden}
+.hdr-control-row{grid-column:1;grid-row:2;display:grid!important;grid-template-columns:33px 46px 62px;grid-auto-rows:18px;align-items:center;justify-self:stretch;justify-content:space-between;width:100%;gap:2px 4px!important;font-size:0.6rem!important;color:var(--dim);min-width:0;max-width:100%;overflow:hidden}
 .hdr-mid .refresh-sel{width:100%;max-width:none;font-size:0.6rem!important;padding:0 5px!important;height:18px!important;line-height:1!important}
 .hdr-mid #refresh_sel{max-width:46px}
 .hdr-mid .focus-btn,.hdr-mid .dim-btn{font-size:0.6rem!important;padding:0 5px!important;margin-left:0!important;height:18px!important;line-height:1!important}
@@ -1033,14 +1033,14 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 
   <!-- Time + Account -->
   <div class="hdr-right" style="min-width:170px;text-align:right">
-    <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:2px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:2px;width:100%">
       <span style="font-size:0.72rem;letter-spacing:1px;color:var(--dim)">🏦 BROKER</span>
       <span id="broker_time" style="font-family:var(--mono);font-size:1.1rem;color:var(--cyan);font-weight:700;letter-spacing:1px">--:--:--</span>
     </div>
 
-    <div style="font-size:0.72rem;color:var(--dim)">
-      <span id="account_id" style="color:var(--gold)">--</span> | <span id="leverage_lbl">1:500</span>
-      <button onclick="gsToggleEdit()" id="gs_edit_btn" style="margin-left:6px;background:#21262d;color:var(--dim);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.62rem;cursor:pointer" title="Toggle Edit Layout mode">✏️ EDIT</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:0.72rem;color:var(--dim);width:100%">
+      <span><span id="account_id" style="color:var(--gold)">--</span> | <span id="leverage_lbl">1:500</span></span>
+      <button onclick="gsToggleEdit()" id="gs_edit_btn" style="background:#21262d;color:var(--dim);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.62rem;cursor:pointer" title="Toggle Edit Layout mode">✏️ EDIT</button>
     </div>
   </div>
 
