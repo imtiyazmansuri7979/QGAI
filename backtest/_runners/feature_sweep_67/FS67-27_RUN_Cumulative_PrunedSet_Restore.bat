@@ -56,6 +56,8 @@ echo   Train cutoff : %QGAI_TRAIN_CUTOFF%
 echo   Backtest     : %BT_FROM% to %BT_TO%  (same H2 window as FS67-22/23/24/26)
 echo.
 echo   All retrains in data\models\test_workspace. Live model NOT touched.
+echo.
+echo   %QGAI_YELLOW%Estimated time: ~1 hour (2 arms x ~27 min each: train ~12m + BT ~15m)%QGAI_RESET%
 echo %QGAI_CYAN%%QGAI_BOLD%============================================================%QGAI_RESET%
 
 if exist "C:\QGAI\data\models\.training_lock" (

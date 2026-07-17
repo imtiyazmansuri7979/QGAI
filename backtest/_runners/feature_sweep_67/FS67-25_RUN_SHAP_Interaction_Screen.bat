@@ -27,6 +27,8 @@ echo   backtest afterward (QGAI_ABLATE="featA,featB").
 echo.
 echo   Analyzes: data\models\final\xgb_model.pkl (main live model)
 echo   Does NOT touch or retrain any model. Read-only analysis.
+echo.
+echo   %QGAI_YELLOW%Estimated time: ~5-10 minutes (no training, analysis only)%QGAI_RESET%
 echo %QGAI_CYAN%%QGAI_BOLD%============================================================%QGAI_RESET%
 
 echo.

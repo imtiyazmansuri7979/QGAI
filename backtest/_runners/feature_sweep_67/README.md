@@ -153,6 +153,24 @@ Any feature that looks useful still needs:
 
 ---
 
+## Backtest Timing Reference (measured 2026-07-17)
+
+Per-unit benchmarks from completed runs on this PC:
+
+| Operation | Approx Time |
+|-----------|-------------|
+| Train only (XGB+LGB+CAT ensemble) | ~10-15 min |
+| 2-week backtest (TEST run, train + BT) | ~2.5 min/arm |
+| 3-month backtest (train + BT) | ~16-23 min/arm |
+| H2 6-month backtest (train + BT) | ~27 min/arm |
+| 1-year backtest (train + BT) | ~57-62 min/arm |
+| WFO 26-week (26 retrains + BTs) | ~3h/arm |
+
+**Rule: every new bat must include an `Estimated time` line in its
+banner, computed from this table.** Formula: `arms × per-arm-time`.
+
+---
+
 ## Feature Importance Theory Reference (2026-07-17)
 
 Reference for future feature KEEP/DROP decisions. Added after the

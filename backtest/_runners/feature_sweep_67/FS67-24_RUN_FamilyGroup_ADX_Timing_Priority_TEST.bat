@@ -25,6 +25,8 @@ echo %QGAI_DIM%------------------------------------------------------------%QGAI
 echo   Runs baseline + 1 unprune arm on 2 weeks only.
 echo   Purpose: verify no crashes, correct output files, QGAI_UNPRUNE works.
 echo   NOT for performance comparison (too few trades).
+echo.
+echo   %QGAI_YELLOW%Estimated time: ~5 minutes (2 arms x ~2.5 min each: 2-week window)%QGAI_RESET%
 echo %QGAI_CYAN%%QGAI_BOLD%============================================================%QGAI_RESET%
 
 if exist "C:\QGAI\data\models\.training_lock" (
