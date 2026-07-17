@@ -75,6 +75,13 @@ class QGAIColorFormatter(logging.Formatter):
         logging.ERROR: RED + BOLD,
         logging.CRITICAL: RED + BOLD,
     }
+    LEVEL_EMOJI = {
+        logging.DEBUG: "🐛",
+        logging.INFO: "ℹ️",
+        logging.WARNING: "⚠️",
+        logging.ERROR: "❌",
+        logging.CRITICAL: "🔥",
+    }
 
     KEYWORD_COLORS = [
         (r"\b(ERROR|FAILED|failed|fail|TIMEOUT|halt|crashed)\b", RED + BOLD),
@@ -100,7 +107,9 @@ class QGAIColorFormatter(logging.Formatter):
             return super().format(record)
 
         record_copy = logging.makeLogRecord(record.__dict__.copy())
-        record_copy.levelname = paint(record.levelname, self.LEVEL_COLORS.get(record.levelno, ""))
+        _emoji = self.LEVEL_EMOJI.get(record.levelno, "")
+        record_copy.levelname = paint(f"{_emoji} {record.levelname}" if _emoji else record.levelname,
+                                       self.LEVEL_COLORS.get(record.levelno, ""))
         record_copy.msg = self._color_message(record.getMessage())
         record_copy.args = ()
 
