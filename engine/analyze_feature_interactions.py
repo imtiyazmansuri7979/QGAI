@@ -47,6 +47,7 @@ from features import (load_trades, load_ohlc, load_adx, load_news,
                        build_slot_table, build_feature_matrix, build_h4_range_table,
                        build_ob_table, FEATURE_ALIASES, FEATURE_FAMILIES, _ZERO_IMP)
 from xgb_model import WinProbabilityModel
+from hmm_model import MarketStateHMM
 
 RESULT_DIR = ENGINE.parent / "backtest" / "results" / "feature_sweep_67" / "FS67-25_shap_interactions"
 
@@ -82,6 +83,31 @@ def build_matrix_for_analysis():
         trades, ohlc_df, adx_df, news_df, slot_tbl,
         h4_df=h4_df, h1_ob=h1_ob, h4_ob_df=h4_ob_df
     )
+
+    # hmm_state is NOT produced by build_feature_matrix() — train.py computes
+    # it separately from the already-fitted HMM model and appends it as an
+    # extra column (see train.py get_hmm_states()). Mirror that here so this
+    # matrix matches what the live model was actually trained on.
+    hmm_path = Path(cfg.models_dir) / "hmm_model.pkl"
+    if hmm_path.exists():
+        print("Computing hmm_state from the existing (already-fitted) HMM model...")
+        hmm_model = MarketStateHMM()
+        hmm_model.load(str(hmm_path))
+        states = []
+        for _, trade in trades.iterrows():
+            t = trade["datetime"]
+            a = adx_df[adx_df["datetime"] <= t]
+            if len(a) > 0:
+                r = a.iloc[-1]
+                adx_row = {k: float(r[k]) if k in r.index else 0.0 for k in hmm_model.features}
+            else:
+                adx_row = {k: 0.0 for k in hmm_model.features}
+            states.append(hmm_model.predict(adx_row))
+        X = np.column_stack([X, np.array(states)])
+        feat_names = feat_names + ["hmm_state"]
+    else:
+        print(f"  WARNING: {hmm_path} not found — hmm_state column will be missing.")
+
     print(f"  {X.shape[0]:,} rows x {X.shape[1]} features")
     return X, feat_names
 
