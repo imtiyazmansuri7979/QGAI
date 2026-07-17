@@ -2520,7 +2520,7 @@ function drawSigChart(history){
         _hLabel(txt, cx, 2+_f1+2, '#00FFFF', 'top');
         // GROUP 2: time — anchored at the bar's own TOP edge, so it starts
         // right where the bar begins (never straddles bar/background)
-        if(tm) _hLabel(tm, cx, h - barH, '#FF9F1C', 'top');
+        if(tm) _hLabel(tm, cx, h - barH, isBuy?'#FF61E6':'#FF9F1C', 'top');
         // GROUP 3 (bottom): prob%
         _hLabel(prob.toFixed(0)+'%', cx, h-2, '#FFFF00', 'bottom');
       }
