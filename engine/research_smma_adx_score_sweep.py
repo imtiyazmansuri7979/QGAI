@@ -48,9 +48,9 @@ TF_RULE = {"M30": "30min", "H1": "1h", "H4": "4h"}
 # ─────────────────────────────────────────────────────────────────────────
 # Leakage-safe per-timeframe indicators (SMMA trend + ADX-DI), on M15 grid
 # ─────────────────────────────────────────────────────────────────────────
-def _wilder_di_adx(h, l, c, period=14):
-    """Wilder +DI, -DI, ADX on bar arrays. Returns (pdi, ndi, adx), nan-padded,
-    each aligned to the input bars (index 0 = first bar, always nan)."""
+def _ema_di_adx(h, l, c, period=14):
+    """EMA +DI, -DI, ADX on bar arrays — matches mt5_data_updater / regen_adx_asof.
+    Returns (pdi, ndi, adx), nan-padded, aligned to input bars (index 0 = nan)."""
     n = len(c)
     nan = np.full(n, np.nan)
     if n < period * 2 + 2:
@@ -60,25 +60,14 @@ def _wilder_di_adx(h, l, c, period=14):
     pdm = np.where((up > dn) & (up > 0), up, 0.0)
     ndm = np.where((dn > up) & (dn > 0), dn, 0.0)
     tr = np.maximum(h[1:] - l[1:], np.maximum(np.abs(h[1:] - c[:-1]), np.abs(l[1:] - c[:-1])))
-
-    def smooth(x):
-        out = np.full(len(x), np.nan)
-        out[period - 1] = x[:period].sum()
-        for i in range(period, len(x)):
-            out[i] = out[i - 1] - out[i - 1] / period + x[i]
-        return out
-
-    atr, spdm, sndm = smooth(tr), smooth(pdm), smooth(ndm)
+    atr  = pd.Series(tr).ewm(span=period, adjust=False).mean().to_numpy()
+    spdm = pd.Series(pdm).ewm(span=period, adjust=False).mean().to_numpy()
+    sndm = pd.Series(ndm).ewm(span=period, adjust=False).mean().to_numpy()
     with np.errstate(divide="ignore", invalid="ignore"):
-        pdi = 100 * spdm / atr
-        ndi = 100 * sndm / atr
-        dx = 100 * np.abs(pdi - ndi) / (pdi + ndi)
-    adx = np.full(len(dx), np.nan)
-    s = 2 * period - 2
-    if s < len(dx):
-        adx[s] = np.nanmean(dx[period - 1:s + 1])
-        for i in range(s + 1, len(dx)):
-            adx[i] = (adx[i - 1] * (period - 1) + dx[i]) / period
+        pdi = 100 * spdm / (atr + 1e-9)
+        ndi = 100 * sndm / (atr + 1e-9)
+        dx = 100 * np.abs(pdi - ndi) / (pdi + ndi + 1e-9)
+    adx = pd.Series(dx).ewm(span=period, adjust=False).mean().to_numpy()
     lead = np.array([np.nan])
     return (np.concatenate([lead, pdi]), np.concatenate([lead, ndi]),
             np.concatenate([lead, adx]))
@@ -93,10 +82,10 @@ def _map_to_m15(tf_close_times, tf_vals, m15_close_times):
     return out
 
 
-def _wilder_state(h, l, c, period=14):
-    """Per-CLOSED-bar Wilder accumulators, bar-aligned (index 0 = nan).
+def _ema_state(h, l, c, period=14):
+    """Per-CLOSED-bar EMA accumulators, bar-aligned (index 0 = nan).
     Returns sTR, sPDM, sNDM, adx arrays so a FORMING bar can be updated in O(1)
-    from the previous closed bar's state. Same math as _wilder_di_adx."""
+    from the previous closed bar's state. Matches mt5_data_updater EMA formula."""
     n = len(c)
     nan = np.full(n, np.nan)
     if n < period * 2 + 2:
@@ -105,26 +94,14 @@ def _wilder_state(h, l, c, period=14):
     pdm = np.where((up > dn) & (up > 0), up, 0.0)
     ndm = np.where((dn > up) & (dn > 0), dn, 0.0)
     tr = np.maximum(h[1:] - l[1:], np.maximum(np.abs(h[1:] - c[:-1]), np.abs(l[1:] - c[:-1])))
-
-    def smooth(x):
-        out = np.full(len(x), np.nan)
-        out[period - 1] = x[:period].sum()
-        for i in range(period, len(x)):
-            out[i] = out[i - 1] - out[i - 1] / period + x[i]
-        return out
-
-    atr, spdm, sndm = smooth(tr), smooth(pdm), smooth(ndm)
+    atr  = pd.Series(tr).ewm(span=period, adjust=False).mean().to_numpy()
+    spdm = pd.Series(pdm).ewm(span=period, adjust=False).mean().to_numpy()
+    sndm = pd.Series(ndm).ewm(span=period, adjust=False).mean().to_numpy()
     with np.errstate(divide="ignore", invalid="ignore"):
-        pdi = 100 * spdm / atr; ndi = 100 * sndm / atr
-        dx = 100 * np.abs(pdi - ndi) / (pdi + ndi)
-    adx = np.full(len(dx), np.nan)
-    s = 2 * period - 2
-    if s < len(dx):
-        adx[s] = np.nanmean(dx[period - 1:s + 1])
-        for i in range(s + 1, len(dx)):
-            adx[i] = (adx[i - 1] * (period - 1) + dx[i]) / period
+        pdi = 100 * spdm / (atr + 1e-9); ndi = 100 * sndm / (atr + 1e-9)
+        dx = 100 * np.abs(pdi - ndi) / (pdi + ndi + 1e-9)
+    adx = pd.Series(dx).ewm(span=period, adjust=False).mean().to_numpy()
     lead = np.array([np.nan])
-    # bar-align: bar j (>=1) uses diff-index j-1
     return (np.concatenate([lead, atr]), np.concatenate([lead, spdm]),
             np.concatenate([lead, sndm]), np.concatenate([lead, adx]))
 
@@ -161,7 +138,7 @@ def build_forming_indicators(base, smma_mode, adx_period):
         maH = _ma(H, 2, "SMMA"); maL = _ma(L, 2, "SMMA")
         m15_tr = np.zeros(n)
         m15_tr[1:] = np.where(C[1:] > maH[:-1], 1.0, np.where(C[1:] < maL[:-1], -1.0, 0.0))
-    p15, n15, a15 = _wilder_di_adx(H, L, C, adx_period)
+    p15, n15, a15 = _ema_di_adx(H, L, C, adx_period)
     smma["M15"] = m15_tr
     di["M15"] = {"pdi": p15, "ndi": n15, "adx": a15}
 
@@ -174,8 +151,8 @@ def build_forming_indicators(base, smma_mode, adx_period):
         # closed-HTF SMMA state
         maH = _ma(hh, 2, "SMMA"); maL = _ma(hl, 2, "SMMA")
         htrend = compute_trend(htf, period=2, method="SMMA", ratchet=True)["trend"].to_numpy(float)
-        # closed-HTF Wilder state
-        sTR, sPDM, sNDM, cADX = _wilder_state(hh, hl, hc, adx_period)
+        # closed-HTF EMA state
+        sTR, sPDM, sNDM, cADX = _ema_state(hh, hl, hc, adx_period)
 
         # which forming HTF period each M15 bar is in (p), prev closed bar = p-1
         p_arr = np.searchsorted(ho, mo, side="right") - 1
@@ -211,20 +188,21 @@ def build_forming_indicators(base, smma_mode, adx_period):
                 elif C[i] < maL[k]: t = -1.0
                 if t == 0: t = 1.0 if C[i] >= per_open else -1.0
             tr_out[i] = t
-            # ── forming ADX/+DI/-DI (one Wilder step from closed bar k) ──
+            # ── forming ADX/+DI/-DI (one EMA step from closed bar k) ──
             if (k >= 1 and not np.isnan(sTR[k]) and not np.isnan(cADX[k])):
                 up = run_hi - hh[k]; dnn = hl[k] - run_lo
                 pdm = up if (up > dnn and up > 0) else 0.0
                 ndm = dnn if (dnn > up and dnn > 0) else 0.0
                 trv = max(run_hi - run_lo, abs(run_hi - hc[k]), abs(run_lo - hc[k]))
-                sTR_f = sTR[k] - sTR[k] / adx_period + trv
-                sPDM_f = sPDM[k] - sPDM[k] / adx_period + pdm
-                sNDM_f = sNDM[k] - sNDM[k] / adx_period + ndm
+                _a = 2.0 / (adx_period + 1)
+                sTR_f = (1 - _a) * sTR[k] + _a * trv
+                sPDM_f = (1 - _a) * sPDM[k] + _a * pdm
+                sNDM_f = (1 - _a) * sNDM[k] + _a * ndm
                 if sTR_f > 0:
                     pdi_f = 100 * sPDM_f / sTR_f; ndi_f = 100 * sNDM_f / sTR_f
                     denom = pdi_f + ndi_f
                     dx_f = 100 * abs(pdi_f - ndi_f) / denom if denom > 0 else 0.0
-                    adx_f = (cADX[k] * (adx_period - 1) + dx_f) / adx_period
+                    adx_f = (1 - _a) * cADX[k] + _a * dx_f
                     pdi_out[i] = pdi_f; ndi_out[i] = ndi_f; adx_out[i] = adx_f
         smma[tf] = tr_out
         di[tf] = {"pdi": pdi_out, "ndi": ndi_out, "adx": adx_out}
@@ -285,8 +263,8 @@ def build_indicators(base, smma_mode, adx_period):
             trend = mm
         smma[tf] = _map_to_m15(tf_close, trend, m15_close)
 
-        # ── ADX-DI (Wilder) on this TF's candles ──
-        pdi, ndi, adx = _wilder_di_adx(
+        # ── ADX-DI (EMA) on this TF's candles ──
+        pdi, ndi, adx = _ema_di_adx(
             tfdf["high"].to_numpy(float), tfdf["low"].to_numpy(float),
             tfdf["close"].to_numpy(float), adx_period)
         di[tf] = {

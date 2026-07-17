@@ -135,8 +135,8 @@ def engineer_ohlc(df: pd.DataFrame) -> pd.DataFrame:
     # ATR REMOVED 2026-06-19 — volatility is already captured by the 2-SMMA
     # (Period=2) trend/ratchet indicator, so the standalone ATR indicator is
     # redundant AND lagging. atr14_pct / atr20_pct no longer computed.
-    # NOTE: ADX still works — _wilder_adx() computes its OWN internal True Range
-    # (per Wilder's formula) and does not depend on these columns.
+    # NOTE: ADX still works — _ema_adx() computes its OWN internal True Range
+    # and does not depend on these columns.
 
     # Range ratio — current range vs 10-candle avg (already relative)
     df["range_ma10"]  = df["range_pct"].rolling(10).mean()
@@ -886,11 +886,16 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
 # inside the bar (lookahead). Rolling ADX fixes both: at every closed
 # M15 bar we take the H4/H1 grid PHASE whose bar closes exactly there,
 # so the value updates every 15 min using only closed data.
+# 2026-07-17: replaced Wilder smoothing with EMA (ewm span=14) to match
+# mt5_data_updater / regen_adx_asof / adx_merged.csv — one consistent
+# ADX calculation everywhere. Retrain required after this change.
 # Used by: h4_adx_slope, h1_adx_slope, ts_adx_switch_trend.
 # ═══════════════════════════════════════════════════════════════
 
-def _wilder_adx(h, l, c, period=14):
-    """Wilder ADX on bar arrays. Returns ADX array (np.nan until warm)."""
+def _ema_adx(h, l, c, period=14):
+    """EMA ADX(14) on bar arrays — exact match to mt5_data_updater / regen_adx_asof.
+    Uses ewm(span=period, adjust=False), alpha = 2/(period+1).
+    Returns ADX array (np.nan until warm)."""
     n = len(c)
     if n < period * 2 + 1:
         return np.full(n, np.nan)
@@ -900,23 +905,14 @@ def _wilder_adx(h, l, c, period=14):
     ndm = np.where((dn > up) & (dn > 0), dn, 0.0)
     tr  = np.maximum(h[1:] - l[1:],
           np.maximum(np.abs(h[1:] - c[:-1]), np.abs(l[1:] - c[:-1])))
-    def smooth(x):
-        out = np.full(len(x), np.nan)
-        out[period - 1] = x[:period].sum()
-        for i in range(period, len(x)):
-            out[i] = out[i - 1] - out[i - 1] / period + x[i]
-        return out
-    atr, spdm, sndm = smooth(tr), smooth(pdm), smooth(ndm)
+    atr  = pd.Series(tr).ewm(span=period, adjust=False).mean().to_numpy()
+    spdm = pd.Series(pdm).ewm(span=period, adjust=False).mean().to_numpy()
+    sndm = pd.Series(ndm).ewm(span=period, adjust=False).mean().to_numpy()
     with np.errstate(divide="ignore", invalid="ignore"):
-        pdi = 100 * spdm / atr
-        ndi = 100 * sndm / atr
-        dx  = 100 * np.abs(pdi - ndi) / (pdi + ndi)
-    adx = np.full(len(dx), np.nan)
-    s = 2 * period - 2
-    if s < len(dx):
-        adx[s] = np.nanmean(dx[period - 1:s + 1])
-        for i in range(s + 1, len(dx)):
-            adx[i] = (adx[i - 1] * (period - 1) + dx[i]) / period
+        pdi = 100 * spdm / (atr + 1e-9)
+        ndi = 100 * sndm / (atr + 1e-9)
+        dx  = 100 * np.abs(pdi - ndi) / (pdi + ndi + 1e-9)
+    adx = pd.Series(dx).ewm(span=period, adjust=False).mean().to_numpy()
     return np.concatenate([[np.nan], adx])
 
 
@@ -935,7 +931,7 @@ def build_rolling_adx_table(ohlc_df: pd.DataFrame) -> dict:
             bh = np.array([H[j - step + 1:j + 1].max() for j in idx_end])
             bl = np.array([L[j - step + 1:j + 1].min() for j in idx_end])
             bc = C[idx_end]
-            adx = _wilder_adx(bh, bl, bc, 14)
+            adx = _ema_adx(bh, bl, bc, 14)
             vals[idx_end] = adx
         # every closed M15 bar i now has the ADX of the H4/H1 window ENDING at i
         out[key] = vals

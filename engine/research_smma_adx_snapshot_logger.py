@@ -28,7 +28,7 @@ from pathlib import Path
 
 from trend_signal import _ma, compute_trend
 from research_smma_adx_score_sweep import (
-    _wilder_di_adx, _wilder_state, _resample_ohlcv, load_ohlc_vol,
+    _ema_di_adx, _ema_state, _resample_ohlcv, load_ohlc_vol,
     TF_MIN, TF_RULE)
 
 ENGINE = Path(__file__).resolve().parent
@@ -90,7 +90,7 @@ def forming_tf_arrays(base, tf, adx_period):
 
     if tf == "M15":
         maH = _ma(H, 2, "SMMA"); maL = _ma(L, 2, "SMMA")
-        pdi, ndi, adx = _wilder_di_adx(H, L, C, adx_period)
+        pdi, ndi, adx = _ema_di_adx(H, L, C, adx_period)
         return {
             "pstart": mo.copy(), "ncomp": np.ones(n, int),
             "o": O.copy(), "h": H.copy(), "l": L.copy(), "c": C.copy(), "v": V.copy(),
@@ -102,7 +102,7 @@ def forming_tf_arrays(base, tf, adx_period):
     ho = htf["time"].values.astype("datetime64[ns]")
     hh = htf["high"].to_numpy(float); hl = htf["low"].to_numpy(float); hc = htf["close"].to_numpy(float)
     maH = _ma(hh, 2, "SMMA"); maL = _ma(hl, 2, "SMMA")
-    sTR, sPDM, sNDM, cADX = _wilder_state(hh, hl, hc, adx_period)
+    sTR, sPDM, sNDM, cADX = _ema_state(hh, hl, hc, adx_period)
     p_arr = np.searchsorted(ho, mo, side="right") - 1
 
     out = {k: np.full(n, np.nan) for k in

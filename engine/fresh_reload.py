@@ -52,35 +52,27 @@ TFS = {
 }
 
 
-def _wilder(series, period):
-    out = np.full(len(series), np.nan)
-    if len(series) < period: return out
-    out[period-1] = series[:period].mean()
-    for i in range(period, len(series)):
-        out[i] = (out[i-1]*(period-1) + series[i]) / period
-    return out
-
-
 def compute_adx(df, period=14):
-    """Multi-TF ADX from M15 OHLC — same approach as mt5_data_updater."""
+    """Multi-TF ADX from M15 OHLC — exact match to mt5_data_updater.compute_adx_tf.
+    Uses ewm(span=period, adjust=False) — standard EMA, NOT Wilder."""
     d = df.copy()
     d["time"] = pd.to_datetime(d["time"])
     d = d.set_index("time")
     def one_tf(rule):
         r = d.resample(rule).agg({"open":"first","high":"max","low":"min","close":"last"}).dropna() if rule else d
-        h,l,c = r["high"].values, r["low"].values, r["close"].values
-        if len(c) < period*2: 
+        h,l,c = r["high"], r["low"], r["close"]
+        if len(c) < period*2:
             s = pd.Series(np.nan, index=r.index); return s, s, s
-        up = h[1:]-h[:-1]; dn = l[:-1]-l[1:]
-        pdm = np.where((up>dn)&(up>0), up, 0.0); ndm = np.where((dn>up)&(dn>0), dn, 0.0)
-        tr  = np.maximum(h[1:]-l[1:], np.maximum(np.abs(h[1:]-c[:-1]), np.abs(l[1:]-c[:-1])))
-        atr=_wilder(tr,period); spdm=_wilder(pdm,period); sndm=_wilder(ndm,period)
-        with np.errstate(divide="ignore",invalid="ignore"):
-            pdi=100*spdm/atr; ndi=100*sndm/atr
-            dx=100*np.abs(pdi-ndi)/(pdi+ndi)
-        adx=_wilder(dx,period)
-        idx=r.index[1:]
-        return (pd.Series(adx,index=idx), pd.Series(pdi,index=idx), pd.Series(ndi,index=idx))
+        tr = pd.concat([h-l,(h-c.shift(1)).abs(),(l-c.shift(1)).abs()],axis=1).max(axis=1)
+        up = h-h.shift(1); dn = l.shift(1)-l
+        pdm = pd.Series(np.where((up>dn)&(up>0), up, 0), index=r.index)
+        ndm = pd.Series(np.where((dn>up)&(dn>0), dn, 0), index=r.index)
+        atr = tr.ewm(span=period,adjust=False).mean()
+        pdi = 100*pdm.ewm(span=period,adjust=False).mean()/(atr+1e-9)
+        ndi = 100*ndm.ewm(span=period,adjust=False).mean()/(atr+1e-9)
+        dx  = 100*(pdi-ndi).abs()/(pdi+ndi+1e-9)
+        adx = dx.ewm(span=period,adjust=False).mean()
+        return (adx, pdi, ndi)
     # 2026-07-02 (Divyesh) HMM v3: lag-free band volatility per TF (parity with
     # regen_adx_di.py / mt5_data_updater.py — same trend_signal._ma SMMA2 band).
     def one_band(rule):

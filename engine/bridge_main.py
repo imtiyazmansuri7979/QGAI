@@ -127,7 +127,7 @@ def get_live_adx(n_bars=50, bar_dt=None):
     band_width_pct / PlusDI / MinusDI) were NaN on live-appended rows →
     GaussianMixture "Input X contains NaN" crash on every bar. Worse, the old
     calc used UNSMOOTHED DX as "ADX" and last-CLOSED HTF bars — neither matched
-    training. Now: pull ~5000 M15 bars (enough for Wilder warmup + 30D band_rel
+    training. Now: pull ~5000 M15 bars (enough for EMA warmup + 30D band_rel
     baseline), drop the forming M15 bar, and compute every column per TF with
     the exact training pipeline. Train == live by construction."""
     try:
