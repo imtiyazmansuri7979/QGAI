@@ -2486,7 +2486,7 @@ function drawSigChart(history){
       ctx.fillStyle = isBuy?'rgba(0,255,136,0.7)':isSell?'rgba(255,34,85,0.7)':'rgba(30,74,106,0.7)';
       ctx.fillRect(x, h-barH, bw-1, barH);
     }
-    // entry price + time — vertical text (top-to-bottom), black outline for visibility (2026-07-17)
+    // entry price + time — horizontal text, anchored to panel TOP border, black outline (2026-07-17)
     if((isBuy||isSell) && s.price){
       const pr = parseFloat(s.price);
       if(pr>0){
@@ -2495,27 +2495,17 @@ function drawSigChart(history){
         const sideTxt = isBuy ? '▲BUY' : '▼SELL';
         const tm  = _hhmm(s.bar_time);
         const _f = 8;
-        const _barTop = h - barH + 3;
-        const _vLabel = function(text, anchorX, anchorY, color){
-          ctx.save();
-          ctx.translate(anchorX, anchorY);
-          ctx.rotate(Math.PI / 2);
+        const _hLabel = function(text, cx, cy, color){
           ctx.font = 'bold '+_f+'px Arial,sans-serif';
-          ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top';
           ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
-          ctx.strokeText(text, 0, 0);
+          ctx.strokeText(text, cx, cy);
           ctx.fillStyle = color;
-          ctx.fillText(text, 0, 0);
-          ctx.restore();
+          ctx.fillText(text, cx, cy);
         };
-        if(bw >= 18){
-          _vLabel(sideTxt, cx - 4, _barTop, isBuy?'#00ff88':'#ff2d55');
-          _vLabel(txt, cx + 4, _barTop, '#00f5ff');
-          if(tm) _vLabel(tm+' '+prob.toFixed(0)+'%', cx + 4, _barTop + Math.min(barH*0.5, 32), '#ffe066');
-        } else {
-          _vLabel(sideTxt+' '+txt, cx, _barTop, isBuy?'#00ff88':'#ff2d55');
-          if(tm) _vLabel(tm+' '+prob.toFixed(0)+'%', cx, _barTop + Math.min(barH*0.45, 28), '#ffe066');
-        }
+        _hLabel(sideTxt, cx, 2, isBuy?'#00ff88':'#ff2d55');
+        _hLabel(txt, cx, 2+_f+2, '#00f5ff');
+        if(tm) _hLabel(tm+' '+prob.toFixed(0)+'%', cx, 2+(_f+2)*2, '#ffe066');
       }
     }
   });
