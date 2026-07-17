@@ -1,4 +1,35 @@
-﻿# QGAI â€” Tasks (priority order)
+﻿# QGAI — Tasks (priority order)
+
+---
+
+## 🔴 TOP PRIORITY — Exit Improvement (Fable-5 opinion, 2026-07-17)
+
+**Problem:** system reaches 1,103R peak profit over 1 year but captures only 339R (30.7%
+MFE-capture). 70% of peak profit is given back before exit. TRAIL exits are the worst
+offender: avg peak +0.92R but exit at -0.25R = 1.17R giveback per trade (-37.3R total).
+
+**EXIT01 + EXIT01b DONE (2026-07-17):** TP cap audit (1-year, 220 TPCAP trades: +28R left
+on table but dependent on 3 trades — big-winner test FAIL) + skip-move analysis (80% time
+in-trade, skip is not the problem). EXIT02 (partial-exit-at-cap) NOT recommended by Fable-5.
+
+### Step 1 — Peak-Ratchet Profit Lock ⏳ (highest impact, +15 to +30R/yr)
+When trade reaches peak ≥ trigger_R, lock a virtual floor at floor_R so profit can never
+fall below that level. Example: peak hits 1.0R → floor locks at 0.4R minimum.
+68 trades in OOS1Y reached 1R+ peak but exited below 0.4R → gross ~+36R recovery.
+**A/B test:** 9 arms — trigger {0.8, 1.0, 1.2} × floor {0.2, 0.4, 0.6}.
+Implement in `backtest_replay.py` (config-gated), build TEST + FULL bat files.
+Runner ID: `EXIT03` (in `backtest/_runners/exit_workstream/`).
+
+### Step 2 — Two-Speed Trail (after Step 1 measured, +5 to +15R/yr)
+Peak < threshold → keep H1 2-SMMA trail (current). Peak ≥ threshold → switch to tighter
+trail (M30 SMMA or tighter H1 offset). TRAIL bucket = -37.3R, break-even alone = +37R.
+Blocked on Step 1 result (overlap — same 29 trades).
+
+### Step 3 — MFE-Capture Metric Adoption
+Replace bar-range-sum capture% (5%, misleading denominator) with MFE-capture (30.7%).
+Target: 34-36%. No code change needed — metric/reporting only.
+
+---
 
 ### âœ… DONE â€” 2026-07-17 Manual-trade risk: CUT-based protection (v2)
 Imtiyaz changed approach from hedge-based (v1, same day) to CUT-based: excess
