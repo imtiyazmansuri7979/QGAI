@@ -2500,16 +2500,16 @@ function drawSigChart(history){
         const _fBase = Math.max(7, Math.min(13, bw*0.42));
         const _fitFont = function(text, maxFont){
           let f = maxFont;
-          ctx.font = 'bold '+f+'px Arial,sans-serif';
+          ctx.font = '900 '+f+'px Arial,sans-serif';
           while(f > 6 && ctx.measureText(text).width > colW){
             f -= 1;
-            ctx.font = 'bold '+f+'px Arial,sans-serif';
+            ctx.font = '900 '+f+'px Arial,sans-serif';
           }
           return f;
         };
         const _hLabel = function(text, cx, cy, color, baseline){
           const f = _fitFont(text, _fBase);
-          ctx.font = 'bold '+f+'px Arial,sans-serif';
+          ctx.font = '900 '+f+'px Arial,sans-serif';
           ctx.textAlign = 'center'; ctx.textBaseline = baseline;
           ctx.fillStyle = color;
           ctx.fillText(text, cx, cy);
