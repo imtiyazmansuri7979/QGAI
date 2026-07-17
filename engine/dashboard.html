@@ -104,23 +104,23 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
 .hdr-pcell:last-child{border-right:1px solid var(--border)}
 .hdr-plbl{font-size:0.66rem;letter-spacing:1.8px;color:var(--dim);text-transform:uppercase;margin-bottom:0;line-height:1}
 .hdr-pval{font-family:var(--orb);font-size:1.13rem;font-weight:700;white-space:nowrap;line-height:1}
-.hdr-mid{padding:3px 4px;display:grid;grid-template-columns:minmax(0,1fr) 82px;grid-template-rows:auto auto;align-items:center;gap:2px 4px;min-width:0;background:rgba(0,10,20,.35);border:1px solid var(--border);border-radius:8px;box-shadow:var(--panel-glow);overflow:hidden;align-self:center;min-height:56px}
+.hdr-mid{padding:3px 4px;display:grid;grid-template-columns:minmax(0,1fr) 92px;grid-template-rows:auto auto;align-items:center;gap:2px 4px;min-width:0;background:rgba(0,10,20,.35);border:1px solid var(--border);border-radius:8px;box-shadow:var(--panel-glow);overflow:hidden;align-self:center;min-height:64px}
 .hdr-status{grid-column:1;grid-row:1;font-size:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:flex-end;gap:4px;min-width:0}
 .hdr-status #updated{font-size:0!important}
-.hdr-status #updated::after{content:'SYNC';font-size:0.68rem;color:var(--cyan);letter-spacing:1px}
-.hdr-control-row{grid-column:1;grid-row:2;display:grid!important;grid-template-columns:38px 52px 70px;grid-auto-rows:18px;align-items:center;justify-self:end;justify-content:end;width:max-content;gap:2px 4px!important;font-size:0.58rem!important;color:var(--dim);min-width:0;max-width:100%;overflow:hidden}
-.hdr-mid .refresh-sel{width:100%;max-width:none;font-size:0.58rem!important;padding:0 5px!important;height:18px!important;line-height:1!important}
-.hdr-mid #refresh_sel{max-width:52px}
-.hdr-mid .focus-btn,.hdr-mid .dim-btn{font-size:0.58rem!important;padding:0 5px!important;margin-left:0!important;height:18px!important;line-height:1!important}
+.hdr-status #updated::after{content:'SYNC';font-size:0.88rem;color:var(--cyan);letter-spacing:1px}
+.hdr-control-row{grid-column:1;grid-row:2;display:grid!important;grid-template-columns:49px 68px 91px;grid-auto-rows:23px;align-items:center;justify-self:end;justify-content:end;width:max-content;gap:2px 4px!important;font-size:0.75rem!important;color:var(--dim);min-width:0;max-width:100%;overflow:hidden}
+.hdr-mid .refresh-sel{width:100%;max-width:none;font-size:0.75rem!important;padding:0 5px!important;height:23px!important;line-height:1!important}
+.hdr-mid #refresh_sel{max-width:68px}
+.hdr-mid .focus-btn,.hdr-mid .dim-btn{font-size:0.75rem!important;padding:0 5px!important;margin-left:0!important;height:23px!important;line-height:1!important}
 .hdr-mid .focus-btn{width:100%;color:transparent;position:relative}
-.hdr-mid .focus-btn::after{content:'⊙';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:.96rem}
+.hdr-mid .focus-btn::after{content:'⊙';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:1.25rem}
 .hdr-mid .focus-btn.on::after{content:'⊙';color:var(--orange)}
-.hdr-mid .mode-btn{grid-column:2;grid-row:1 / 3;align-self:stretch;justify-self:stretch;min-width:0;height:100%;min-height:0;margin-left:0!important;font-size:0.88rem!important;padding:1px 5px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;border-radius:9px}
+.hdr-mid .mode-btn{grid-column:2;grid-row:1 / 3;align-self:stretch;justify-self:stretch;min-width:0;height:100%;min-height:0;margin-left:0!important;font-size:1.14rem!important;padding:1px 5px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;border-radius:9px}
 .hdr-control-row #refresh_sel{grid-column:2;grid-row:1}
-.hdr-control-row #theme_sel{grid-column:3;grid-row:1;max-width:70px}
-.hdr-control-row #dim_btn{grid-column:3;grid-row:2;max-width:70px}
+.hdr-control-row #theme_sel{grid-column:3;grid-row:1;max-width:91px}
+.hdr-control-row #dim_btn{grid-column:3;grid-row:2;max-width:91px}
 .hdr-control-row #focus_btn{grid-column:2;grid-row:2}
-.hdr-right{padding:2px 6px;font-size:0.78rem;color:var(--dim);text-align:right;line-height:1.08;display:flex;flex-direction:column;justify-content:center;min-width:0;background:rgba(0,10,20,.35);border:1px solid var(--border);border-radius:8px;box-shadow:var(--panel-glow);overflow:hidden;align-self:center;min-height:43px}
+.hdr-right{padding:2px 6px;font-size:1.01rem;color:var(--dim);text-align:right;line-height:1.08;display:flex;flex-direction:column;justify-content:center;min-width:0;background:rgba(0,10,20,.35);border:1px solid var(--border);border-radius:8px;box-shadow:var(--panel-glow);overflow:hidden;align-self:center;min-height:56px}
 .hdr-right span{color:var(--cyan)}
 #hdr_symbol_sub{font-size:0.74rem!important;line-height:1!important;margin-top:0!important}
 .live{display:inline-block;width:8px;height:8px;background:var(--green);border-radius:50%;margin-right:5px;animation:pulse 1.2s infinite;box-shadow:0 0 6px var(--green)}
@@ -1034,13 +1034,13 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   <!-- Time + Account -->
   <div class="hdr-right" style="min-width:200px;text-align:right">
     <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-bottom:2px">
-      <span style="font-size:0.69rem;letter-spacing:1px;color:var(--dim)">🏦 BROKER</span>
-      <span id="broker_time" style="font-family:var(--mono);font-size:1.05rem;color:var(--cyan);font-weight:700;letter-spacing:1px">--:--:--</span>
+      <span style="font-size:0.9rem;letter-spacing:1px;color:var(--dim)">🏦 BROKER</span>
+      <span id="broker_time" style="font-family:var(--mono);font-size:1.37rem;color:var(--cyan);font-weight:700;letter-spacing:1px">--:--:--</span>
     </div>
 
-    <div style="font-size:0.69rem;color:var(--dim)">
+    <div style="font-size:0.9rem;color:var(--dim)">
       <span id="account_id" style="color:var(--gold)">--</span> | <span id="leverage_lbl">1:500</span>
-      <button onclick="gsToggleEdit()" id="gs_edit_btn" style="margin-left:6px;background:#21262d;color:var(--dim);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.6rem;cursor:pointer" title="Toggle Edit Layout mode">✏️ EDIT</button>
+      <button onclick="gsToggleEdit()" id="gs_edit_btn" style="margin-left:6px;background:#21262d;color:var(--dim);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:0.78rem;cursor:pointer" title="Toggle Edit Layout mode">✏️ EDIT</button>
     </div>
   </div>
 
