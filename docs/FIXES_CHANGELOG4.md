@@ -8,6 +8,23 @@ Worked on by Anisa via Cowork. Shared PC / shared folder â€” this file is t
 
 ---
 
+## 2026-07-17 — `gate_reversal_entries` enabled live (flip-bypass fix)
+
+Live incident: SELL signal at 05:00 was blocked by filters (🚫, 51.59% Ranging)
+but flip/reversal logic opened a SELL trade anyway ("unfiltered — legacy"),
+resulting in a -16.5 pt loss + vSL hit at 4000.02. Root cause: `gate_reversal_entries`
+was `False` (default since FAB-S1, 2026-07-07) — opposite-signal reversals bypassed
+ALL entry filters.
+
+**Fix:** `config.py` → `gate_reversal_entries = True`. Now:
+- Flip still CLOSES the losing trade (cut loss — unchanged)
+- Re-entry passes through the FULL filter stack (range/CTF/prob threshold/etc.)
+- If filters block the signal, only the close happens — no forced new entry
+
+Takes effect on bridge restart. Backtest confirmation is a TODO (priority).
+
+---
+
 ## 2026-07-17 (later same day) — FS67-24 corrected, 3 new registry runners
 
 Imtiyaz objected to the family-based group ablation shipped earlier the same

@@ -160,7 +160,7 @@ class FilterConfig:
     # bar's signal through the FULL entry-filter stack (range/CTF/pullback/SMMA/ADX)
     # before opening — so a reversal entry is filtered identically to a fresh entry.
     # Enable only after a backtest that ALSO models close-on-opposite (parity).
-    gate_reversal_entries     : bool  = False
+    gate_reversal_entries     : bool  = True
     # ── ADX-DEATH EXIT (2026-07-08, Imtiyaz idea + Fable-5 design) ──
     # During hold: if K of 4 TF ADX slopes ≤0 for N consecutive bars AND
     # unrealized profit ≥ min_r × R → exit at bar close (reason ADX_DEATH).
