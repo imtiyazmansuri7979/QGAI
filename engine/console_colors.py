@@ -21,6 +21,7 @@ MAGENTA = "\033[95m"
 CYAN = "\033[96m"
 WHITE = "\033[97m"
 BOLD = "\033[1m"
+ORANGE = "\033[38;2;255;152;0m"
 
 _COLOR_ENABLED = None
 
@@ -78,12 +79,20 @@ class QGAIColorFormatter(logging.Formatter):
     KEYWORD_COLORS = [
         (r"\b(ERROR|FAILED|failed|fail|TIMEOUT|halt|crashed)\b", RED + BOLD),
         (r"\b(WARNING|SKIP|watchdog|gap|retrain|reload|TASK)\b", YELLOW + BOLD),
-        (r"\b(OK|done|fresh|started|running|stopped|saved|connected|loaded|complete)\b", GREEN + BOLD),
-        (r"\b(Bridge|Scheduler|Dashboard|model|MT5|NY session)\b", CYAN + BOLD),
+        (r"\b(OK|done|fresh|started|running|stopped|saved|connected|loaded|complete|live|ALIVE)\b", GREEN + BOLD),
+        (r"\b(Bridge|Scheduler|Dashboard|model|MT5|NY session|Broker)\b", CYAN + BOLD),
         (r"\b(Primary|Secondary|manual|multi)\b", MAGENTA + BOLD),
         (r"\b(XAUUSD(?:\.pc)?|M15|H1|H4)\b", BLUE + BOLD),
+        (r"\bTrending\b", GREEN + BOLD),
+        (r"\bVolatile\b", ORANGE + BOLD),
+        (r"\bRanging\b", RED + BOLD),
+        (r"\bNew bar\b", MAGENTA + BOLD),
+        (r"\bheartbeat\b", CYAN + BOLD),
+        (r"\b(price|last bar)\b", DIM),
+        (r"(?<!^)\b\d{1,2}:\d{2}(?::\d{2})?\b", CYAN),
         (r"[$][0-9,]+(?:\.[0-9]+)?", GREEN + BOLD),
         (r"\b[+-]?[0-9]+(?:\.[0-9]+)?R\b", YELLOW + BOLD),
+        (r"(?<![\d.$,])\b\d{3,5}\.\d{1,2}\b(?!\s*R\b)(?!%)", CYAN + BOLD),
     ]
 
     def format(self, record):

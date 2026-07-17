@@ -26,6 +26,7 @@ _ANSI_MAGENTA = "\033[95m"
 _ANSI_CYAN = "\033[96m"
 _ANSI_WHITE = "\033[97m"
 _ANSI_BOLD = "\033[1m"
+_ANSI_ORANGE = "\033[38;2;255;152;0m"
 _ANSI_BG_RED = "\033[48;2;92;49;43m"
 _ANSI_BG_GREEN = "\033[48;2;42;83;49m"
 _ANSI_BG_BLUE = "\033[48;2;18;52;74m"
@@ -78,18 +79,32 @@ class _BridgeConsoleFormatter(logging.Formatter):
     }
 
     KEYWORD_COLORS = [
-        (r"\b(ERROR|FAILED|failed|fail|halt|DAILY RATCHET HIT|NO broker SL)\b", _ANSI_BG_RED + _ANSI_WHITE + _ANSI_BOLD),
+        (r"\b(ERROR|FAILED|failed|fail|halt|DAILY RATCHET HIT|NO broker SL|Access is denied|WinError)\b", _ANSI_BG_RED + _ANSI_WHITE + _ANSI_BOLD),
         (r"\b(BUY|LONG|ENTRY BUY)\b", _ANSI_BG_GREEN + _ANSI_GREEN + _ANSI_BOLD),
         (r"\b(SELL|SHORT|ENTRY SELL)\b", _ANSI_BG_RED + _ANSI_RED + _ANSI_BOLD),
         (r"\b(SKIP|BLOCK|BLOCKED|Outside slot|SPREAD GUARD|DD BRAKE|Force-closing)\b", _ANSI_YELLOW + _ANSI_BOLD),
         (r"\b(WARNING|watch|stale|timeout)\b", _ANSI_YELLOW + _ANSI_BOLD),
-        (r"\b(connected|reconnected|ready|loaded|complete|UNLOCKED|OK|ALIVE|DONE|saved)\b", _ANSI_GREEN + _ANSI_BOLD),
+        (r"\b(connected|reconnected|ready|loaded|complete|UNLOCKED|OK|ALIVE|DONE|saved|live)\b", _ANSI_GREEN + _ANSI_BOLD),
         (r"\b(vSL|RATCHET|ratchet|TP|SL|ENTRY GATES|win_prob|prob|threshold)\b", _ANSI_CYAN + _ANSI_BOLD),
         (r"\b(manual|Secondary|Primary|multi)\b", _ANSI_MAGENTA + _ANSI_BOLD),
         (r"\b(XAUUSD(?:s|\.pc)?|M15|M30|H1|H4|D1)\b", _ANSI_BLUE + _ANSI_BOLD),
+        # regime names — mirrors the dashboard's Trending=green/Volatile=orange/Ranging=red convention
+        (r"\bTrending\b", _ANSI_GREEN + _ANSI_BOLD),
+        (r"\bVolatile\b", _ANSI_ORANGE + _ANSI_BOLD),
+        (r"\bRanging\b", _ANSI_RED + _ANSI_BOLD),
+        # structural/event markers
+        (r"\bNew bar\b", _ANSI_MAGENTA + _ANSI_BOLD),
+        (r"\bBroker\b", _ANSI_BLUE + _ANSI_BOLD),
+        (r"\bheartbeat\b", _ANSI_CYAN + _ANSI_BOLD),
+        # de-emphasize plain labels so the values next to them pop by contrast
+        (r"\b(price|last bar)\b", _ANSI_DIM),
+        # HH:MM / HH:MM:SS timestamps not already at line-start
+        (r"(?<!^)\b\d{1,2}:\d{2}(?::\d{2})?\b", _ANSI_CYAN),
         (r"[$][0-9,]+(?:\.[0-9]+)?", _ANSI_GREEN + _ANSI_BOLD),
         (r"\b\d+(?:\.\d+)?%", _ANSI_YELLOW + _ANSI_BOLD),
         (r"\b[+-]?[0-9]+(?:\.[0-9]+)?R\b", _ANSI_YELLOW + _ANSI_BOLD),
+        # bare price-looking decimals (e.g. 3988.33) not already tagged as $/R/% above
+        (r"(?<![\d.$,])\b\d{3,5}\.\d{1,2}\b(?!\s*R\b)(?!%)", _ANSI_CYAN + _ANSI_BOLD),
     ]
 
     def format(self, record):
