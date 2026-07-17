@@ -2486,8 +2486,9 @@ function drawSigChart(history){
       ctx.fillStyle = isBuy?'rgba(0,255,136,0.7)':isSell?'rgba(255,34,85,0.7)':'rgba(30,74,106,0.7)';
       ctx.fillRect(x, h-barH, bw-1, barH);
     }
-    // entry price + time — horizontal text, sized to fit its own bar column so
-    // neighbors don't overlap; anchored to panel TOP border (2026-07-17)
+    // entry price + time — 3 groups (BUY/SELL+price / time / prob%) spread
+    // across the box height: top / middle / bottom. Font auto-shrinks to
+    // fit its own bar column so neighbors don't overlap (2026-07-17)
     if((isBuy||isSell) && s.price){
       const pr = parseFloat(s.price);
       if(pr>0){
@@ -2496,25 +2497,31 @@ function drawSigChart(history){
         const sideTxt = bw>=26 ? (isBuy?'▲BUY':'▼SELL') : (isBuy?'▲B':'▼S');
         const tm  = _hhmm(s.bar_time);
         const colW = bw - 1;
-        const _hLabel = function(text, cx, cy, color, maxFont){
+        const _fBase = Math.max(7, Math.min(13, bw*0.42));
+        const _fitFont = function(text, maxFont){
           let f = maxFont;
-          ctx.textAlign = 'center'; ctx.textBaseline = 'top';
           ctx.font = 'bold '+f+'px Arial,sans-serif';
           while(f > 6 && ctx.measureText(text).width > colW){
             f -= 1;
             ctx.font = 'bold '+f+'px Arial,sans-serif';
           }
-          ctx.fillStyle = color;
-          ctx.fillText(text, cx, cy);
           return f;
         };
-        const _fBase = Math.max(7, Math.min(13, bw*0.42));
-        let _f = _hLabel(sideTxt, cx, 2, isBuy?'#00ff88':'#ff2d55', _fBase);
-        let _row = 2 + _f + 3;
-        _f = _hLabel(txt, cx, _row, '#00f5ff', _fBase);
-        _row += _f + 3;
-        if(tm){ _f = _hLabel(tm, cx, _row, '#cfe6ff', _fBase); _row += _f + 3; }
-        _hLabel(prob.toFixed(0)+'%', cx, _row, '#ffe066', _fBase);
+        const _hLabel = function(text, cx, cy, color, baseline){
+          const f = _fitFont(text, _fBase);
+          ctx.font = 'bold '+f+'px Arial,sans-serif';
+          ctx.textAlign = 'center'; ctx.textBaseline = baseline;
+          ctx.fillStyle = color;
+          ctx.fillText(text, cx, cy);
+        };
+        // GROUP 1 (top): side + price, stacked tight
+        const _f1 = _fitFont(sideTxt, _fBase);
+        _hLabel(sideTxt, cx, 2, isBuy?'#00ff88':'#ff2d55', 'top');
+        _hLabel(txt, cx, 2+_f1+2, '#00f5ff', 'top');
+        // GROUP 2 (middle): time
+        if(tm) _hLabel(tm, cx, h/2, '#cfe6ff', 'middle');
+        // GROUP 3 (bottom): prob%
+        _hLabel(prob.toFixed(0)+'%', cx, h-2, '#ffe066', 'bottom');
       }
     }
   });
