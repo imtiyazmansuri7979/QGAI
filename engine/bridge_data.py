@@ -28,6 +28,77 @@ _mv_col_checked = False
 _signal_schema_checked_paths = set()
 
 
+def _recent_csv_has_signal(log_path, bt_str, mode, max_rows=300):
+    """Fast fallback idempotency check when SQLite is unavailable."""
+    try:
+        if not os.path.exists(log_path):
+            return False
+        with open(log_path, "r", newline="", encoding="utf-8", errors="replace") as f:
+            rows = list(csv.DictReader(f))
+        for row in rows[-max_rows:]:
+            if (row.get("bar_time") or "").strip() == bt_str and (row.get("mode") or "").strip() == mode:
+                return True
+    except Exception:
+        return False
+    return False
+
+
+def _signal_already_logged(bt_str, mode):
+    """Return True if this candle/mode is already persisted.
+
+    This is the root fix for duplicate Signal Log rows: a polling loop can hit
+    the same closed M15 candle more than once, but the ledger must contain one
+    immutable record for that candle/mode.
+    """
+    try:
+        conn = db_conn()
+        row = conn.execute(
+            "SELECT 1 FROM signals WHERE bar_time=? AND mode=? LIMIT 1",
+            (bt_str, mode),
+        ).fetchone()
+        conn.close()
+        if row:
+            return True
+    except Exception:
+        pass
+    return _recent_csv_has_signal(str(CFG.paths.signal_log), bt_str, mode)
+
+
+def _upsert_signal_csv_row(log_path, row_values):
+    """Replace an existing bar_time row in a signal CSV, else append it."""
+    try:
+        with open(log_path, "r", newline="", encoding="utf-8", errors="replace") as f:
+            rows = list(csv.reader(f))
+        if not rows:
+            return False
+        header = rows[0]
+        try:
+            bt_idx = header.index("bar_time")
+        except ValueError:
+            return False
+        bt = str(row_values[0])
+        width = len(header)
+        row = list(row_values[:width])
+        while len(row) < width:
+            row.append("")
+        replaced = False
+        for i in range(1, len(rows)):
+            if len(rows[i]) > bt_idx and rows[i][bt_idx] == bt:
+                rows[i] = row
+                replaced = True
+                break
+        if not replaced:
+            rows.append(row)
+        tmp = log_path + ".tmp"
+        with open(tmp, "w", newline="", encoding="utf-8") as f:
+            csv.writer(f).writerows(rows)
+        shutil.move(tmp, log_path)
+        return True
+    except Exception as e:
+        log.debug(f"signal CSV upsert failed: {e}")
+        return False
+
+
 def _ensure_teq_column(log_path):
     """L8: one-time migration — append a trailing `trading_equity` column (blank for old
     rows) to a signal CSV that predates L8, so new appends stay column-aligned. No-op if
@@ -192,8 +263,9 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
     # 2026-06-23: skip duplicate writes for the same bar+mode (was logging the
     # same M15 bar 2-3x → duplicate rows in signals_all.csv / dashboard log).
     _key = (bt_str, mode)
-    # Repeated same-candle evaluations are intentionally kept as separate rows
-    # because their feature snapshots/probabilities may differ at live time.
+    if _last_sig_key == _key or _signal_already_logged(bt_str, mode):
+        log.debug(f"signal log duplicate skipped: {bt_str} {mode}")
+        return
     _last_sig_key = _key
 
     vals = (
@@ -315,6 +387,15 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
         if file_exists:
             _ensure_signal_columns(log_path)   # one-time backup CSV schema migration
         _teq_out = round(trading_equity, 2) if trading_equity is not None else ""
+        _csv_row = list(vals) + [
+            "", round(equity, 2), "", _teq_out, trade_action, model_version,
+            audit["signal_id"], audit["signal_created_at"], audit["market_timestamp"],
+            audit["symbol"], audit["timeframe"], audit["decision_threshold"],
+            audit["combined_model_score"], audit["state_model_score"],
+            audit["directional_model_score"], audit["model_hash"],
+            audit["model_file_name"], audit["feature_hash"], audit["decision"],
+            audit["signal_status"], audit["feature_snapshot_json"],
+        ]
         with open(log_path, "a", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
             if not file_exists:
@@ -329,15 +410,7 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
                     "directional_model_score","model_hash","model_file_name","feature_hash",
                     "decision","signal_status","feature_snapshot_json"
                 ])
-            w.writerow(list(vals) + [
-                "", round(equity, 2), "", _teq_out, trade_action, model_version,
-                audit["signal_id"], audit["signal_created_at"], audit["market_timestamp"],
-                audit["symbol"], audit["timeframe"], audit["decision_threshold"],
-                audit["combined_model_score"], audit["state_model_score"],
-                audit["directional_model_score"], audit["model_hash"],
-                audit["model_file_name"], audit["feature_hash"], audit["decision"],
-                audit["signal_status"], audit["feature_snapshot_json"],
-            ])
+            w.writerow(_csv_row)
     except Exception as e:
         log.debug(f"CSV signal log failed: {e}")
 
@@ -346,17 +419,7 @@ def log_signal(bar_time, signal, result, price, mode, lot=0.0, sl=0.0, tp=0.0,
         _sc_path = os.path.join(os.path.dirname(str(CFG.paths.signal_log)), "signals_complete.csv")
         if os.path.exists(_sc_path):
             _ensure_signal_columns(_sc_path)
-            _teq_out = round(trading_equity, 2) if trading_equity is not None else ""
-            with open(_sc_path, "a", newline="", encoding="utf-8") as f:
-                csv.writer(f).writerow(list(vals) + [
-                    "", round(equity, 2), "", _teq_out, trade_action, model_version,
-                    audit["signal_id"], audit["signal_created_at"], audit["market_timestamp"],
-                    audit["symbol"], audit["timeframe"], audit["decision_threshold"],
-                    audit["combined_model_score"], audit["state_model_score"],
-                    audit["directional_model_score"], audit["model_hash"],
-                    audit["model_file_name"], audit["feature_hash"], audit["decision"],
-                    audit["signal_status"], audit["feature_snapshot_json"],
-                ])
+            _upsert_signal_csv_row(_sc_path, _csv_row)
     except Exception:
         pass
 

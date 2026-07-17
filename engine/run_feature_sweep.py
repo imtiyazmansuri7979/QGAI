@@ -44,7 +44,7 @@ from pathlib import Path
 
 ENGINE = Path(__file__).parent
 sys.path.insert(0, str(ENGINE))
-from features import FEATURE_ALIASES, FEATURE_COLS, _ZERO_IMP  # noqa: E402
+from features import FEATURE_ALIASES, FEATURE_COLS, FEATURE_FAMILIES, _ZERO_IMP  # noqa: E402
 
 
 def alias_of(feat):
@@ -80,7 +80,8 @@ TRAIN_CUTOFF = os.environ.get("QGAI_SWEEP_TRAIN_CUTOFF", "2026-03-31")
 BT_FROM = os.environ.get("QGAI_SWEEP_FROM", "2026-04-01")
 BT_TO   = os.environ.get("QGAI_SWEEP_TO", "2026-06-29")
 BT_ARGS = ["--from", BT_FROM, "--to", BT_TO, "--equity", "10000",
-           "--fixed-lot", "0.01", "--risk", "3", "--ratchet", "auto",
+           "--fixed-lot", "0.01", "--risk", "3", "--spread", "0.20",
+           "--ratchet", "auto",
            "--ratchet-buf-pct", "0.15", "--tp-regime", "--tp-equity-pct", "0",
            "--max-open", "1"]
 
@@ -429,14 +430,185 @@ def load_reused_baseline():
     return data
 
 
+def _build_family_groups():
+    """Build testable family groups from FEATURE_FAMILIES.
+    For each family, split members into active (ablate) and dropped (unprune).
+    Skip families where ALL members are permanently deleted (e.g. corr_imp_ratio)."""
+    groups = []
+    for fam_name, members in FEATURE_FAMILIES.items():
+        active = [f for f in members if is_currently_active(f)]
+        dropped = [f for f in members if f in _ZERO_IMP and f in _all_known_features()]
+        if not active and not dropped:
+            continue
+        groups.append({
+            "family": fam_name,
+            "active": active,
+            "dropped": dropped,
+            "mode": "ablate" if active else "unprune",
+        })
+    return groups
+
+
+def _all_known_features():
+    return set(FEATURE_ALIASES.keys())
+
+
+def _run_group_sweep(args):
+    """Group ablation mode: test entire information-families at once."""
+    groups = _build_family_groups()
+    if args.only_family:
+        wanted = [f.strip() for f in args.only_family.split(",") if f.strip()]
+        missing = [f for f in wanted if f not in FEATURE_FAMILIES]
+        if missing:
+            print(f"--only-family contains unknown families: {', '.join(missing)}")
+            print(f"Available: {', '.join(FEATURE_FAMILIES.keys())}")
+            return 1
+        groups = [g for g in groups if g["family"] in wanted]
+
+    print(f"[setup] All retrains in this sweep go to a SEPARATE folder: {TEST_WORKSPACE}")
+    print(f"[setup] data/models/final (live) is never touched by this script.")
+
+    print("=" * 64)
+    print(f"  FAMILY GROUP ABLATION SWEEP ({len(groups)} families)")
+    print(f"  Each family tested as a GROUP (all members together)")
+    print(f"  train cutoff={TRAIN_CUTOFF} | backtest {BT_FROM} -> {BT_TO}")
+    print("=" * 64)
+    for g in groups:
+        act = g["active"]
+        drp = g["dropped"]
+        print(f"  {g['family']:16s} | {len(act)} active (ablate) + {len(drp)} dropped (unprune)")
+        if act:
+            print(f"    active:  {', '.join(act)}")
+        if drp:
+            print(f"    dropped: {', '.join(drp)}")
+    print("=" * 64)
+
+    try:
+        baseline = load_reused_baseline()
+    except Exception as e:
+        print(f"baseline reuse FAILED: {e}")
+        return 1
+    if baseline is not None:
+        print(f"\n[baseline] REUSED from {baseline.get('reused_from')}")
+    else:
+        print("\n[baseline] current committed feature set, unchanged...")
+        baseline = run_one("baseline", sort_id="000")
+        if baseline is None:
+            print("baseline FAILED -- aborting sweep (fix train.py/backtest_replay.py first)")
+            return 1
+    base_r = baseline.get("total_r") or 0.0
+    base_trades = baseline.get("trades") or 0
+    base_captured = baseline.get("captured_pts")
+    print(f"  baseline: R={base_r} PF={baseline.get('pf')} WR={baseline.get('wr')}% "
+          f"captured={base_captured} pts efficiency={baseline.get('efficiency_pct')}% of path")
+
+    durs = []
+    results = [baseline]
+    for i, g in enumerate(groups, 1):
+        t0 = time.time()
+        fam = g["family"]
+        label = f"family_{fam}"
+        if g["active"]:
+            ablate_str = ",".join(g["active"])
+            unprune_str = ""
+            mode_desc = f"ablate {len(g['active'])}"
+        else:
+            ablate_str = ""
+            unprune_str = ",".join(g["dropped"])
+            mode_desc = f"unprune {len(g['dropped'])}"
+        print(f"\n[{i}/{len(groups)}] FAMILY: {fam} ({mode_desc} features)...")
+        m = run_one(label, ablate=ablate_str, unprune=unprune_str, sort_id=f"{i:03d}")
+        if m is None:
+            print(f"\nABORTING sweep: {label} failed. Fix the error above, then rerun; cached completed features will be reused.")
+            return 1
+        m["is_active"] = bool(g["active"])
+        m["family"] = fam
+        m["family_active"] = g["active"]
+        m["family_dropped"] = g["dropped"]
+        results.append(m)
+        delta = (m.get("total_r") or 0.0) - base_r
+        verdict, reasons = _auto_verdict(m["is_active"], delta, m, base_trades, base_captured)
+        m["verdict"] = verdict
+        m["verdict_reasons"] = "; ".join(reasons)
+        print(f"  R={m.get('total_r')} (delta {delta:+.1f} vs baseline) | {verdict}")
+        for r in reasons:
+            print(f"    - {r}")
+        if "r_buy" in m:
+            print(f"    BUY {m.get('r_buy'):+.1f}R/{m.get('n_buy')}tr | SELL {m.get('r_sell'):+.1f}R/{m.get('n_sell')}tr")
+        if "r_ranging" in m:
+            print(f"    Ranging {m.get('r_ranging'):+.1f}R | Trending {m.get('r_trending'):+.1f}R | Volatile {m.get('r_volatile'):+.1f}R")
+        if m.get("captured_pts") is not None:
+            cap_delta = m["captured_pts"] - (base_captured or 0)
+            print(f"    Captured {m['captured_pts']:+.0f} pts (delta {cap_delta:+.0f}) | "
+                  f"efficiency {m.get('efficiency_pct')}% of path (baseline {baseline.get('efficiency_pct')}%)")
+        durs.append(time.time() - t0)
+        avg = sum(durs) / len(durs)
+        left = (len(groups) - i) * avg
+        eta = datetime.fromtimestamp(time.time() + left).strftime("%H:%M")
+        print(f"  time {durs[-1]/60:.1f}m | avg {avg/60:.1f}m | ~{left/60:.0f}m remaining | ETA {eta}")
+
+    summary_prefix = _sweep_result_prefix() if os.environ.get("QGAI_FEATURE_SWEEP_RESULT_ID") or os.environ.get("RESULT_ID") else "family_group"
+    summary_path = SWEEP_DIR / f"{summary_prefix}_SUMMARY.csv"
+    with open(summary_path, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f)
+        w.writerow(["label", "family", "features_ablated", "features_unpruned", "mode",
+                    "total_r", "trades", "pf", "wr", "dd",
+                    "delta_vs_baseline", "captured_pts", "delta_captured_pts", "efficiency_pct",
+                    "verdict", "verdict_reasons",
+                    "r_buy", "n_buy", "r_sell", "n_sell",
+                    "r_ranging", "n_ranging", "r_trending", "n_trending", "r_volatile", "n_volatile",
+                    "weeks_total", "weeks_negative", "top_trade_share_of_r"])
+        for r in results:
+            _ablated = r.get("ablate", "")
+            _unpruned = r.get("unprune", "")
+            _fam = r.get("family", "")
+            _mode = "ablate" if _ablated else ("unprune" if _unpruned else "baseline")
+            delta = 0.0 if r is baseline else (r.get("total_r") or 0.0) - base_r
+            _cap = r.get("captured_pts")
+            _cap_delta = None if (r is baseline or _cap is None or base_captured is None) else round(_cap - base_captured, 1)
+            w.writerow([r.get("label"), _fam, _ablated, _unpruned, _mode, r.get("total_r"),
+                       r.get("trades"), r.get("pf"), r.get("wr"), r.get("dd"), round(delta, 2),
+                       _cap, _cap_delta, r.get("efficiency_pct"),
+                       r.get("verdict", ""), r.get("verdict_reasons", ""),
+                       r.get("r_buy"), r.get("n_buy"), r.get("r_sell"), r.get("n_sell"),
+                       r.get("r_ranging"), r.get("n_ranging"), r.get("r_trending"), r.get("n_trending"),
+                       r.get("r_volatile"), r.get("n_volatile"),
+                       r.get("weeks_total"), r.get("weeks_negative"), r.get("top_trade_share_of_r")])
+    print(f"\nSummary saved: {summary_path}")
+    print("Every row's --out-dir also has the full backtest_report.txt + trades/signals CSVs.")
+    print("\nInterpretation (Imtiyaz's 2026-07-17 correction, Fable-5 confirmed):")
+    print("  ABLATE arms (whole active family removed) will ALMOST ALWAYS show a")
+    print("  big negative delta — that's trivial (you deleted most of the family's")
+    print("  signal), NOT evidence of a specific pairwise interaction. Do not read")
+    print("  a negative ablate-arm delta as 'this family is load-bearing' proof of")
+    print("  interaction structure — use it only as a coarse signal-mass check.")
+    print("  UNPRUNE arms (restore dropped family members) ARE decision-relevant —")
+    print("  a positive delta there is real evidence those features should return.")
+    print("  For actual pairwise interaction detection, use FS67-25 (SHAP native")
+    print("  interaction screen, zero-retrain) then confirm top pairs individually.")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description="QGAI feature-by-feature validation sweep")
-    ap.add_argument("--tier", choices=list(TIERS.keys()), required=True)
+    ap.add_argument("--mode", choices=["individual", "group"], default="individual",
+                    help="individual = one-at-a-time (legacy); group = family group ablation (Fable-5 2026-07-17)")
+    ap.add_argument("--tier", choices=list(TIERS.keys()), default=None,
+                    help="feature tier (required for --mode individual)")
     ap.add_argument("--limit", type=int, default=0,
-                     help="only test the first N features this tier (0 = all)")
+                     help="only test the first N features/families (0 = all)")
     ap.add_argument("--only", default="",
-                    help="comma-separated feature names to run from this tier only")
+                    help="comma-separated feature names to run from this tier only (individual mode)")
+    ap.add_argument("--only-family", default="",
+                    help="comma-separated family names to test (group mode, e.g. ADX_DI,Timing)")
     args = ap.parse_args()
+
+    if args.mode == "group":
+        return _run_group_sweep(args)
+
+    if not args.tier:
+        print("--tier is required for --mode individual")
+        return 1
 
     features = TIERS[args.tier]
     if args.only.strip():

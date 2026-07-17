@@ -95,18 +95,34 @@ body{font-family:'Arial',sans-serif;font-weight:700;background:var(--bg);backgro
 .hidden{display:none!important}
 
 /* HEADER */
-.hdr{display:flex;align-items:stretch;background:var(--panel2);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:3px}
-.hdr-logo{padding:7px 14px;border-right:1px solid var(--border);min-width:170px;display:flex;flex-direction:column;justify-content:center}
-.logo{font-family:var(--orb);font-size:1.3rem;font-weight:900;color:var(--gold);letter-spacing:3px}
+.hdr{display:grid;grid-template-columns:minmax(245px,330px) minmax(650px,1fr) minmax(220px,235px) minmax(185px,220px);align-items:center;gap:6px;background:linear-gradient(160deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:2px;padding:3px 7px;box-shadow:var(--panel-glow);min-width:0;min-height:56px}
+.hdr-logo{padding:3px 11px;min-width:0;display:flex;flex-direction:column;justify-content:center;background:rgba(0,212,255,.035);border:1px solid var(--border);border-radius:8px;box-shadow:var(--panel-glow);align-self:center;min-height:43px}
+.logo{font-family:var(--orb);font-size:1.19rem;font-weight:900;color:var(--gold);letter-spacing:2.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1}
 .logo .g{color:var(--blue)}
-.hdr-prices{display:flex;flex:1;border-right:1px solid var(--border)}
-.hdr-pcell{flex:1;padding:5px 8px;text-align:center;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center}
-.hdr-pcell:last-child{border-right:none}
-.hdr-plbl{font-size:0.69rem;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:1px}
-.hdr-pval{font-family:var(--orb);font-size:1.15rem;font-weight:700;white-space:nowrap}
-.hdr-mid{padding:6px 12px;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;min-width:160px}
-.hdr-right{padding:6px 12px;font-size:0.78rem;color:var(--dim);text-align:right;line-height:1.7;display:flex;flex-direction:column;justify-content:center;min-width:170px}
+.hdr-prices{display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:6px;min-width:0;align-self:center}
+.hdr-pcell{padding:2px 7px;text-align:center;display:flex;flex-direction:column;justify-content:center;background:rgba(0,10,20,.35);border:1px solid var(--border);border-radius:8px;box-shadow:var(--panel-glow);min-width:0;min-height:43px}
+.hdr-pcell:last-child{border-right:1px solid var(--border)}
+.hdr-plbl{font-size:0.66rem;letter-spacing:1.8px;color:var(--dim);text-transform:uppercase;margin-bottom:0;line-height:1}
+.hdr-pval{font-family:var(--orb);font-size:1.13rem;font-weight:700;white-space:nowrap;line-height:1}
+.hdr-mid{padding:3px 4px;display:grid;grid-template-columns:minmax(0,1fr) 54px;grid-template-rows:auto auto;align-items:center;gap:2px 4px;min-width:0;background:rgba(0,10,20,.35);border:1px solid var(--border);border-radius:8px;box-shadow:var(--panel-glow);overflow:hidden;align-self:center;min-height:56px}
+.hdr-status{grid-column:1;grid-row:1;font-size:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;justify-content:flex-end;gap:4px;min-width:0}
+.hdr-status #updated{font-size:0!important}
+.hdr-status #updated::after{content:'SYNC';font-size:0.68rem;color:var(--cyan);letter-spacing:1px}
+.hdr-control-row{grid-column:1;grid-row:2;display:grid!important;grid-template-columns:38px 52px 70px;grid-auto-rows:18px;align-items:center;justify-self:end;justify-content:end;width:max-content;gap:2px 4px!important;font-size:0.58rem!important;color:var(--dim);min-width:0;max-width:100%;overflow:hidden}
+.hdr-mid .refresh-sel{width:100%;max-width:none;font-size:0.58rem!important;padding:0 5px!important;height:18px!important;line-height:1!important}
+.hdr-mid #refresh_sel{max-width:52px}
+.hdr-mid .focus-btn,.hdr-mid .dim-btn{font-size:0.58rem!important;padding:0 5px!important;margin-left:0!important;height:18px!important;line-height:1!important}
+.hdr-mid .focus-btn{width:100%;color:transparent;position:relative}
+.hdr-mid .focus-btn::after{content:'⊙';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:.96rem}
+.hdr-mid .focus-btn.on::after{content:'⊙';color:var(--orange)}
+.hdr-mid .mode-btn{grid-column:2;grid-row:1 / 3;align-self:stretch;justify-self:stretch;min-width:0;height:100%;min-height:0;margin-left:0!important;font-size:0.68rem!important;padding:1px 5px!important;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;border-radius:9px}
+.hdr-control-row #refresh_sel{grid-column:2;grid-row:1}
+.hdr-control-row #theme_sel{grid-column:3;grid-row:1;max-width:70px}
+.hdr-control-row #dim_btn{grid-column:3;grid-row:2;max-width:70px}
+.hdr-control-row #focus_btn{grid-column:2;grid-row:2}
+.hdr-right{padding:2px 6px;font-size:0.78rem;color:var(--dim);text-align:right;line-height:1.08;display:flex;flex-direction:column;justify-content:center;min-width:0;background:rgba(0,10,20,.35);border:1px solid var(--border);border-radius:8px;box-shadow:var(--panel-glow);overflow:hidden;align-self:center;min-height:43px}
 .hdr-right span{color:var(--cyan)}
+#hdr_symbol_sub{font-size:0.74rem!important;line-height:1!important;margin-top:0!important}
 .live{display:inline-block;width:8px;height:8px;background:var(--green);border-radius:50%;margin-right:5px;animation:pulse 1.2s infinite;box-shadow:0 0 6px var(--green)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
@@ -318,21 +334,50 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 /* Signal log rows */
 #liveSigRows{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent}
 #panel_signal,#panel_signal_log{box-sizing:border-box;display:flex;flex-direction:column;min-height:0}
-#panel_signal{height:auto!important;overflow:hidden!important}
+#panel_signal{height:100%!important;overflow:hidden!important}
+/* 2026-07-16 (preventive hardening, full-dashboard audit): hours_heatmap_wrap
+   and panel_closed_trades stretch to height:100% of their GridStack wrapper
+   (so, unlike signal_history_panel, they can never mismatch it) but still
+   carried the base .tcard `overflow:auto` -- meaning if their own content
+   ever grows past that 100% box, a native scrollbar could silently appear
+   on the panel itself instead of clipping cleanly, same failure class as the
+   Signal box's fix above. No mismatch/clipping found in the audit; this is a
+   defensive match to the already-hardened panel_signal/signal_history_panel,
+   not a fix for an observed bug. */
+#hours_heatmap_wrap,#panel_closed_trades{overflow:hidden!important}
 /* 2026-07-15 (Imtiyaz reported, screenshot): SIGNAL box showed a native
    browser scrollbar (with up/down arrow buttons) -- caused by a 1px
    sub-pixel rounding mismatch between panel_signal's exact content height
    and .grid-stack-item-content's computed height (both set independently in
    JS/CSS), enough for the inherited overflow:auto (line ~230) to trigger a
    scrollbar. panel_signal/panel_signal_log already manage their own internal
-   overflow, so the outer wrapper doesn't need overflow:auto for this pair. */
+   overflow, so the outer wrapper doesn't need overflow:auto for this pair.
+   2026-07-16 (Imtiyaz reported, screenshot: scrollbar on the right of the
+   Signal History bar panel): same root cause, confirmed live -- after
+   _fitPanelToGrid() changes signal_history's gs-h, the wrapper's own
+   `height:calc(gs-h*var(--gs-cell-height))` got stuck rendering at the OLD
+   h's pixel value (measured 56px instead of the correct 112px for h=2; a
+   forced reflow, e.g. toggling display:none/'', immediately corrected it --
+   proving it's this same stuck-mid-transition class of bug, not a real
+   content-vs-slot mismatch). signal_history/hours_heatmap/closed_trades
+   never got the transition-exclusion below when it was added for
+   signal/signal_log, so they were still exposed. Added to both rules. */
 .grid-stack-item[gs-id="signal"]>.grid-stack-item-content,
-.grid-stack-item[gs-id="signal_log"]>.grid-stack-item-content{overflow:hidden}
+.grid-stack-item[gs-id="signal_log"]>.grid-stack-item-content,
+.grid-stack-item[gs-id="signal_history"]>.grid-stack-item-content,
+.grid-stack-item[gs-id="hours_heatmap"]>.grid-stack-item-content,
+.grid-stack-item[gs-id="closed_trades"]>.grid-stack-item-content{overflow:hidden}
 /* 2026-07-15: GridStack's transition:height 0.3s prevents programmatic height
    changes on signal/signal_log from taking effect (browser can't interpolate
-   from calc(N*var(--gs-cell-height)) to px). Exclude height from transition. */
+   from calc(N*var(--gs-cell-height)) to px). Exclude height from transition.
+   2026-07-16: same exclusion extended to signal_history/hours_heatmap/
+   closed_trades -- see comment above the overflow rule for the confirmed
+   repro (stuck-height scrollbar on Signal History). */
 .grid-stack-animate .grid-stack-item[gs-id="signal"],
-.grid-stack-animate .grid-stack-item[gs-id="signal_log"]{transition:left .3s,right .3s,top .3s,width .3s!important}
+.grid-stack-animate .grid-stack-item[gs-id="signal_log"],
+.grid-stack-animate .grid-stack-item[gs-id="signal_history"],
+.grid-stack-animate .grid-stack-item[gs-id="hours_heatmap"],
+.grid-stack-animate .grid-stack-item[gs-id="closed_trades"]{transition:left .3s,right .3s,top .3s,width .3s!important}
 /* 2026-07-14 (Imtiyaz, "sl_progress_wrap જેવો fixed bar"): Open Trades is no
    longer a GridStack panel (moved to the plain conditional-bars list in
    gsInitDashboard, alongside sl_progress_wrap/danger_banner) -- default HIDDEN
@@ -350,7 +395,9 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 #panel_open_trades .bb-val{font-size:0.74rem}
 #panel_open_trades .bb-val .sub{font-size:0.67rem}
 #panel_signal_log{height:100%;overflow:hidden!important}
-#panel_signal .sig-hero-card{flex:0 0 auto}
+#panel_signal .sig-hero-card{flex:0 0 auto;display:block;min-height:0}
+#panel_signal .sig-hero-bars{margin-top:0}
+#panel_signal .sig-hero-cards{margin-top:4px}
 #panel_signal .sig-hero-reason{flex:0 0 auto;min-height:0}
 #panel_lifecycle{flex:0 0 auto;margin-top:0!important}
 #liveSigRows .replay-row{height:26px;min-height:26px;padding:0 10px;overflow:hidden}
@@ -428,8 +475,8 @@ body.gs-edit-mode .gs-drag-handle:hover{background:rgba(0,212,255,.15)}
 .sl-table-header{display:grid;gap:6px;padding:3px 10px;font-size:0.54rem;font-weight:700;letter-spacing:.3px;color:var(--dim);text-transform:uppercase;background:rgba(0,10,20,.55);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:5}
 .sl-table-header>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;text-align:center}
 .sl-table-header>span:first-child,.sl-table-header>span:nth-child(2){text-align:left}
-.sl-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent}
-.sl-row{display:grid;gap:6px;align-items:center;min-height:22px;position:relative;overflow:hidden;padding:0 10px 0 13px;border-bottom:1px solid var(--border-soft)}
+.sl-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent;padding-bottom:0}
+.sl-row{display:grid;gap:6px;align-items:center;height:var(--sl-row-h,21px);min-height:var(--sl-row-h,21px);position:relative;overflow:hidden;padding:0 10px 0 13px;border-bottom:1px solid var(--border-soft)}
 /* F-S2: without this, the last row's own border-bottom + the panel's
    outer bottom border landed on the same edge = a visible double line. */
 .sl-row:last-child{border-bottom:none}
@@ -690,22 +737,22 @@ footer{text-align:center;color:var(--dim);font-size:0.69rem;padding:8px 0;border
 /* 2026-07-14 (Imtiyaz): vSL/TP bar made ~30% smaller across the board --
    track height, header/label font-sizes, badge sizes, padding all scaled
    down by roughly 0.7x from their original values. */
-.sl-progress-wrap{margin-bottom:2px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:2px 7px 3px;display:none}
-.sl-progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;font-size:0.48rem}
-.sl-progress-track{position:relative;height:38px;background:#020305;border-radius:5px;overflow:visible;border:1px solid var(--border-track)}
+.sl-progress-wrap{margin-bottom:2px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:2px 8px 3px;display:none;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,.35) transparent}
+.sl-progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1px;font-size:0.60rem;line-height:1;min-width:760px}
+.sl-progress-track{position:relative;height:36px;background:#020305;border-radius:5px;overflow:visible;border:1px solid var(--border-track);min-width:760px}
 .sl-progress-gradient{display:none}
-.sl-eq-grid{position:absolute;inset:6px 7px;display:grid;grid-template-columns:repeat(24,1fr);gap:2px;z-index:1}
+.sl-eq-grid{position:absolute;inset:6px 8px 7px;display:grid;grid-template-columns:repeat(24,1fr);gap:2px;z-index:1}
 .sl-eq-col{position:relative;min-width:0;border-radius:2px;background:var(--c);opacity:.88;box-shadow:0 0 7px color-mix(in srgb,var(--c),transparent 62%),inset 0 0 0 1px rgba(255,255,255,.12);filter:saturate(1.22);transition:opacity .25s,box-shadow .25s,filter .25s,transform .25s}
 .sl-eq-col.on{opacity:1;box-shadow:0 0 14px color-mix(in srgb,var(--c),transparent 28%),0 0 26px color-mix(in srgb,var(--c),transparent 62%),inset 0 0 0 1px rgba(255,255,255,.24);filter:saturate(1.55) brightness(1.18)}
-.sl-eq-col.current{transform:scaleY(1.3);z-index:4;box-shadow:0 0 12px #fff,0 0 24px color-mix(in srgb,var(--c),transparent 20%),0 0 44px color-mix(in srgb,var(--c),transparent 45%),inset 0 0 0 2px rgba(255,255,255,.88);filter:saturate(1.8) brightness(1.28)}
-.sl-eq-col.current:after{content:attr(data-price);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff8dc;color:#241000;border:1px solid #fbbf24;border-radius:999px;padding:2px 7px;font:900 9px var(--orb);white-space:nowrap;box-shadow:0 0 12px rgba(251,191,36,.9);letter-spacing:.2px;z-index:5}
+.sl-eq-col.current{transform:scaleY(1.22);z-index:4;box-shadow:0 0 10px #fff,0 0 18px color-mix(in srgb,var(--c),transparent 22%),0 0 32px color-mix(in srgb,var(--c),transparent 48%),inset 0 0 0 2px rgba(255,255,255,.82);filter:saturate(1.65) brightness(1.2)}
+.sl-eq-col.current:after{content:attr(data-price);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff8dc;color:#241000;border:1px solid #fbbf24;border-radius:999px;padding:2px 8px;font:900 10px var(--orb);white-space:nowrap;box-shadow:0 0 10px rgba(251,191,36,.85);letter-spacing:.1px;z-index:5}
 .sl-eq-block{display:none}
 .sl-progress-marker{position:absolute;top:0;width:1.5px;height:100%;background:rgba(255,255,255,0.45);z-index:1}
 .sl-progress-dot{display:none}
-.sl-progress-labels{position:relative;height:10px;margin-top:1px;font-size:0.42rem;color:var(--dim)}
+.sl-progress-labels{position:relative;height:10px;margin-top:1px;font-size:0.54rem;line-height:1;color:var(--dim);min-width:760px}
 .sl-progress-labels span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
-.sl-r-badge{font-family:var(--orb);font-size:0.62rem;font-weight:700;padding:1px 7px;border-radius:10px;letter-spacing:1px}
-.sl-pct-badge{font-family:var(--orb);font-size:0.63rem;font-weight:700;padding:1px 6px;border-radius:10px}
+.sl-r-badge{font-family:var(--orb);font-size:0.72rem;font-weight:700;padding:1px 8px;border-radius:10px;letter-spacing:1px}
+.sl-pct-badge{font-family:var(--orb);font-size:0.72rem;font-weight:700;padding:1px 6px;border-radius:10px}
 .risk-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-bottom:3px}
 .rc{background:#010810;border:1px solid var(--border);border-radius:5px;padding:3px 4px;text-align:center;min-width:0}
 .rc .rl{font-size:0.69rem;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -749,16 +796,19 @@ footer{text-align:center;color:var(--dim);font-size:0.69rem;padding:8px 0;border
 .g3-settings{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
 
 /* ── TAB SYSTEM ── */
-.tab-bar{display:flex;gap:3px;margin-bottom:3px;background:var(--panel2);padding:3px;border-radius:8px;border:1px solid var(--border)}
+.tab-bar{display:flex;gap:8px;margin-bottom:5px;background:linear-gradient(160deg,rgba(0,10,20,.72),rgba(0,212,255,.035));padding:7px;border-radius:14px;border:1px solid var(--border-glow);box-shadow:var(--panel-glow);overflow:hidden}
 /* 2026-07-16 (Fable-5 border audit, F5.2): border is now transparent 1px
    instead of `none` — .tab-btn.active adds a real 1px border below, so
    switching tabs no longer shifts the button's inner content by 1px. */
-.tab-btn{flex:1;padding:5px 8px;border:1px solid transparent;background:transparent;color:var(--dim);font-family:var(--orb);font-size:0.69rem;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border-radius:5px;transition:background 0.2s,color 0.2s,border-color 0.2s}
-.tab-btn:hover{color:var(--text);background:var(--panel)}
-.tab-btn.active{background:var(--panel);color:var(--cyan);border:1px solid var(--border)}
-.tab-btn.active.t-live{color:var(--green);border-color:var(--green);background:rgba(0,255,136,0.07)}
-.tab-btn.active.t-analysis{color:var(--blue);border-color:var(--blue);background:rgba(0,212,255,0.07)}
-.tab-btn.active.t-stats{color:var(--gold);border-color:var(--gold);background:rgba(255,215,0,0.07)}
+.tab-btn{flex:1;min-width:0;padding:7px 12px;border:1px solid rgba(0,212,255,.12);background:rgba(0,10,20,.34);color:var(--dim);font-family:'Arial',sans-serif;font-size:0.68rem;letter-spacing:2.4px;text-transform:uppercase;cursor:pointer;border-radius:999px;transition:background .18s,color .18s,border-color .18s,box-shadow .18s,transform .18s;display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.015)}
+.tab-btn:hover{color:var(--text);border-color:rgba(0,212,255,.38);background:rgba(0,212,255,.08);box-shadow:0 0 14px rgba(0,212,255,.08)}
+.tab-btn.active{background:linear-gradient(135deg,rgba(0,212,255,.22),rgba(0,255,238,.07));color:var(--cyan);border-color:var(--cyan);box-shadow:0 0 18px rgba(0,212,255,.22),inset 0 0 12px rgba(0,212,255,.06)}
+.tab-btn.active.t-live{color:var(--green);border-color:var(--green);background:linear-gradient(135deg,rgba(0,255,136,.28),rgba(0,255,136,.06));box-shadow:0 0 18px rgba(0,255,136,.20)}
+.tab-btn.active.t-analysis{color:var(--blue);border-color:var(--blue);background:linear-gradient(135deg,rgba(0,212,255,.22),rgba(0,80,255,.06))}
+.tab-btn.active.t-stats{color:var(--gold);border-color:var(--gold);background:linear-gradient(135deg,rgba(255,215,0,.22),rgba(255,136,0,.05))}
+.tab-btn.active.t-ledger{color:var(--orange);border-color:var(--orange);background:linear-gradient(135deg,rgba(255,136,0,.20),rgba(255,136,0,.05))}
+.tab-ico{font-size:.84rem;line-height:1;filter:drop-shadow(0 0 6px currentColor)}
+.tab-text{overflow:hidden;text-overflow:ellipsis}
 .tab-pane{display:none}
 .tab-pane.active{display:block}
 
@@ -810,10 +860,20 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
    live rendered width via c.offsetWidth on every draw, so it picks up
    the extra ~24px automatically, no JS change needed. */
 #signal_history_panel{height:auto!important;min-height:0!important;margin:0!important;overflow:hidden!important}
-#signal_history_panel .tcard-hdr{position:absolute;left:8px;top:4px;z-index:3;height:18px;min-height:0;padding:0!important;border:0!important;background:transparent!important;font-size:0.62rem!important;line-height:18px;pointer-events:auto;cursor:grab}
-#signal_history_panel .tcard-hdr span:not(.panel-drag-handle){display:none!important}
-#signal_history_panel .sig-history-body{position:relative;padding:2px 6px 2px 118px!important;min-height:46px;display:flex;align-items:center}
-#sig_history_chart{display:block;width:100%;height:46px;margin:0}
+/* 2026-07-16 (Imtiyaz reported twice: bottom border not visible): the base
+   .tcard border-bottom (var(--border-glow), 18% opacity, ~0.78px at this
+   DPR) is too faint to read against this panel's own dark canvas fill,
+   even once the earlier clipping bug was fixed. Strengthen ONLY this
+   panel's bottom edge -- top/left/right keep the standard subtle style. */
+#signal_history_panel{border-bottom:2px solid var(--border-glow-hover,rgba(0,212,255,.52))!important}
+/* .tcard-hdr kept empty (drag handle for Edit Layout mode only) — no
+   visible title text anymore, so .sig-history-body no longer needs a wide
+   left-padding reservation to avoid overlapping it (was 118px, now
+   matches the 6px used on the other 3 sides — chart gets the freed
+   ~112px of width). 2026-07-16 (Imtiyaz). */
+#signal_history_panel .tcard-hdr{position:absolute;left:0;top:0;z-index:3;width:100%;height:18px;min-height:0;padding:0!important;border:0!important;background:transparent!important;pointer-events:auto;cursor:grab}
+#signal_history_panel .sig-history-body{position:relative;padding:2px 6px;min-height:108px;display:flex;align-items:center}
+#sig_history_chart{display:block;width:100%;height:108px;margin:0}
 .g2-bot > .tcard:first-child:not(#feedback_panel){display:none}
 .g2-bot > .tcard:last-child{grid-column:1 / -1}
 
@@ -943,8 +1003,8 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 
   <!-- Controls -->
   <div class="hdr-mid">
-    <div><span class="live"></span><span id="updated" style="color:var(--cyan);font-size:0.75rem">Connecting...</span></div>
-    <div style="display:flex;align-items:center;gap:6px;font-size:0.69rem;color:var(--dim)">
+    <div class="hdr-status"><span class="live"></span><span id="updated" style="color:var(--cyan);font-size:0.75rem">Connecting...</span></div>
+    <div class="hdr-control-row">
       <select class="refresh-sel" id="refresh_sel" onchange="setRefresh(this.value)">
         <option value="2000" selected>2s</option>
         <option value="5000">5s</option>
@@ -967,8 +1027,8 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
       </select>
       <button class="dim-btn" id="dim_btn" onclick="toggleDim()">DIM</button>
       <button class="focus-btn" id="focus_btn" onclick="toggleFocus()">⊙ Focus</button>
-      <button class="mode-btn" id="mode_btn" onclick="toggleMode()">🟢 LIVE</button>
     </div>
+    <button class="mode-btn" id="mode_btn" onclick="toggleMode()">&#128994; LIVE</button>
   </div>
 
   <!-- Time + Account -->
@@ -1009,11 +1069,11 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 </div>
 <!-- TAB BAR (moved to top — above the AI summary) -->
 <div class="tab-bar">
-  <button class="tab-btn t-live active" onclick="switchTab('live')">🟢 LIVE</button>
-  <button class="tab-btn t-analysis" onclick="switchTab('analysis')">🔵 ANALYSIS</button>
-  <button class="tab-btn t-stats" onclick="switchTab('stats')">🟡 STATS</button>
-  <button class="tab-btn" onclick="window.open('/chart.html','_blank')">📈 CHART</button>
-  <button class="tab-btn t-ledger" onclick="switchTab('ledger')">📒 LEDGER (paper)</button>
+  <button class="tab-btn t-live active" onclick="switchTab('live')"><span class="tab-ico">&#128994;</span><span class="tab-text">Live</span></button>
+  <button class="tab-btn t-analysis" onclick="switchTab('analysis')"><span class="tab-ico">&#128309;</span><span class="tab-text">Analysis</span></button>
+  <button class="tab-btn t-stats" onclick="switchTab('stats')"><span class="tab-ico">&#128993;</span><span class="tab-text">Stats</span></button>
+  <button class="tab-btn t-chart" onclick="switchTab('chart')"><span class="tab-ico">&#128200;</span><span class="tab-text">Chart</span></button>
+  <button class="tab-btn t-ledger" onclick="switchTab('ledger')"><span class="tab-ico">&#128210;</span><span class="tab-text">Ledger</span></button>
 </div>
 <!-- EDIT MODE TOOLBAR -->
 <div id="gs_toolbar" class="gs-toolbar hidden">
@@ -1046,6 +1106,9 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 <div class="tab-pane" id="tab-ledger">
   <iframe src="/shadow.html" style="width:100%;height:calc(100vh - 120px);border:0;background:#0d1117" title="Virtual Trade Ledger (PAPER — every signal simulated; NOT the real account)"></iframe>
 </div>
+<div class="tab-pane" id="tab-chart">
+  <iframe src="/chart.html" style="width:100%;height:calc(100vh - 120px);border:0;background:#0d1117" title="Live Chart"></iframe>
+</div>
 
 <!-- DANGER BANNER -->
 <div id="danger_banner">⚠ DAILY LOSS LIMIT WARNING — TRADING HALTED SOON ⚠</div>
@@ -1063,12 +1126,12 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
 <!-- SL PROGRESS BAR -->
 <div class="sl-progress-wrap" id="sl_progress_wrap">
   <div class="sl-progress-header">
-    <span style="color:var(--red);font-family:var(--orb);font-size:0.56rem">vSL <span id="sl_prog_vsl_price" style="color:var(--dim);font-size:0.48rem"></span></span>
+    <span style="color:var(--red);font-family:var(--orb);font-size:0.72rem">vSL <span id="sl_prog_vsl_price" style="color:var(--dim);font-size:0.62rem"></span></span>
     <span style="display:flex;align-items:center;gap:4px">
       <span class="sl-r-badge" id="sl_r_badge">R: --</span>
-      <span style="color:var(--dim);font-size:0.5rem" id="sl_prog_pct_detail"></span>
+      <span style="color:var(--dim);font-size:0.62rem" id="sl_prog_pct_detail"></span>
     </span>
-    <span style="color:var(--green);font-family:var(--orb);font-size:0.56rem">🎯 TP <span id="sl_prog_tp_price" style="color:var(--dim);font-size:0.48rem"></span></span>
+    <span style="color:var(--green);font-family:var(--orb);font-size:0.72rem">🎯 TP <span id="sl_prog_tp_price" style="color:var(--dim);font-size:0.62rem"></span></span>
   </div>
   <div class="sl-progress-track">
     <div class="sl-progress-gradient"></div>
@@ -1237,12 +1300,12 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
   function _parseSig(txt){
     if(!txt) return [];
     var L=txt.trim().split('\n'); if(L.length<2) return []; var h=L[0].split(',').map(function(x){return x.trim();}); var ix=function(n){return h.indexOf(n);};
-    var iT=ix('bar_time'),iS=ix('signal'),iW=ix('win_prob'),iH=ix('hmm_state'),iP=ix('price'),iR=ix('in_range_phase'),iO=ix('outcome');
+    var iT=ix('bar_time'),iM=ix('mode'),iS=ix('signal'),iW=ix('win_prob'),iH=ix('hmm_state'),iP=ix('price'),iR=ix('in_range_phase'),iO=ix('outcome');
     var iB=ix('big_win_prob'),iL=ix('lot'),iSl=ix('sl'),iTp=ix('tp'),iE=ix('equity'),iRe=ix('reason'),iMv=ix('move'),iTa=ix('trade_action');
     var iSp=ix('state_prob'),iDp=ix('dir_prob');   // for the SIGNAL-box fallback (mirror the log)
     var iSid=ix('signal_id');   // 2026-07-14: immutable per-inference ID — see note below
     return L.slice(1).filter(function(x){return x;}).map(function(l){var c=l.split(',');
-      return {time:((c[iT]||'').split(' ')[1]||(c[iT]||'')).slice(0,5),bt:(c[iT]||'').trim(),sig:(c[iS]||'').trim(),
+      return {time:((c[iT]||'').split(' ')[1]||(c[iT]||'')).slice(0,5),bt:(c[iT]||'').trim(),mode:(iM>=0?(c[iM]||'').trim():''),sig:(c[iS]||'').trim(),
         wp:c[iW],regime:(c[iH]||'').trim(),price:c[iP],range:(c[iR]||'').trim(),outcome:(c[iO]||'').trim().toUpperCase(),
         bw:c[iB],lot:c[iL],sl:c[iSl],tp:c[iTp],eq:(iE>=0?c[iE]:''),reason:(iRe>=0?(c[iRe]||'').trim():''),move:(iMv>=0?(c[iMv]||'').trim():''),ta:(iTa>=0?(c[iTa]||'').trim():''),
         sp:(iSp>=0?c[iSp]:''),dp:(iDp>=0?c[iDp]:''),sid:(iSid>=0?(c[iSid]||'').trim():'')};});
@@ -1255,15 +1318,13 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
         :fetch('/logs/signals_complete.csv?_='+Date.now()).then(function(r){return r.ok?r.text():'';})
           .then(function(t){_completeRows=_parseSig(t);return _completeRows;}).catch(function(){_completeRows=[];return [];});
       Promise.all([compP,liveP]).then(function(res){
-        // merge: full-history (history) + live (recent, real). Keyed by signal_id, the
-        // immutable per-inference-event ID — NOT bar_time. Two rows CAN legitimately
-        // share a bar_time (a candle re-evaluated, e.g. BACKFILL then LIVE, each with
-        // its own snapshot/probability); keying by bar_time alone would silently
-        // collapse them to whichever one processed last, changing what this panel
-        // shows for that time slot between refreshes (a dashboard-only repaint, found
-        // + fixed 2026-07-14 — see docs/FIXES_CHANGELOG4.md). Rows without a signal_id
-        // (pre-migration legacy CSV data) fall back to the old bar_time key.
-        var _rk=function(r){return r.sid||r.bt;};
+        // merge: full-history (history) + live (recent, real). The dashboard
+        // Signal Log is one closed M15 candle = one visible row, so the
+        // canonical merge key is bar_time + mode. signal_id remains audit
+        // metadata, but cannot be the display key because legacy/full-history
+        // rows may have blank signal_id while the live row has one, causing
+        // the same candle to print twice.
+        var _rk=function(r){return (r.bt||'')+'|'+(r.mode||'');};
         var map={}; res[0].forEach(function(r){var k=_rk(r);if(k)map[k]=r;}); res[1].forEach(function(r){var k=_rk(r);if(k)map[k]=r;});
         _liveSigData=Object.keys(map).map(function(k){return map[k];});
         window._liveSigData=_liveSigData;   // expose → SIGNAL box can mirror the log's last BUY/SELL
@@ -1373,8 +1434,10 @@ body.dim-mode{--bg:#0a1520;--panel:#0d1e2e;--panel2:#0b1928;--border:#1a3a55;--d
     <!-- Signal History — moved BELOW Signal Log (2026-07-03). Old Market Structure /
          Why This Signal / Market Intelligence panels removed → new 🧠 AI + 📊 Market boxes on top. -->
     <div class="tcard" id="signal_history_panel">
-      <div class="tcard-hdr">Signal History <span>chart · full log in 📋 SIGNAL LOG above ↑</span></div>
-      <div class="sig-history-body" style="padding:4px 6px 8px">
+      <!-- Title text removed (2026-07-16, Imtiyaz) so the chart can use the full
+           panel width; .tcard-hdr div kept (empty) as the Edit Layout drag handle. -->
+      <div class="tcard-hdr" title="Signal History — last 8h (32 bars)"></div>
+      <div class="sig-history-body">
         <canvas id="sig_history_chart"></canvas>
       </div>
     </div>
@@ -2322,7 +2385,8 @@ function drawSparkline(history, balance){
   if(!c) return;
   c.width = c.offsetWidth || c.parentElement.offsetWidth || 400;
   const ctx = c.getContext('2d');
-  ctx.clearRect(0,0,c.width,c.height);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
   if(history.length < 2) return;
   const mn = Math.min(...history), mx = Math.max(...history);
   const range = mx - mn || 1;
@@ -2386,16 +2450,20 @@ function drawDonut(wins, losses){
 function drawSigChart(history){
   const c = document.getElementById('sig_history_chart');
   if(!c) return;
-  c.width = c.offsetWidth || c.parentElement.offsetWidth || 300;
-  c.height = c.offsetHeight || 60;            // match CSS px → 1:1 mapping, crisp price text
+  const cssW = c.offsetWidth || c.parentElement.offsetWidth || 300;
+  const cssH = c.offsetHeight || 60;
+  const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+  c.width = Math.round(cssW * dpr);
+  c.height = Math.round(cssH * dpr);
   const ctx = c.getContext('2d');
-  ctx.clearRect(0,0,c.width,c.height);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
   if(!history||history.length===0) return;
-  const items = history.slice(-20);
-  const w = c.width, h = c.height;
+  const items = history.slice(-32);           // 32 M15 bars = last 8 hours (was 20 = 5h)
+  const w = cssW, h = cssH;
   const bh = h - 2;                           // bars use the FULL height — labels overlap ON the bars (no reserved zone)
   const bw = Math.max(3, (w / items.length) - 2);
-  const _wide = bw >= 15;                      // only label when bars are wide enough to read
+  const _wide = bw >= 13;                      // only label when bars are wide enough to read
   // helper: pull HH:MM out of whatever bar_time format the backend sends
   const _hhmm = (bt)=>{ const m = String(bt||'').match(/(\d{1,2}:\d{2})/); return m?m[1]:''; };
   items.forEach((s,i)=>{
@@ -2423,22 +2491,37 @@ function drawSigChart(history){
       const pr = parseFloat(s.price);
       if(pr>0){
         const cx = x+bw/2;
-        const txt = _wide ? pr.toFixed(2) : pr.toFixed(0);
+        const txt = pr.toFixed(0);
+        const sideTxt = isBuy ? '▲ BUY' : '▼ SELL';
         const tm  = _hhmm(s.bar_time);
         ctx.textAlign='center'; ctx.textBaseline='top';
-        // 2026-07-14: removed the black stroke/shadow halo entirely (Imtiyaz: it was
-        // the main problem, on both lines) -- plain flat fill text only now.
-        // line 1: price (big, colored) -- 13->15px + more vertical room (chart 34->46px) for legibility
-        // font -> Arial (matches the rest of the dashboard, e.g. trade-card labels)
-        ctx.font = 'bold 15px Arial,sans-serif';
-        ctx.fillStyle = isBuy?'#00ff88':'#ff5577';
-        ctx.fillText(txt, cx, 2);
-        // line 2: time HH:MM (slightly smaller, light)
+        var _labelCount = items.filter(function(_s){return (_s.signal==='BUY'||_s.signal==='SELL')&&_s.price;}).length || 1;
+        var _font = _labelCount > 8 ? 9 : _labelCount > 5 ? 10 : 11;
+        var _priceFont = Math.min(12, _font + 1);
+        var _timeFont = Math.max(8, _font - 1);
+        var _groupH = _font + _priceFont + _timeFont + 2;
+        var _topY = Math.max(1, Math.min(h - _groupH - 1, (1 - Math.max(0, Math.min(100, prob)) / 100) * (h - _groupH - 1)));
+        var _priceY = _topY + _font + 1;
+        var _timeY = _priceY + _priceFont + 1;
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 0;
+        ctx.font = 'bold '+_font+'px Arial,sans-serif';
+        ctx.fillStyle = isBuy ? '#00ff88' : '#ff2d55';
+        ctx.textAlign='center';
+        ctx.fillText(sideTxt, cx, _topY);
+        ctx.font = 'bold '+_priceFont+'px Arial,sans-serif';
+        ctx.fillStyle = '#00f5ff';
+        ctx.fillText(txt, cx, _priceY);
         if(tm){
-          ctx.font = 'bold 12px Arial,sans-serif';
+          ctx.font = 'bold '+_timeFont+'px Arial,sans-serif';
+          ctx.textAlign='center';
           ctx.fillStyle = '#cfe6ff';
-          ctx.fillText(tm, cx, 21);
+          ctx.fillText(tm, cx, _timeY);
         }
+        ctx.font = 'bold 8px Arial,sans-serif';
+        ctx.textAlign='center';
+        ctx.fillStyle = '#ffff00';
+        ctx.fillText(prob.toFixed(0)+'%', cx, h-9);
       }
     }
   });
@@ -2840,40 +2923,25 @@ async function load(){
       if(slWrap){
         slWrap.style.display = 'block';
         const dir        = openT0.direction || 'BUY';
-        const rangeTotal = Math.abs(vsl - tp);
+        const side       = String(dir).toUpperCase() === 'SELL' ? -1 : 1;
+        const rangeTotal = Math.abs(vsl - tp) || 1;
 
-        // posPct: risk-normalized visual scale:
-        // -1R/vSL = left red, 0R/entry = about 30%, TP = right green.
-        // This keeps tiny losses near entry instead of drifting to the middle on wide vSL/TP ranges.
+        // $1-per-bar visual scale:
+        // vSL is always the left edge, TP is always the right edge.
+        // Example: vSL 4045.01 -> TP 3970.52 = 74.49 dollars => 75 bars.
         const _pr = (typeof openT0.profit_R === 'number' ? openT0.profit_R : parseFloat(openT0.profit_R)) || 0;
         const riskDist = Math.abs(entry - vsl) || slDist || 1;
         const tpR = (tp > 0 && riskDist > 0) ? Math.abs(tp - entry) / riskDist : 1;
-        const entryVisual = 0.30;
-        let posPct = null;
-        if(_pr < 0){
-          posPct = entryVisual + _pr * entryVisual;            // -1R -> 0%, 0R -> entry
-        }else{
-          posPct = entryVisual + (_pr / Math.max(tpR, 0.01)) * (1 - entryVisual); // TP R -> 100%
-        }
-        // LEFT->RIGHT orientation: vSL=0%, entry=30%, TP=100%.
-        // Profit pushes the ticker RIGHT toward green; loss pulls it LEFT toward red.
-        if(posPct === null || !isFinite(posPct)){
-          if(_pr >= 0) posPct = 0.30 + _pr * 0.40;            // fallback: entry(0R)=30%, +1R=70%
-          else         posPct = 0.30 - Math.abs(_pr) * 0.30;  // fallback: vSL(-1R)=0%
-        }
+        const pctForPrice = px => Math.abs(px - vsl) / rangeTotal;
+        let posPct = pctForPrice(curPx);
         posPct = Math.max(0, Math.min(1, posPct));
 
         // Marker positions:
-        // vSL  = 0%   (far left)
-        // Entry= 0R   (about 30%)
-        // 0.5R = halfway toward TP
-        // 1R   = one risk unit toward TP
-        // TP   = 100% (far right)
-        // entry pos in bar:
-        const rVisualPct = r => r < 0 ? (entryVisual + r * entryVisual) * 100 : (entryVisual + (r / Math.max(tpR, 0.01)) * (1 - entryVisual)) * 100;
-        const entryPct = entryVisual * 100;
-        const r1Pct    = rVisualPct(1);
-        const r05Pct   = rVisualPct(0.5);
+        // vSL=0%, TP=100%, Entry/current/R-levels are placed by real $ distance.
+        const rLevelPrice = r => entry + side * r * riskDist;
+        const entryPct = pctForPrice(entry) * 100;
+        const r1Pct    = pctForPrice(rLevelPrice(1)) * 100;
+        const r05Pct   = pctForPrice(rLevelPrice(0.5)) * 100;
 
         // Clamp markers within visible range
         const clamp = v => Math.max(2, Math.min(98, v));
@@ -2911,13 +2979,43 @@ async function load(){
 
         const eqGrid = document.getElementById('sl_eq_grid');
         if(eqGrid){
-          const all = [
-            '#ef4444','#f43f5e','#ec4899','#d946ef','#a855f7','#8b5cf6',
-            '#facc15','#eab308','#fbbf24','#f59e0b','#f97316','#fb923c',
-            '#06b6d4','#22d3ee','#0ea5e9','#38bdf8','#3b82f6','#6366f1',
-            '#d9f99d','#c6f51e','#a3e635','#84cc16','#22c55e','#16a34a'
+          const barCount = Math.max(1, Math.ceil(rangeTotal));
+          const minTrackPx = Math.max(760, Math.min(1800, barCount * 14));
+          const slTrack = eqGrid.closest('.sl-progress-track');
+          const slHeader = document.querySelector('#sl_progress_wrap .sl-progress-header');
+          const slLabels = document.querySelector('#sl_progress_wrap .sl-progress-labels');
+          if(slTrack) slTrack.style.minWidth = minTrackPx+'px';
+          if(slHeader) slHeader.style.minWidth = minTrackPx+'px';
+          if(slLabels) slLabels.style.minWidth = minTrackPx+'px';
+          const colorStops = [
+            [0.00,'#ff003d'], [0.08,'#ff1744'], [0.16,'#ff2d2d'],
+            [0.24,'#ff1769'], [0.32,'#ff2abf'], [0.40,'#d946ef'],
+            [0.50,'#ffff00'], [0.58,'#ffd000'], [0.66,'#ffb000'],
+            [0.74,'#00e5ff'], [0.82,'#3b82f6'], [0.88,'#4f46e5'],
+            [0.94,'#52ff00'], [1.00,'#00bb78']
           ];
-          const activeCols = Math.round(posPct * (all.length - 1));
+          const hexToRgb = h => {
+            const x = h.replace('#','');
+            return [parseInt(x.slice(0,2),16),parseInt(x.slice(2,4),16),parseInt(x.slice(4,6),16)];
+          };
+          const mixHex = (a,b,t) => {
+            const ar=hexToRgb(a), br=hexToRgb(b);
+            const c=ar.map((v,i)=>Math.round(v+(br[i]-v)*t).toString(16).padStart(2,'0'));
+            return '#'+c.join('');
+          };
+          const colorForPct = p => {
+            for(let i=0;i<colorStops.length-1;i++){
+              const a=colorStops[i], b=colorStops[i+1];
+              if(p <= b[0]) return mixHex(a[1], b[1], (p-a[0]) / Math.max(0.0001, b[0]-a[0]));
+            }
+            return colorStops[colorStops.length-1][1];
+          };
+          const all = Array.from({length:barCount}, (_, idx)=>{
+            const denom = Math.max(1, barCount - 1);
+            return colorForPct(idx / denom);
+          });
+          const activeCols = Math.max(0, Math.min(all.length - 1, Math.round(posPct * (all.length - 1))));
+          eqGrid.style.gridTemplateColumns = `repeat(${barCount},1fr)`;
           eqGrid.innerHTML = all.map((c, idx)=>{
             const cls = (idx <= activeCols ? 'on ' : '') + (idx === activeCols ? 'current' : '');
             const priceAttr = idx === activeCols ? ` data-price="${curPx.toFixed(2)}"` : '';
@@ -4024,7 +4122,15 @@ async function load(){
     // scrolling in its own (now-mismatched) box. Call it every poll, same as the
     // other _fitPanelToGrid calls right below it.
     try { if(typeof _syncSignalLogToSignalHeight==='function') _syncSignalLogToSignalHeight(); } catch(e){}
-    try { if(typeof _fitPanelToGrid==='function'){ _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_closed_trades'); } if(typeof _tightenLowerOuterGaps==='function') setTimeout(_tightenLowerOuterGaps,50); } catch(e){}
+    // 2026-07-16: delay raised 50ms->350ms (Imtiyaz reported non-uniform gaps
+    // after "apply all uniform 7.0px" -- traced to _tightenLowerOuterGaps
+    // firing mid-animation: signal/signal_history/hours_heatmap/closed_trades
+    // all carry `transition:top .3s!important`, so a position change from
+    // _fitPanelToGrid/_pinSignalHistoryBelowSignal takes 300ms to visually
+    // settle; reading getBoundingClientRect() at 50ms caught the in-flight
+    // top and baked a wrong transform off it. 350ms clears the 300ms
+    // transition with margin.
+    try { if(typeof _fitPanelToGrid==='function'){ _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_closed_trades'); } if(typeof _tightenLowerOuterGaps==='function') setTimeout(_tightenLowerOuterGaps,350); } catch(e){}
     try { if(typeof _pinSignalHistoryBelowSignal==='function') _pinSignalHistoryBelowSignal(); } catch(e){}
 
         // ── OVERNIGHT REPLAY ─────────────────────────────────────
@@ -4413,7 +4519,15 @@ function _fitPanelToGrid(panelId){
   panel.style.height = 'auto';
   var contentH = panel.scrollHeight;
   panel.style.height = _prevInlineH;
-  var neededH = Math.max(1, Math.ceil((contentH + marginPx) / (cellH + marginPx)));
+  // 2026-07-16 (Imtiyaz reported: Signal History's bottom border invisible) --
+  // scrollHeight is a rounded/truncated integer and can undercount a fraction
+  // of a px of real (sub-pixel) content height; with no slack, that rounding
+  // was enough to allocate one row too few, and the wrapper's `overflow:hidden`
+  // (added for the earlier scrollbar fix) silently clipped the panel's own
+  // bottom border along with it. FIT_SLACK_PX gives every panel a few spare px
+  // of row budget so a few px of measurement noise never eats the border.
+  var FIT_SLACK_PX = 4;
+  var neededH = Math.max(1, Math.ceil((contentH + FIT_SLACK_PX + marginPx) / (cellH + marginPx)));
   var curH = parseInt(wrap.getAttribute('gs-h'), 10);
   // 2026-07-14 bug fix (Imtiyaz-reported: Open Trades stayed at gs-h=2 even once
   // its content shrank to ~36px): the OLD code returned early whenever neededH
@@ -4442,18 +4556,74 @@ function _fitPanelToGrid(panelId){
   _gsGrid.compact();
 }
 
-// 2026-07-15 (Imtiyaz reported: Hours Heatmap always overlaps the panel above
-// it after Save): this used to apply a hardcoded pixel offset directly to
-// .style.top to visually "pull" panels up and hide row-quantization gaps.
-// That offset went stale the moment Edit Mode changed any panel's gs-y (the
-// function explicitly skips running during edit mode, and was never
-// re-triggered right after Save/exit-edit), so the panel kept its OLD pulled-
-// up position while sitting in a NEW row -- rendering as an overlap. Verified
-// the underlying gap this was working around no longer exists: _fitPanelToGrid
-// already shrinks gs-h to the panel's real content height via genuine
-// GridStack row updates, which alone closes the gap to 0px. Removed as
-// redundant and unsafe; kept as a no-op stub since call sites still reference it.
-function _tightenLowerOuterGaps(){}
+// 2026-07-16 (Imtiyaz reported, with screenshot: visible dark band between
+// Signal History bars and HOURS panel): _fitPanelToGrid alone does NOT
+// close this to 0px in every case -- GridStack rows are quantized to whole
+// cells (~56-57px), and _fitPanelToGrid rounds a panel's real content height
+// UP to the next whole row. When content height lands just over a row
+// boundary (confirmed via direct measurement: Signal History content ~114px
+// needs only ~113px of row space but rounds up to a full extra ~57px row),
+// the leftover slack renders as dead space before the next panel starts.
+// GridStack's own OWN Wrap positions items via inline `top: calc(gs-y *
+// var(--gs-cell-height))` (verified live -- never `transform`), so a pure
+// CSS transform here cannot conflict with drag/resize/collision math. This
+// closes the gap between consecutive panels in the fixed live stack to a
+// constant small value (both directions -- pulls up an oversized gap AND
+// pushes down an undersized/overlapping one) without touching either
+// panel's height, content, or its own GridStack row slot. Cleared on every
+// Edit Mode entry (gsEnterEdit) so dragging always starts from the panel's
+// true (untransformed) grid position.
+var GAP_TIGHTEN_PX = 7;
+var GAP_TIGHTEN_IDS = ['signal_history_panel', 'hours_heatmap_wrap', 'panel_closed_trades'];
+function _tightenLowerOuterGaps(){
+  if(!_gsGrid || _gsEditMode || _gsCurrentTab !== 'live') return;
+  // 2026-07-16 (Imtiyaz, screenshot-marked): Signal/Signal Log's bottom border
+  // and Signal History's top border sat at an exact 0px seam (fully flush,
+  // not overlapping) -- two separate 1px borders touching with zero gap reads
+  // as a single doubled/uneven line. Anchor the chain to whichever of
+  // Signal/Signal Log sits lower, at the same uniform gap as every other
+  // boundary in the chain (Imtiyaz: 1px, then 7px for just this seam, then
+  // "apply all uniform 7.0px" -- all four boundaries now share one constant).
+  // Signal/Signal Log's own position is only READ here, never transformed.
+  var prevBottom = null;
+  var sigWrap = document.querySelector('#dashboard_grid > .grid-stack-item[gs-id="signal"]');
+  var logWrap = document.querySelector('#dashboard_grid > .grid-stack-item[gs-id="signal_log"]');
+  if(sigWrap && logWrap && !sigWrap.classList.contains('gs-item-hidden') && !logWrap.classList.contains('gs-item-hidden')){
+    prevBottom = Math.max(sigWrap.getBoundingClientRect().bottom, logWrap.getBoundingClientRect().bottom);
+  }
+  GAP_TIGHTEN_IDS.forEach(function(id){
+    var panel = document.getElementById(id);
+    var wrap = panel ? panel.closest('.grid-stack-item') : null;
+    if(!wrap || wrap.classList.contains('gs-item-hidden')){ prevBottom = null; return; }
+    wrap.style.transform = '';
+    // 2026-07-16 (Fable-5, third root cause on the "border not visible" report):
+    // measure the PANEL's own box, not the wrapper's. signal_history_panel is
+    // the only panel in this chain with `height:auto!important` (line ~852) --
+    // its wrapper can be a whole GridStack row taller than the panel itself
+    // (FIT_SLACK_PX + row quantization), leaving empty wrapper space below the
+    // panel's real border. Chaining off wrap.bottom put the next panel's gap
+    // below that empty space instead of below the visible border, so the
+    // "7px gap" was real but sat ~59px past where the eye expects the edge.
+    // hours_heatmap_wrap/panel_closed_trades stretch to 100% of their wrapper
+    // (base .tcard height:100%), so this is a no-op for them.
+    var r = panel.getBoundingClientRect();
+    if(prevBottom !== null){
+      var delta = r.top - (prevBottom + GAP_TIGHTEN_PX);
+      if(Math.abs(delta) > 0.5){
+        wrap.style.transform = 'translateY(' + (-delta).toFixed(1) + 'px)';
+        r = panel.getBoundingClientRect();
+      }
+    }
+    prevBottom = r.bottom;
+  });
+}
+function _clearStackSnug(){
+  GAP_TIGHTEN_IDS.forEach(function(id){
+    var panel = document.getElementById(id);
+    var wrap = panel ? panel.closest('.grid-stack-item') : null;
+    if(wrap) wrap.style.transform = '';
+  });
+}
 
 var _signalSyncLastH = 0;
 function _syncSignalLogToSignalHeight(){
@@ -4465,23 +4635,61 @@ function _syncSignalLogToSignalHeight(){
   var logItem = log.closest('.grid-stack-item');
   if(!sigItem || !logItem) return;
 
-  var sigH = Math.ceil(sig.getBoundingClientRect().height);
-  if(!sigH || sigH < 10) return;
-  if(sigH === _signalSyncLastH) return;
-  _signalSyncLastH = sigH;
-
   var cellH = 56;
-  var neededH = Math.max(1, Math.ceil(sigH / cellH));
+  // Signal box is the master height. Signal Log stays exactly the same outer
+  // grid height, with compact rows so 10 entries fit inside it. Do not force a
+  // smaller pixel height than GridStack allocated; that creates the blank band
+  // above Signal History on refresh.
+  function naturalSignalHeight(){
+    var total = 2;
+    Array.prototype.forEach.call(sig.children, function(ch){
+      var cs = window.getComputedStyle(ch);
+      if(cs.display === 'none') return;
+      var r = ch.getBoundingClientRect();
+      total += r.height + (parseFloat(cs.marginTop)||0) + (parseFloat(cs.marginBottom)||0);
+    });
+    return Math.ceil(total);
+  }
+  var sigH = naturalSignalHeight() || Math.ceil(sig.getBoundingClientRect().height);
+  if(!sigH || sigH < 10) return;
+  var frameH = sigH + 4;
+  var maxSignalRows = 5;
+  var neededH = Math.min(maxSignalRows, Math.max(1, Math.ceil(frameH / cellH)));
+  var allocatedH = neededH * cellH;
+  _signalSyncLastH = allocatedH;
 
   sigItem.setAttribute('gs-min-h', '1');
   logItem.setAttribute('gs-min-h', '1');
-  _gsGrid.update(sigItem, {h: neededH, minH: 1});
-  _gsGrid.update(logItem, {h: neededH, minH: 1});
-  _gsGrid.compact();
+  var curSigH = parseInt(sigItem.getAttribute('gs-h'), 10);
+  var curLogH = parseInt(logItem.getAttribute('gs-h'), 10);
+  if(curSigH !== neededH || curLogH !== neededH){
+    _gsGrid.update(sigItem, {h: neededH, minH: 1});
+    _gsGrid.update(logItem, {h: neededH, minH: 1});
+    _gsGrid.compact();
+  }
 
-  sigItem.style.height = sigH + 'px';
-  logItem.style.height = sigH + 'px';
-  log.style.height = sigH + 'px';
+  var sigContent = sigItem.querySelector('.grid-stack-item-content');
+  var logContent = logItem.querySelector('.grid-stack-item-content');
+  sigItem.style.height = allocatedH + 'px';
+  logItem.style.height = allocatedH + 'px';
+  if(sigContent){
+    sigContent.style.height = allocatedH + 'px';
+    sigContent.style.minHeight = allocatedH + 'px';
+  }
+  if(logContent){
+    logContent.style.height = allocatedH + 'px';
+    logContent.style.minHeight = allocatedH + 'px';
+  }
+  sig.style.height = '100%';
+  log.style.height = '100%';
+  var logBody = log.querySelector('.sl-body');
+  if(logBody){
+    var titleH = log.querySelector('.tcard-hdr') ? log.querySelector('.tcard-hdr').getBoundingClientRect().height : 0;
+    var headH = log.querySelector('.sl-table-header') ? log.querySelector('.sl-table-header').getBoundingClientRect().height : 0;
+    var logH = Math.ceil(log.getBoundingClientRect().height) || allocatedH;
+    var bodyH = Math.max(160, logH - titleH - headH - 2);
+    logBody.style.setProperty('--sl-row-h', (bodyH / 10).toFixed(2) + 'px');
+  }
 }
 
 // 2026-07-16 (Imtiyaz): keep the live lower stack fixed:
@@ -4620,7 +4828,7 @@ function gsInitDashboard(){
     }
   });
   // Remove empty tab panes (content moved to grid)
-  document.querySelectorAll('.tab-pane:not(#tab-ledger)').forEach(function(tp){
+  document.querySelectorAll('.tab-pane:not(#tab-ledger):not(#tab-chart)').forEach(function(tp){
     if(!tp.querySelector('[id^="panel_"], .tcard, .grid-stack-item')) tp.remove();
   });
   // Remove old dash-sep dividers
@@ -4648,7 +4856,7 @@ function gsInitDashboard(){
   try { _syncSignalLogToSignalHeight(); } catch(e){}
   try { _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_closed_trades'); } catch(e){}
   try { _pinSignalHistoryBelowSignal(); } catch(e){}
-  try { setTimeout(_tightenLowerOuterGaps,50); } catch(e){}
+  try { setTimeout(_tightenLowerOuterGaps,350); } catch(e){}
 
   // Canvas resize observer
   if('ResizeObserver' in window){
@@ -4676,6 +4884,21 @@ function gsInitDashboard(){
   });
 
   // Responsive column breakpoints
+  // 2026-07-16 (Imtiyaz-reported: Signal History moves to the bottom on
+  // refresh): _gsGrid.column(cols) + .compact() reflow the ENTIRE grid
+  // using GridStack's own generic packing, which knows nothing about the
+  // "Signal History must sit directly below Signal/Signal Log" rule that
+  // _pinSignalHistoryBelowSignal() enforces. The direct init-time call to
+  // this function (a few lines below) had NO re-pin afterward at all —
+  // only the window-resize listener's call path re-pinned. On any
+  // load where the viewport is under 1200 CSS px wide at page-load time
+  // (common on laptop screens with 125%/150% display scaling, which
+  // shrinks the effective CSS viewport well below the physical
+  // resolution), this function fires once during init, changes the
+  // column count, and nothing re-asserts Signal History's position
+  // afterward — exactly the reported symptom. Fixed by re-pinning
+  // internally, every time this function actually changes the column
+  // count, regardless of which caller (init or resize) invoked it.
   function _gsResponsiveColumns(){
     if(!_gsGrid) return;
     var w = window.innerWidth;
@@ -4683,6 +4906,10 @@ function gsInitDashboard(){
     if(_gsGrid.opts.column !== cols){
       _gsGrid.column(cols);
       _gsGrid.compact();
+      try { _syncSignalLogToSignalHeight(); } catch(e){}
+      try { _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_closed_trades'); } catch(e){}
+      try { _pinSignalHistoryBelowSignal(); } catch(e){}
+      try { setTimeout(_tightenLowerOuterGaps,350); } catch(e){}
     }
   }
   var _gsResizeRAF = null;
@@ -4693,10 +4920,15 @@ function gsInitDashboard(){
       try { _syncSignalLogToSignalHeight(); } catch(e){}
       try { _fitPanelToGrid('hours_heatmap_wrap'); _fitPanelToGrid('signal_history_panel'); _fitPanelToGrid('panel_closed_trades'); } catch(e){}
       try { _pinSignalHistoryBelowSignal(); } catch(e){}
-      try { setTimeout(_tightenLowerOuterGaps,50); } catch(e){}
+      try { setTimeout(_tightenLowerOuterGaps,350); } catch(e){}
     });
   });
   _gsResponsiveColumns();
+  // Belt-and-braces: re-pin once more after the responsive-column pass
+  // above, whether or not it actually changed the column count, so a
+  // fresh page load always ends with Signal History correctly placed.
+  try { _pinSignalHistoryBelowSignal(); } catch(e){}
+  try { setTimeout(_tightenLowerOuterGaps,350); } catch(e){}
 
   // ESC key to exit edit mode
   document.addEventListener('keydown', function(e){
@@ -4725,6 +4957,7 @@ function _gsApplyTabFilter(tab){
   _gsGrid.compact();
   try { _syncSignalLogToSignalHeight(); } catch(e){}
   try { _pinSignalHistoryBelowSignal(); } catch(e){}
+  try { setTimeout(_tightenLowerOuterGaps,350); } catch(e){}
 }
 
 // Override switchTab for GridStack
@@ -4733,9 +4966,9 @@ function switchTab(name){
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
   var btn = document.querySelector('.tab-btn.t-'+name); if(btn) btn.classList.add('active');
 
-  if(name === 'ledger'){
+  if(name === 'ledger' || name === 'chart'){
     document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
-    var lp = document.getElementById('tab-ledger'); if(lp) lp.classList.add('active');
+    var lp = document.getElementById('tab-'+name); if(lp) lp.classList.add('active');
     var gd = document.getElementById('dashboard_grid'); if(gd) gd.style.display='none';
     try{ localStorage.setItem('qgai_tab', name); }catch(e){}
     return;
@@ -4753,7 +4986,7 @@ function switchTab(name){
 
   // GridStack mode — show grid, hide ledger
   var gd = document.getElementById('dashboard_grid'); if(gd) gd.style.display='';
-  document.querySelectorAll('.tab-pane:not(#tab-ledger)').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab-pane').forEach(function(p){ p.classList.remove('active'); });
   _gsCurrentTab = name;
   _gsApplyTabFilter(name);
   // BUG FIX 2026-07-13 (Imtiyaz): _gsApplyTabFilter() only shows/hides + compacts
@@ -4765,6 +4998,7 @@ function switchTab(name){
   try{ localStorage.setItem('qgai_tab', name); }catch(e){}
   if(name==='live'){
     try{ _pinSignalHistoryBelowSignal(); }catch(e){}
+    try{ setTimeout(_tightenLowerOuterGaps,350); }catch(e){}
     try{ drawSparkline(equityHistory, null); drawSigChart([]); }catch(e){}
   }
 }
@@ -4778,6 +5012,7 @@ function gsToggleEdit(){
 function gsEnterEdit(){
   if(!_gsGrid) return;
   _gsEditMode = true;
+  try{ _clearStackSnug(); }catch(e){}
   _gsLayoutBeforeEdit = _gsGrid.save(false);
   _gsGrid.enableMove(true);
   _gsGrid.enableResize(true);

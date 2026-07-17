@@ -1192,6 +1192,65 @@ FEATURE_ALIASES = {
     "trade_direction":       ("trade_direction_flag",         "Meta (Direction)"),
 }
 
+# ─────────────────────────────────────────────────────────────
+# FEATURE FAMILIES — Information-family grouping for GROUP ablation.
+# Fable-5 review (2026-07-17): individual-only ablation masks interaction
+# effects between correlated features. Group by INFORMATION FAMILY (not
+# timeframe) because same-family features substitute for each other
+# across timeframes (e.g. M15_ADX ↔ H4_ADX), while same-TF features
+# from different families do NOT (e.g. 15_min_slot ≠ M15_ADX).
+# Used by run_feature_sweep.py --mode group.
+# ─────────────────────────────────────────────────────────────
+FEATURE_FAMILIES = {
+    "Timing": [
+        "15_min_slot", "slot_cos", "slot_win_rate", "day_of_week",
+        "session_score", "is_ny_session", "is_dead_hour",
+    ],
+    "ADX_DI": [
+        "M15_ADX", "M30_ADX", "H1_ADX", "H4_ADX",
+        "M15_DI_diff", "M30_DI_diff", "H1_DI_diff", "H4_DI_diff",
+        "h4_adx_slope", "h1_adx_slope", "adx_trend_count",
+    ],
+    "Regime": [
+        "hmm_state", "h4_h1_regime_score",
+        "h4_trending_h1_aligned", "h4_ranging_h1_neutral", "h4_ranging_h1_extended",
+        "in_range_phase",
+    ],
+    "Momentum": [
+        "move_1hr", "move_2hr", "move_4hr", "move_8hr",
+        "momentum_aligned_1hr", "momentum_aligned_2hr", "momentum_aligned_4hr",
+    ],
+    "Candle": [
+        "price_pos", "body_pct", "range_pct",
+    ],
+    "EMA200": [
+        "price_vs_ema200", "above_ema200", "ema200_dist_abs", "near_ema200",
+    ],
+    "News": [
+        "mins_to_next_3star", "mins_since_last_3star",
+        "upcoming_3star_count", "last_3star_dev_sign", "before_eia", "is_post_news",
+    ],
+    "SMMA_Trend": [
+        "ts_bars_since_flip", "ts_htf_agreement",
+        "ts_trend_m15", "ts_trend_h1", "ts_trend_h4",
+        "ts_line_dist_pct", "ts_flip_recent",
+        "ts_aligned", "ts_aligned_htf", "ts_adx_switch_trend",
+    ],
+    "OrderBlock": [
+        "h4_resist_dist", "h4_support_dist", "h4_ob_strength", "h4_in_ob_zone",
+        "h1_resist_dist", "h1_support_dist", "h1_ob_strength", "h1_in_ob_zone",
+    ],
+    "PriceStructure": [
+        "big_move_direction", "is_post_big_move",
+    ],
+    "Volume": [
+        "volume", "tick_volume",
+    ],
+    "Meta": [
+        "trade_direction",
+    ],
+}
+
 # ─────────────────────────────────────────────
 # FINAL 20 CLEAN FEATURES (Top 20 by importance)
 # 43 → 20 features → TEST win 66.1% → 74.4%!
@@ -1509,6 +1568,21 @@ _MANUAL_PRUNE = {
     # This completes the OB/SR prune from FEATURE_COLS. Retrain required for live .pkl.
     "h4_support_dist",
     "h1_resist_dist",
+    # 2026-07-16 (Imtiyaz): FS67-13 OOS1Y confirmation (1130 trades,
+    # backtest/results/feature_sweep_67/FS67-13_tier1_drop_candidates_oos1y_confirm/)
+    # — both features stayed DROP_CANDIDATE on BOTH the FS67-02 3-month screen
+    # AND this 1-year OOS window (the other 4 candidates in that same test
+    # FLIPPED to CORE_KEEP on OOS1Y and were correctly NOT dropped — see
+    # FIXES_CHANGELOG4.md 2026-07-16 for the full 6-feature comparison).
+    # 15_min_slot: 3-month +3.1R, OOS1Y +5.9R without it (both confirm drop).
+    # M15_ADX:     3-month +0.8R, OOS1Y +6.8R without it (both confirm drop).
+    # Imtiyaz approved dropping from live now, with a WFO confirmation run
+    # (registry ID TBD, same pattern as FS67-21) in parallel as further
+    # due-diligence, not as a live-adoption gate this time.
+    # ⚠️ NEEDS A RETRAIN (Start/3_Train_Models.bat) — the live .pkl still
+    # expects both columns until retrained. REVERT: delete these 2 lines + retrain.
+    "15_min_slot",
+    "M15_ADX",
 }
 _ZERO_IMP = _ZERO_IMP | _MANUAL_PRUNE
 # Ablation toggle (for experiments only): set env QGAI_ABLATE="feat1,feat2,..." to

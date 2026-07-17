@@ -354,9 +354,9 @@ def run():
             # manual trade out to the secondaries — the slave-side manager must never
             # (2026-07-15, Imtiyaz). Still gated by manual_copy_to_slaves_enabled.
             try: bridge_manual.manage(mirror_to_slaves=True)
-            except Exception: pass
+            except Exception as _me: log.error(f"manual manager error: {_me}", exc_info=True)
             try: bridge_multi.manage_secondary_manual_accounts()
-            except Exception: pass
+            except Exception as _se: log.error(f"secondary manual manager error: {_se}", exc_info=True)
 
             # Write dashboard EVERY poll (was gated on open trades â†’ froze the
             # price/dashboard after a trade closed until the next bar). Now the

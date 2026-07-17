@@ -10,6 +10,7 @@ xgb_model.py — v2 IMPROVED
 Result: TEST AUC 0.51 → 0.65+ expected
 """
 
+import os
 import numpy as np
 import joblib
 from pathlib import Path
@@ -21,6 +22,12 @@ import xgboost as xgb
 import lightgbm as lgb
 import catboost as cb
 from config import CFG
+
+# Noise-floor calibration (Fable-5, 2026-07-17, FS67-26): set QGAI_SEED to
+# override the hardcoded random_state=42 for one calibration retrain, so the
+# spread of total_R across seeds on an UNCHANGED feature set measures the
+# backtest's noise floor. Unset/empty = original behaviour (seed 42 always).
+_SEED = int(os.environ.get("QGAI_SEED", "42"))
 
 
 class WinProbabilityModel:
@@ -49,7 +56,7 @@ class WinProbabilityModel:
             objective             = "binary:logistic",
             eval_metric           = ["logloss","auc"],
             tree_method           = "hist",
-            random_state          = 42,
+            random_state          = _SEED,
             n_jobs                = -1,
         )
 
@@ -62,7 +69,7 @@ class WinProbabilityModel:
             min_child_samples = 20,
             reg_alpha         = 0.3,
             reg_lambda        = 2.0,
-            random_state      = 42,
+            random_state      = _SEED,
             n_jobs            = -1,
             verbose           = -1,
         )
@@ -72,7 +79,7 @@ class WinProbabilityModel:
             depth             = 4,
             learning_rate     = 0.03,
             l2_leaf_reg       = 5,
-            random_seed       = 42,
+            random_seed       = _SEED,
             verbose           = 0,
         )
 
@@ -142,7 +149,7 @@ class WinProbabilityModel:
 
             tmp = xgb.XGBClassifier(
                 n_estimators=200, max_depth=4, learning_rate=0.05,
-                tree_method="hist", random_state=42, n_jobs=-1
+                tree_method="hist", random_state=_SEED, n_jobs=-1
             )
             tmp.fit(X_fold_tr, y_fold_tr,
                     eval_set=[(X_fold_va, y_fold_va)],
