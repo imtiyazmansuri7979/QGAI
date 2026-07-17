@@ -3552,8 +3552,58 @@ rarely fires (â‰ˆ far, fine for the trail comparison) â€” the trap is o
 4. Restart bridge on DEMO, forward-test 3â€“7 days, then live.
 
 ## NOTE
-- config_mt5.py (real passwords) is gitignored / untracked â€” keep it that way.
+- config_mt5.py (real passwords) is gitignored / untracked — keep it that way.
 - The bash file-mount in Cowork serves stale copies intermittently; all edits were verified via
   the ground-truth file reader (a known artifact, not a code bug).
+
+## 2026-07-17 — Wilder ADX removed everywhere, replaced with standard EMA ADX(14)
+Imtiyaz flagged: "you use wilder adx for all calculation it wong." Investigation (see
+`docs/BUG_LOG.md` §S) found the flag was correct but the scope was narrower than "all
+calculation" — `adx_merged.csv` (`M15_ADX`/`H1_ADX`/`H4_ADX`/`*_DI_diff`, via
+`mt5_data_updater.py`/`regen_adx_asof.py`/`regen_adx_di.py`) was always EMA-based
+(`ewm(span=14, adjust=False)`). Only the rolling ADX / slope / switch features
+(`h4_adx_roll`, `h1_adx_roll`, `h4_adx_slope`, `h1_adx_slope`, `ts_adx_switch_trend`, from
+`features.py:_wilder_adx()` → `build_indicators.py` → `indicators_merged.csv`) used Wilder
+smoothing (alpha=1/14, ~1.9x slower than the EMA alpha=2/15 used everywhere else).
+
+Ground truth: the live MT5 EA (`Trend Signal Pro EA.mq5`, pasted by Imtiyaz, not in this repo)
+calls `iADX(_Symbol,ADX_TF,ADX_Period)` — MT5's standard EMA-style ADX, not `iADXWilder()`
+(MT5 exposes both as separate functions specifically because they differ).
+
+**Decision:** remove Wilder ADX from every file, replace with the same EMA formula used by
+the always-correct path.
+
+**Changed:**
+- `engine/features.py`: `_wilder_adx()` → `_ema_adx()` (`ewm(span=14,adjust=False)`)
+- `engine/fresh_reload.py`: `_wilder()`/`compute_adx()` rewritten to EMA (also fixed a hidden
+  landmine — its docstring falsely claimed parity with the live updater while running Wilder math)
+- `engine/research_smma_adx_score_sweep.py` + `research_smma_adx_snapshot_logger.py`:
+  `_wilder_di_adx`→`_ema_di_adx`, `_wilder_state`→`_ema_state`
+- git commit `e1ce9fc55b1b720f349ef5284e76e1d949237da8`
+
+**Data/model:** `indicators_merged.csv` regenerated (`REGEN_indicators_EMA_ADX.bat`,
+`--verify 100` PASSED); all `data/models/final/*.pkl` retrained 2026-07-17T20:15:55
+(`feature_importance.csv`: `H4_ADX=0.0433`, `h4_adx_slope=0.0388`, `h1_adx_slope=0.0384` — sane).
+
+**Full-proof migration artifacts (per Imtiyaz's explicit "start from first" enterprise-migration
+request):**
+- Backup: `C:\QGAI_BACKUPS\PRE_EMA_ADX_MIGRATION_20260717_203557\` (13,073/13,073 files verified)
+- Wilder-era archive (read-only): `C:\QGAI_ARCHIVE\ADX_WILDER\WILDER-REG-001\` (10,965 files,
+  1.441GB, all SHA-256 hashed, 9 registry CSVs)
+- New EMA project scaffold: `C:\QGAI_EMA_ADX\` (categorized source copy + registry, `EADX-001`
+  logged)
+- Audit: `C:\QGAI_MIGRATION\audit\WILDER_TO_EMA_ADX_AUDIT.md`
+- Final report: `C:\QGAI_MIGRATION\WILDER_TO_EMA_MIGRATION_REPORT.md`
+
+**Remaining before any live/trading decision:**
+1. Test 1 (live MT5 `iADX()` numeric parity) — toolkit built, Python side tested working,
+   requires Imtiyaz to manually run the `.mq5` half in MT5
+   (`C:\QGAI_EMA_ADX\11_runners\EADX-002_RUN_MT5ParityTest_Step1_PythonExport.bat`)
+2. Fresh 3-month OOS backtest on the retrained model + full `docs/BACKTEST_RESULT_AUDIT.md`
+   pass — no post-fix backtest has been run yet. Do NOT skip to 1-year/WFO (standing rule:
+   current validation stage is 3-month OOS only).
+3. Future cleanup (not blocking): `features.py` and `bridge_main.py`→`regen_adx_asof.py`
+   independently implement the same EMA ADX formula — same architectural pattern that caused
+   this bug (two formulas that must stay in sync but aren't shared code). Consolidate later.
 
 
