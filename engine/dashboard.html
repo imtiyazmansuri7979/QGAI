@@ -2518,8 +2518,10 @@ function drawSigChart(history){
         const _f1 = _fitFont(sideTxt, _fBase);
         _hLabel(sideTxt, cx, 2, isBuy?'#39FF14':'#FF073A', 'top');
         _hLabel(txt, cx, 2+_f1+2, '#00FFFF', 'top');
-        // GROUP 2 (middle): time
-        if(tm) _hLabel(tm, cx, h/2, '#BF00FF', 'middle');
+        // GROUP 2 (middle): time — centered within the BAR's own top/bottom
+        // edge (not the fixed box middle), so it never straddles the
+        // bar-color / panel-background boundary
+        if(tm) _hLabel(tm, cx, h - barH/2, '#BF00FF', 'middle');
         // GROUP 3 (bottom): prob%
         _hLabel(prob.toFixed(0)+'%', cx, h-2, '#FFFF00', 'bottom');
       }
