@@ -2511,11 +2511,8 @@ function drawSigChart(history){
           const f = _fitFont(text, _fBase);
           ctx.font = 'bold '+f+'px Arial,sans-serif';
           ctx.textAlign = 'center'; ctx.textBaseline = baseline;
-          ctx.shadowColor = color; ctx.shadowBlur = Math.max(6, f*0.6);   // self-glow = neon look
           ctx.fillStyle = color;
           ctx.fillText(text, cx, cy);
-          ctx.fillText(text, cx, cy);   // double-pass for a hotter neon core
-          ctx.shadowBlur = 0;
         };
         // GROUP 1 (top): side + price, stacked tight — full fluorescent neon
         const _f1 = _fitFont(sideTxt, _fBase);
