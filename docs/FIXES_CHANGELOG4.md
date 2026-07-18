@@ -54,6 +54,27 @@ gate = output bit-identical to pre-rename baseline (shim active).
   **0 differing cells** vs baseline (41 trades, +6.0R) after normalizing the
   renamed `f_*` feature-column headers. Old models ran unchanged via the shim.
 
+### Phase 2 shipped (2026-07-18) — 23 cross features renamed, backtest bit-identical + live verified
+- `features.py`: 23 cross names → canonical (172 replacements, Zone-A only —
+  alias block untouched).
+- `inference.py`: feat_dict lookups + the two injections renamed —
+  `hmm_state`→`regime_hmm_id` (feat write @737), `in_range_phase`→
+  `h4move_is_ranging` (regime-aware override @761), both `FEATURE_COLS +
+  ["hmm_state"]` fallbacks→`["regime_hmm_id"]`. **Zone-B kept legacy:** every
+  result-dict KEY (`"hmm_state"` string state-name, `"in_range_phase"`,
+  `"h4_resist_dist"`, `"ts_htf_agreement"`, `"mins_to_3star"` …) stays legacy;
+  only its VALUE reads the canonical feat_dict name. `_log_trade` CSV columns
+  stay legacy too.
+- `feature_registry.py`: `ACTIVE_ZONES={"pure","cross"}`, MIGRATED=58; self-test
+  made phase-agnostic (derives expectations from MIGRATED).
+- **Gates:** (1) 2026-06-15→29 backtest **0 diffs** vs baseline (41 trades).
+  (2) Live-path static check — `bridge_data.log_signal`/DB and the dashboard
+  read cross names via `result.get("<legacy>")`, which inference still emits, so
+  the SQLite schema + dashboard are unaffected.
+- ⚠️ **Deferred to Phase 4:** `train.py` (`feat_full + ["hmm_state"]` and
+  `h4_df["in_range_phase"]`) — retrain path, not exercised by the backtest;
+  will be aligned and validated by the Phase-4 training run.
+
 ## 2026-07-17 — Manual-trade risk manager: CUT-based protection (v2)
 
 **Replaces hedge-based v1 (same day).** Imtiyaz changed the approach: instead of

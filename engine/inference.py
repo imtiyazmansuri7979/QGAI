@@ -734,7 +734,7 @@ class LiveInferenceEngine:
         hmm_state_name = self.hmm.state_name(hmm_state)
 
         # ── Inject hmm_state into feat_dict so models can find it ──
-        feat_dict["hmm_state"] = hmm_state
+        feat_dict["regime_hmm_id"] = hmm_state
 
         # ── REGIME-AWARE in_range_phase (2026-07-12, Imtiyaz) ──────────────
         # 1-month threshold sweep found the OPTIMAL |H4 move| cutoff differs
@@ -758,7 +758,7 @@ class LiveInferenceEngine:
             _REGIME_INRANGE_THRESH = {"Trending": 0.5, "Volatile": 0.6, "Ranging": 0.5}
             _rit = _REGIME_INRANGE_THRESH.get(hmm_state_name, 0.5)
             _h4mv = feat_dict.get("h4_move_pct", 0.0) or 0.0
-            feat_dict["in_range_phase"] = int(abs(float(_h4mv)) < _rit)
+            feat_dict["h4move_is_ranging"] = int(abs(float(_h4mv)) < _rit)
 
         # Feature vectors built per-model using model.feature_names
         # (defined inside routing block below as _make_X_hybrid)
@@ -790,7 +790,7 @@ class LiveInferenceEngine:
             # migrated-canonical names so lookups line up with the renamed
             # feat_dict (positional vector — names not sent to the model).
             cols = remap_model_feature_names(getattr(model, "feature_names", None)) \
-                or FEATURE_COLS + ["hmm_state"]
+                or FEATURE_COLS + ["regime_hmm_id"]
             missing = [c for c in cols if c not in feat_dict]
             if missing:
                 # FIX #21: also send to logging — print() never reached
@@ -868,9 +868,9 @@ class LiveInferenceEngine:
             _routing = "combined_fallback"
 
         # X_main for BigWin/Duration — use combined model's full feature set
-        # feat_dict["hmm_state"] already set as integer above
+        # feat_dict["regime_hmm_id"] already set as integer above
         _fn = remap_model_feature_names(getattr(self.xgb, "feature_names", None)) \
-            or FEATURE_COLS + ["hmm_state"]
+            or FEATURE_COLS + ["regime_hmm_id"]
         X_main = np.array([[feat_dict.get(c, 0) for c in _fn]], dtype=np.float32)
 
         # ── Prediction models (BigWin + Duration) ────────────
@@ -958,7 +958,7 @@ class LiveInferenceEngine:
 
         # Only PRE-news (0-15min before) needs caution — NOT post-news!
         _is_pre_news_now  = feat_dict.get("is_pre_news", 0)   # 1 = within 15min of news
-        _is_post_news_now = feat_dict.get("is_post_news", 0)  # 1 = within 15min after
+        _is_post_news_now = feat_dict.get("news_is_post_news_flag", 0)  # 1 = within 15min after
 
         # Pre-news penalty REMOVED 2026-07-12 (Imtiyaz): pre-news now uses the plain
         # regime threshold (was +0.05 bar-raise). "model over hard filters".
@@ -999,7 +999,7 @@ class LiveInferenceEngine:
         # is unset (matches the QGAI_REGIME_INRANGE / QGAI_CTF_FADE pattern).
         if os.environ.get("QGAI_VOL_HTF_GATE", "0") == "1" and hmm_state_name == "Volatile":
             _dir_sign  = 1.0 if trade_type.upper() == "BUY" else -1.0
-            _htf_agree = feat_dict.get("ts_htf_agreement", 0) or 0
+            _htf_agree = feat_dict.get("smma_htf_agreement", 0) or 0
             _htf_against = (_dir_sign * _htf_agree) < 0
             if _htf_against and 0.42 <= final_prob < 0.48:
                 return self._make_result("SKIP", final_prob, sl_mult, hmm_state_name,
@@ -1154,8 +1154,8 @@ class LiveInferenceEngine:
         row = {"datetime": ts, "type": trade_type, "volume": volume,
                "label": label, "pnl": pnl,
                "win_prob":       fd.get("win_prob", ""),
-               "hmm_state":      fd.get("hmm_state", ""),
-               "in_range_phase": fd.get("in_range_phase", "")}
+               "hmm_state":      fd.get("regime_hmm_id", ""),      # CSV col legacy, value canonical
+               "in_range_phase": fd.get("h4move_is_ranging", "")}  # CSV col legacy, value canonical
         write_header = not self.live_log.exists()
         with open(self.live_log, "a", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=self.LIVE_TRADE_COLS,
@@ -1233,44 +1233,44 @@ class LiveInferenceEngine:
             "reason":       reason,
             "slot":         feat_dict.get("time_15min_slot", -1),
             "slot_wr":      round(feat_dict.get("time_1hr_winrate", 0), 3),
-            "mins_to_3star":feat_dict.get("mins_to_next_3star", 999),
+            "mins_to_3star":feat_dict.get("news_mins_until_next", 999),
             "before_eia":      feat_dict.get("news_before_eia_flag", 0),
-            "is_post_big_move":feat_dict.get("is_post_big_move", 0),
+            "is_post_big_move":feat_dict.get("h4_is_post_bigmove_flag", 0),
             "big_move_dir":    feat_dict.get("h4_bigmove_direction", 0),
-            "in_range_phase":  feat_dict.get("in_range_phase", 0),
+            "in_range_phase":  feat_dict.get("h4move_is_ranging", 0),
             # dominant-TF momentum (for counter-trend-fade filter — config skip_counter_trend_fade)
             "H1_ADX":          feat_dict.get("H1_ADX", 0),
             "H4_ADX":          feat_dict.get("H4_ADX", 0),
             "H1_DI_diff":      feat_dict.get("H1_DI_diff", 0),
             "H4_DI_diff":      feat_dict.get("H4_DI_diff", 0),
-            "h1_adx_slope":    feat_dict.get("h1_adx_slope", 0),
-            "h4_adx_slope":    feat_dict.get("h4_adx_slope", 0),
+            "h1_adx_slope":    feat_dict.get("adx_h1_momentum", 0),
+            "h4_adx_slope":    feat_dict.get("adx_h4_momentum", 0),
             # ── ts_* trend-signal features (for the trend-pullback entry gate — ET1 — + market-intel box) ──
-            "ts_line_dist_pct":   feat_dict.get("ts_line_dist_pct", 0),   # signed % dist price↔active ratchet line
-            "ts_htf_agreement":   feat_dict.get("ts_htf_agreement", 0),   # trend_m15+h1+h4 (-3..+3)
+            "ts_line_dist_pct":   feat_dict.get("smma_line_distance_pct", 0),   # signed % dist price↔active ratchet line
+            "ts_htf_agreement":   feat_dict.get("smma_htf_agreement", 0),   # trend_m15+h1+h4 (-3..+3)
             "ts_adx_switch_trend":feat_dict.get("smma_adx_switch_trend_flag", 0),# EA rule: H4 trend if H4 ADX>=19 else H1
             "ts_flip_recent":     feat_dict.get("smma_recent_flip_flag", 0),     # 1 = SMMA flip within last 3 M15 bars
             "ts_bars_since_flip": feat_dict.get("smma_bars_since_flip", 999),
-            "ts_trend_m15":       feat_dict.get("ts_trend_m15", 0),       # +1 up / -1 down (M15 SMMA)
-            "ts_trend_h1":        feat_dict.get("ts_trend_h1", 0),        # +1 / -1 (H1)
-            "ts_trend_h4":        feat_dict.get("ts_trend_h4", 0),        # +1 / -1 (H4)
+            "ts_trend_m15":       feat_dict.get("smma_trend_m15", 0),       # +1 up / -1 down (M15 SMMA)
+            "ts_trend_h1":        feat_dict.get("smma_trend_h1", 0),        # +1 / -1 (H1)
+            "ts_trend_h4":        feat_dict.get("smma_trend_h4", 0),        # +1 / -1 (H4)
             "effective_threshold": round(getattr(self, "_last_effective_threshold", 0.45), 4),
-            "h4_resist_dist":  feat_dict.get("h4_resist_dist", 999),
-            "h4_support_dist": feat_dict.get("h4_support_dist", 999),
-            "h4_in_ob_zone":   feat_dict.get("h4_in_ob_zone", 0),
+            "h4_resist_dist":  feat_dict.get("ob_h4_resistance_pct", 999),
+            "h4_support_dist": feat_dict.get("ob_h4_support_pct", 999),
+            "h4_in_ob_zone":   feat_dict.get("ob_h4_in_zone_flag", 0),
             "h4_ob_strength":  feat_dict.get("ob_h4_strength", 0),
-            "h1_resist_dist":  feat_dict.get("h1_resist_dist", 999),
-            "h1_support_dist": feat_dict.get("h1_support_dist", 999),
-            "h1_in_ob_zone":   feat_dict.get("h1_in_ob_zone", 0),
+            "h1_resist_dist":  feat_dict.get("ob_h1_resistance_pct", 999),
+            "h1_support_dist": feat_dict.get("ob_h1_support_pct", 999),
+            "h1_in_ob_zone":   feat_dict.get("ob_h1_in_zone_flag", 0),
             "h1_ob_strength":  feat_dict.get("ob_h1_strength", 0),
             # M1: predicted move size (info-only, dashboard display)
             **self._predict_move("BUY" if feat_dict.get("is_buy", 1) else "SELL", feat_dict),
             "is_pre_news":     feat_dict.get("is_pre_news", 0),
-            "is_post_news":    feat_dict.get("is_post_news", 0),
+            "is_post_news":    feat_dict.get("news_is_post_news_flag", 0),
             # FIX #B5: the dashboard's "3★ Dev Sign" field read this key
             # but it was never copied from features → stuck at "--"
             "last_3star_dev_sign": feat_dict.get("news_last_deviation_sign", 0),
-            "corr_imp_ratio":  feat_dict.get("corr_imp_ratio", 1.0),
+            "corr_imp_ratio":  feat_dict.get("swing_correction_impulse_ratio", 1.0),
             # FIX #B5: dashboard's "3★ Dev Sign" read this key but it was
             # never copied from features → permanent "--".
             "last_3star_dev_sign": feat_dict.get("news_last_deviation_sign", 0),
