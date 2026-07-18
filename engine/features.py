@@ -1133,7 +1133,7 @@ FEATURE_ALIASES = {
     "ts_bars_since_flip":    ("smma_bars_since_flip",     "20-SMA Hybrid"),
     "ts_htf_agreement":      ("smma_htf_agreement",       "20-SMA Hybrid"),
     # REGIME
-    "hmm_state":             ("regime_hmm_label",         "HMM Regime Model"),
+    "hmm_state":             ("regime_hmm_id",            "HMM Regime Model"),  # int 0/1/2 model-feature; the string state-name stays 'hmm_state' in DB/logs
 
     # ─────────────────────────────────────────────
     # DROPPED / PRUNED FEATURES (2026-07-13) — aliases for the 67-feature

@@ -8,6 +8,35 @@ Worked on by Anisa via Cowork. Shared PC / shared folder â€” this file is t
 
 ---
 
+## 2026-07-18 — Feature-rename foundation: registry + guards (Phase 0)
+
+**Goal (Imtiyaz):** give all ~67 cryptic feature names readable aliases
+(`M15_ADX`→`adx_m15_strength`, `hmm_state`→`regime_hmm_id`, `body_pct`→
+`candle_body_ratio`, …) **permanently**, so no future naming errors arise.
+Approached with Fable-5's senior-architect opinion.
+
+**Key finding:** feature names are cross-zone identifiers (ML pipeline + live
+SQLite DB columns + dashboard keys + signal-CSV + raw indicator CSVs), and
+`hmm_state` is dual-meaning (int model-feature vs string state name). A blind
+rename breaks cross-zone consistency. **Decision:** rename canonical names
+**only in the ML pipeline (Zone-A)**; keep DB/CSV schema legacy; lock it with a
+registry + 4 guards. Full design → [`FEATURE_RENAME_ARCHITECTURE.md`](FEATURE_RENAME_ARCHITECTURE.md).
+
+**Phase 0 shipped (this entry):**
+- New `engine/feature_registry.py` — single source of truth
+  `REGISTRY = {legacy:(canonical,zone,dtype)}` (68 entries; zones: 35 pure /
+  23 cross / 8 adx_raw / 2 excluded) + derived maps + 4 guards:
+  `remap_model_feature_names` (load-shim), `assert_canonical` (startup),
+  `guard_feat_dict` (compute output), `validate_feature_names` (QGAI_ABLATE/
+  UNPRUNE). Self-test PASSES (`py engine/feature_registry.py`).
+- `features.py` FEATURE_ALIASES: `hmm_state` alias corrected
+  `regime_hmm_label`→`regime_hmm_id` (feature is an int, not a string label).
+- No feature renamed yet, no pipeline behavior change — guards wire in Phase 1.
+
+**Remaining:** Phase 1 (35 pure + wire guards) · Phase 2 (cross-layer,
+hmm_state split) · Phase 3 (ADX/DI boundary) · Phase 4 (retrain). Each phase
+gate = output bit-identical to pre-rename baseline (shim active).
+
 ## 2026-07-17 — Manual-trade risk manager: CUT-based protection (v2)
 
 **Replaces hedge-based v1 (same day).** Imtiyaz changed the approach: instead of
