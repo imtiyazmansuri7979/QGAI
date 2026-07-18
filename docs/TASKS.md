@@ -31,6 +31,26 @@ Target: 34-36%. No code change needed — metric/reporting only.
 
 ---
 
+### DONE — 2026-07-18 Feature-name refactor Phases 0–3 (all 66 cryptic names → canonical aliases)
+Renamed all 66 cryptic feature names (e.g. `M15_ADX`→`adx_m15_strength`, `hmm_state`→`regime_hmm_id`,
+`body_pct`→`candle_body_pct`, `in_range_phase`→`h4move_is_ranging`) on the **feature side** via a phased,
+gated migration. Foundation: `engine/feature_registry.py` (single source of truth: 66-entry REGISTRY +
+`LEGACY_TO_NEW`/`NEW_TO_LEGACY`, phase-aware `ACTIVE_ZONES`/`MIGRATED`, 4 guards, and the **load-shim**
+`remap_model_feature_names` that lets old `.pkl` models run bit-identically on the renamed pipeline).
+- **Phase 1** — 35 pure ML features. **Phase 2** — 23 cross-layer (incl. `hmm_state` split; Zone-B DB/CSV/
+  dashboard keys kept legacy, values read canonical). **Phase 3** — 8 ADX/DI boundary-only (raw MT5-parity
+  layer untouched; HMM `adx_row` remapped legacy-key/canonical-value).
+- **Gate every phase:** 2026-06-15→29 backtest **bit-identical to baseline** (summary/trades/signals 0 diffs,
+  41 trades +6.0R). Live path static-verified. Commits `3e8f710`, `52d9c9d`, `db0c711`, `6409300`.
+- **Docs:** `docs/FEATURE_RENAME_ARCHITECTURE.md` (design + phase table), `docs/FIXES_CHANGELOG4.md` (per-phase).
+- ⏳ **Phase 4 (retrain) — NOT done, needs Imtiyaz go-ahead:** bakes canonical names into model
+  `feature_names` metadata; **overwrites production `.pkl` files** so it's not bit-identical-gateable.
+  Prereq: align `train.py` deferred edits (`h4_df["in_range_phase"]`→`["h4move_is_ranging"]`,
+  `feat_full+["hmm_state"]`→`["regime_hmm_id"]`), then PRE_BACKTEST_AUDIT → test-run → retrain →
+  POST_BACKTEST_AUDIT. **Until then the live system runs correctly on old models via the load-shim.**
+
+---
+
 ### DONE — 2026-07-17 Wilder ADX removed everywhere, replaced with EMA ADX(14)
 Imtiyaz flagged "you use wilder adx for all calculation it wong." Investigation found
 `adx_merged.csv` (`M15/H1/H4_ADX`, `*_DI_diff`) was always EMA-based — the bug was isolated
