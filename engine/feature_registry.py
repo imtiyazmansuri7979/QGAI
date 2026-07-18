@@ -154,7 +154,7 @@ ALL_CANONICAL = set(LEGACY_TO_NEW.values())
 # Advance by adding the next zone:  {"pure"} -> +"cross" -> +"adx_raw".
 # "excluded" is never migrated (raw MT5 columns).
 # ─────────────────────────────────────────────────────────────
-ACTIVE_ZONES = {"pure", "cross"}  # Phase 2. Phase 3: add "adx_raw".
+ACTIVE_ZONES = {"pure", "cross", "adx_raw"}  # Phase 3 (all rename zones live).
 
 MIGRATED = {old for old, (new, z, d) in REGISTRY.items()
             if z in ACTIVE_ZONES and old != new}
@@ -256,17 +256,19 @@ if __name__ == "__main__":
     # Guard smoke tests (phase-agnostic — derive expectations from MIGRATED)
     print("ACTIVE_ZONES:", ACTIVE_ZONES, "| MIGRATED count:", len(MIGRATED))
     _mig_ex  = next(iter(MIGRATED))                       # a migrated legacy name
-    _unmig   = next(l for l in LEGACY_TO_NEW               # an un-migrated legacy name
-                    if l not in MIGRATED and l != LEGACY_TO_NEW[l])
-    assert remap_model_feature_names([_mig_ex, _unmig]) == \
-        [LEGACY_TO_NEW[_mig_ex], _unmig], "phase-aware remap wrong"
-    # guard fires on a MIGRATED legacy key, not on an un-migrated one
+    _unmig   = next((l for l in LEGACY_TO_NEW              # an un-migrated legacy name
+                     if l not in MIGRATED and l != LEGACY_TO_NEW[l]), None)
+    # migrated legacy name always remaps to its canonical
+    assert remap_model_feature_names([_mig_ex])[0] == LEGACY_TO_NEW[_mig_ex], "remap wrong"
+    # guard fires on a MIGRATED legacy key
     try:
         guard_feat_dict({_mig_ex: 1}); raise SystemExit("guard failed to fire")
     except ValueError:
         pass
-    guard_feat_dict({_unmig: 1})                          # un-migrated -> allowed
-    assert_canonical([_mig_ex, _unmig, "band_width_pct"])  # remap lines it up
+    if _unmig is not None:                                 # only before the final phase
+        assert remap_model_feature_names([_unmig]) == [_unmig], "un-migrated must pass through"
+        guard_feat_dict({_unmig: 1})                       # un-migrated -> allowed
+    assert_canonical([_mig_ex, "band_width_pct"])          # remap lines it up
     try:
         validate_feature_names(["nonexistent_feat"]); raise SystemExit("validate failed")
     except ValueError:

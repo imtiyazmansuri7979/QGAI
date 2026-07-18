@@ -677,8 +677,10 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
     if len(adx_row) > 0:
         a = adx_row.iloc[-1]
         for tf in ["M15","M30","H1","H4"]:
-            f[f"{tf}_ADX"]     = round(float(a[f"{tf}_ADX"]), 4)
-            f[f"{tf}_DI_diff"] = round(float(a[f"{tf}_DI_diff"]), 4)
+            # boundary rename (Phase 3): raw adx_df cols `a[..]` stay legacy
+            # (parity untouched); feat-dict KEY goes canonical.
+            f[f"adx_{tf.lower()}_strength"] = round(float(a[f"{tf}_ADX"]), 4)
+            f[f"di_{tf.lower()}_direction"] = round(float(a[f"{tf}_DI_diff"]), 4)
             # 2026-07-02 (Divyesh) HMM v3: state-model-only features (NOT in
             # FEATURE_COLS): band_width_pct (lag-free SMMA2 band %), di_eff
             # (instantaneous DX clarity), band_rel (band / trailing 30d mean).
@@ -749,8 +751,8 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
         else:                                f["adx_regime_quality_score"] = 0
     else:
         for tf in ["M15","M30","H1","H4"]:
-            f[f"{tf}_ADX"]            = 0.0
-            f[f"{tf}_DI_diff"]        = 0.0
+            f[f"adx_{tf.lower()}_strength"] = 0.0
+            f[f"di_{tf.lower()}_direction"] = 0.0
             f[f"{tf}_band_width_pct"] = 0.0
             f[f"{tf}_di_eff"]         = 0.0
             f[f"{tf}_band_rel"]       = 1.0
@@ -869,7 +871,7 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
         _px = float(_o.iloc[-1]["close"]) if len(_o) > 0 else 0.0
         _h4a = f.get("_h4_adx_rolling")
         if _h4a is None:
-            _h4a = f.get("H4_ADX", 0.0)
+            _h4a = f.get("adx_h4_strength", 0.0)
         f.update(get_trend_signal_features(t, trade_type, _px, _h4a, _ts))
         f.pop("_h4_adx_rolling", None)   # internal only — not a model feature
     except Exception as _ts_err:
@@ -1203,8 +1205,8 @@ FEATURE_FAMILIES = {
         "time_session_quality_score", "time_is_ny_session_flag", "time_is_dead_hour_flag",
     ],
     "ADX_DI": [
-        "M15_ADX", "M30_ADX", "H1_ADX", "H4_ADX",
-        "M15_DI_diff", "M30_DI_diff", "H1_DI_diff", "H4_DI_diff",
+        "adx_m15_strength", "adx_m30_strength", "adx_h1_strength", "adx_h4_strength",
+        "di_m15_direction", "di_m30_direction", "di_h1_direction", "di_h4_direction",
         "adx_h4_momentum", "adx_h1_momentum", "adx_multi_tf_trend_count",
     ],
     "Regime": [
@@ -1285,14 +1287,14 @@ FEATURE_COLS = [
     "h4_bigmove_direction",    # big move direction ← NEW
 
     # ── FACTOR 3: Stronger Trending Moves (13) ──
-    "M15_ADX",               # M15 trend strength
-    "M30_ADX",               # M30 trend strength ← NEW
-    "H1_ADX",                # H1 trend strength ← NEW
-    "H4_ADX",                # H4 trend strength ← NEW
-    "M15_DI_diff",           # M15 directional diff
-    "M30_DI_diff",           # M30 directional diff
-    "H1_DI_diff",            # H1 directional diff ← NEW
-    "H4_DI_diff",            # H4 directional diff
+    "adx_m15_strength",               # M15 trend strength
+    "adx_m30_strength",               # M30 trend strength ← NEW
+    "adx_h1_strength",                # H1 trend strength ← NEW
+    "adx_h4_strength",                # H4 trend strength ← NEW
+    "di_m15_direction",           # M15 directional diff
+    "di_m30_direction",           # M30 directional diff
+    "di_h1_direction",            # H1 directional diff ← NEW
+    "di_h4_direction",            # H4 directional diff
     "adx_multi_tf_trend_count",       # consecutive trend bars
     "adx_h4_momentum",          # H4 ADX change over 4hr — trend strengthening/dying
     "adx_h1_momentum",          # H1 ADX change over 4hr
@@ -1394,10 +1396,10 @@ CORE_FEATURES = [
     "candle_body_ratio",                # candle body %
     "candle_range_pct",               # candle range %
     # atr20_pct / atr14_pct REMOVED 2026-06-19 — lagging indicator, dropped from model features
-    "M15_ADX",                 # M15 trend strength
-    "H1_ADX",                  # H1 trend strength
-    "M30_DI_diff",             # M30 direction
-    "H1_DI_diff",              # H1 direction
+    "adx_m15_strength",                 # M15 trend strength
+    "adx_h1_strength",                  # H1 trend strength
+    "di_m30_direction",             # M30 direction
+    "di_h1_direction",              # H1 direction
     "regime_hmm_id",               # market state (0/1/2)
     "adx_regime_quality_score",      # H4/H1 regime alignment score (data-proven)
     "price_change_4hr_usd",                # 4hr price momentum — KEY: BUY↓=31%WR, BUY↑=52%WR
@@ -1425,7 +1427,7 @@ CORE_FEATURES = [
 
 # RANGING (hmm=0): price structure + OB, remove ADX (useless in range)
 RANGING_FEATURES = (
-    [f for f in CORE_FEATURES if f not in ("M15_ADX", "H1_ADX")]
+    [f for f in CORE_FEATURES if f not in ("adx_m15_strength", "adx_h1_strength")]
     + [
         "h4move_is_ranging",      # confirmed range phase
         "ob_h4_resistance_pct",      # H4 resistance OB %dist ← NEW S/R
@@ -1449,10 +1451,10 @@ RANGING_FEATURES = (
 TRENDING_FEATURES = (
     CORE_FEATURES
     + [
-        "M30_ADX",             # M30 trend strength
-        "H4_ADX",              # H4 trend strength
-        "M15_DI_diff",         # M15 direction
-        "H4_DI_diff",          # H4 direction
+        "adx_m30_strength",             # M30 trend strength
+        "adx_h4_strength",              # H4 trend strength
+        "di_m15_direction",         # M15 direction
+        "di_h4_direction",          # H4 direction
         "adx_multi_tf_trend_count",     # timeframes with ADX > 20
         "regime_h4trending_h1aligned",  # H4 trend + H1 confirms ← +3.7pp WR
         "price_change_8hr_usd",                # 8hr momentum — trend persistence
@@ -1467,7 +1469,7 @@ TRENDING_FEATURES = (
 #          is_pre_news (news_mins_until_next already covers it)
 # Added  : ema200_distance_abs_usd (data-proven: +4.2pp AUC)
 VOLATILE_FEATURES = (
-    [f for f in CORE_FEATURES if f not in ("M15_ADX", "H1_ADX", "M30_DI_diff", "H1_DI_diff")]
+    [f for f in CORE_FEATURES if f not in ("adx_m15_strength", "adx_h1_strength", "di_m30_direction", "di_h1_direction")]
     + [
         "news_last_deviation_sign",   # news surprise direction ← 0.856 importance!
         "news_before_eia_flag",            # before EIA release
@@ -1549,8 +1551,8 @@ _MANUAL_PRUNE = {
     # 2026-07-12 ADX redundancy test: D1/D2/D3 all >= baseline when dropped.
     # D3 (H1_ADX) = +18.0R vs baseline +14.8R (+22%). Overfeed confirmed.
     "regime_h4ranging_h1extended",  # D1: exactly =baseline (B3 score=-1 covers it)
-    "M30_ADX",                 # D2: +15.3R without (middle TF redundant)
-    "H1_ADX",                  # D3: +18.0R without (+22% gain, h1_slope+DI sufficient)
+    "adx_m30_strength",                 # D2: +15.3R without (middle TF redundant)
+    "adx_h1_strength",                  # D3: +18.0R without (+22% gain, h1_slope+DI sufficient)
     # 2026-07-12 OB redundancy retrain test (3-month): D6 was best.
     # Drop H1 support+strength as a pair: +34.7R vs baseline +31.8R (+2.9R).
     # Single drops were weak, so keep this as a paired prune. Needs retrain to affect live .pkl.
@@ -1578,7 +1580,7 @@ _MANUAL_PRUNE = {
     # ⚠️ NEEDS A RETRAIN (Start/3_Train_Models.bat) — the live .pkl still
     # expects both columns until retrained. REVERT: delete these 2 lines + retrain.
     "time_15min_slot",
-    "M15_ADX",
+    "adx_m15_strength",
 }
 _ZERO_IMP = _ZERO_IMP | _MANUAL_PRUNE
 # Ablation toggle (for experiments only): set env QGAI_ABLATE="feat1,feat2,..." to
@@ -1618,8 +1620,8 @@ if _leaked_cols:
 # go 0.0 (like the dead EA combos), so this REPLACES. ⚠️ NEEDS A RETRAIN — the
 # .pkl must be built in the SAME mode it's served in (train==serve). WFO-gate
 # ≥ +444.7R (PART-1 baseline) before adopting.
-_ADX_RAW_10 = ["M15_ADX","M30_ADX","H1_ADX","H4_ADX",
-               "M15_DI_diff","M30_DI_diff","H1_DI_diff","H4_DI_diff",
+_ADX_RAW_10 = ["adx_m15_strength","adx_m30_strength","adx_h1_strength","adx_h4_strength",
+               "di_m15_direction","di_m30_direction","di_h1_direction","di_h4_direction",
                "adx_h1_momentum","adx_h4_momentum"]
 _ADX_COMPOSITES = ["adx_dir_fast","adx_dir_slow","adx_str_fast","adx_str_slow","adx_fs_div"]
 _ADX_MODE = _os_abl.getenv("QGAI_ADX_MODE", "raw").strip().lower()

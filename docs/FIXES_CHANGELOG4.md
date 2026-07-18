@@ -75,6 +75,30 @@ gate = output bit-identical to pre-rename baseline (shim active).
   `h4_df["in_range_phase"]`) — retrain path, not exercised by the backtest;
   will be aligned and validated by the Phase-4 training run.
 
+### Phase 3 shipped (2026-07-18) — 8 ADX/DI names renamed (boundary-only), backtest bit-identical
+- **All 66 registry names now renamed.** ADX/DI is boundary-only: the raw side
+  (adx_df columns, `adx_merged.csv`, `compare_adx_parity.py`, `build_indicators`)
+  stays legacy — the just-stabilized parity layer is not reopened.
+- `features.py`: the two raw→feat boundary loops hand-edited so the feat-dict KEY
+  is canonical (`f[f"adx_{tf.lower()}_strength"]`, `f[f"di_{tf.lower()}_direction"]`)
+  while the raw read `a[f"{tf}_ADX"]` is unchanged; 42 literal renames in the
+  feature/family/prune lists + `_ADX_RAW_10`. 11 raw `a["…_ADX"]` reads verified
+  preserved.
+- `inference.py`: 4 feat_dict lookups renamed; **HMM `adx_row` remapped** with a
+  legacy-key/canonical-value split — `self.hmm.features` is pickled as
+  `['M15_ADX','M15_di_eff','M15_band_rel',…,'H4_ADX',…]`, so the dict stays keyed
+  as the model expects but each value is pulled via the canonical feat_dict name.
+- `feature_registry.py`: `ACTIVE_ZONES={"pure","cross","adx_raw"}`, MIGRATED=66;
+  self-test handles the all-migrated final phase (no un-migrated example left).
+- **Gate:** 2026-06-15→29 backtest **0 diffs** vs baseline (41 trades). Because
+  the HMM consumes ADX, a bad remap would have shifted regime predictions and
+  broken the diff — identical output proves the shim feeds every model correctly.
+
+**Rename complete (Phases 0–3):** all 66 cryptic names now have canonical
+aliases live on the feature side; old `.pkl` models still run bit-identically via
+the load-shim. Remaining: **Phase 4** — retrain so `feature_names` metadata
+carries the canonical names (align `train.py`, then PRE→retrain→POST audit).
+
 ## 2026-07-17 — Manual-trade risk manager: CUT-based protection (v2)
 
 **Replaces hedge-based v1 (same day).** Imtiyaz changed the approach: instead of

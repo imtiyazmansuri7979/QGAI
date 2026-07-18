@@ -729,7 +729,11 @@ class LiveInferenceEngine:
         # 2026-07-02 (Divyesh) HMM v3: build from the LOADED model's own feature
         # list (stored in the pkl) so the key list can never drift from the model
         # again (v2 bug: PlusDI/MinusDI defaulted to 0 at predict time).
-        adx_row = {k: feat_dict.get(k, 0) for k in self.hmm.features}
+        # HMM.features are pickled legacy names (incl. M15_ADX..H4_ADX). Keep the
+        # dict keyed as the model expects, but pull each value via the phase-aware
+        # canonical name, since feat_dict is renamed (load-shim, Phase 3).
+        adx_row = {leg: feat_dict.get(can, 0) for leg, can in
+                   zip(self.hmm.features, remap_model_feature_names(self.hmm.features))}
         hmm_state      = self.hmm.predict(adx_row)
         hmm_state_name = self.hmm.state_name(hmm_state)
 
@@ -1239,10 +1243,10 @@ class LiveInferenceEngine:
             "big_move_dir":    feat_dict.get("h4_bigmove_direction", 0),
             "in_range_phase":  feat_dict.get("h4move_is_ranging", 0),
             # dominant-TF momentum (for counter-trend-fade filter — config skip_counter_trend_fade)
-            "H1_ADX":          feat_dict.get("H1_ADX", 0),
-            "H4_ADX":          feat_dict.get("H4_ADX", 0),
-            "H1_DI_diff":      feat_dict.get("H1_DI_diff", 0),
-            "H4_DI_diff":      feat_dict.get("H4_DI_diff", 0),
+            "H1_ADX":          feat_dict.get("adx_h1_strength", 0),
+            "H4_ADX":          feat_dict.get("adx_h4_strength", 0),
+            "H1_DI_diff":      feat_dict.get("di_h1_direction", 0),
+            "H4_DI_diff":      feat_dict.get("di_h4_direction", 0),
             "h1_adx_slope":    feat_dict.get("adx_h1_momentum", 0),
             "h4_adx_slope":    feat_dict.get("adx_h4_momentum", 0),
             # ── ts_* trend-signal features (for the trend-pullback entry gate — ET1 — + market-intel box) ──
