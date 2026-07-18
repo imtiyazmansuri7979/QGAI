@@ -192,7 +192,7 @@ def main():
     from features import build_h4_range_table
     h4_df = build_h4_range_table(ohlc_df)
     big_moves = h4_df["is_big_move"].sum()
-    range_phases = h4_df["in_range_phase"].sum()
+    range_phases = h4_df["h4move_is_ranging"].sum()
     print(f"  H4 candles: {len(h4_df):,} | Big moves(≥2%): {big_moves} | Range phases: {range_phases}")
 
     from features import build_ob_table
@@ -293,7 +293,7 @@ def main():
     X_tr_full = np.column_stack([X_tr, hmm_tr])
     X_va_full = np.column_stack([X_va, hmm_va])
     X_te_full = np.column_stack([X_te, hmm_te])
-    feat_full = feat_names + ["hmm_state"]
+    feat_full = feat_names + ["regime_hmm_id"]
 
     hmm_model.save(f"{cfg.models_dir}/hmm_model.pkl")
 
@@ -525,7 +525,7 @@ def train_directional_models():
 
     # Bug 14 fix: do NOT compute HMM states on full trades here
     # States will be computed per-split inside the training loop
-    feat_full  = feat_names + ["hmm_state"]
+    feat_full  = feat_names + ["regime_hmm_id"]
 
     # ── Split BUY and SELL ───────────────────────────────────
     direction  = trades["Type"].values   # BUY or SELL

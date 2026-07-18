@@ -1,7 +1,7 @@
 # Feature Rename Architecture — Permanent Naming Foundation
 
 **Created:** 2026-07-18 · **Owner:** Imtiyaz · **Architect opinion:** Fable-5
-**Status:** Phase 0 ✅ · Phase 1 ✅ (35 pure) · Phase 2 ✅ (23 cross incl. hmm_state split) · Phase 3 ✅ (8 ADX/DI boundary, backtest bit-identical, parity layer untouched) · **all 66 names renamed** · Phase 4 (retrain) pending
+**Status:** Phase 0 ✅ · Phase 1 ✅ (35 pure) · Phase 2 ✅ (23 cross) · Phase 3 ✅ (8 ADX/DI) · Phase 4 ✅ (retrain — canonical names baked in production models) · **COMPLETE**
 **Code:** [`engine/feature_registry.py`](../engine/feature_registry.py)
 
 > ગુજરાતી સાર: ~67 cryptic feature નામ (દા.ત. `M15_ADX`, `hmm_state`, `body_pct`)
@@ -107,7 +107,7 @@ leakage-style parity test that runs without retraining.
 | **2 ✅** | 23 cross names renamed. features.py Zone-A (172 repl). inference.py: feat_dict lookups+injections→canonical (incl. `hmm_state`→`regime_hmm_id` inject at 737, `in_range_phase`→`h4move_is_ranging` at 761, two `["hmm_state"]` fallbacks); **result-dict/CSV KEYS kept legacy, values read canonical** (Zone-B untouched: bridge_data `log_signal` reads `result.get("hmm_state"/"in_range_phase"/"h4_resist_dist"…)`, `_log_trade` CSV cols legacy). Registry `ACTIVE_ZONES={"pure","cross"}`, MIGRATED=58 | **backtest bit-identical** (0 diffs, 41 trades) **+ live-path static-verified** (all bridge/DB reads hit preserved Zone-B legacy keys). ⚠️ `train.py` deferred to Phase 4 (retrain path: `feat_full + ["hmm_state"]`→`["regime_hmm_id"]`, `h4_df["in_range_phase"]`→`["h4move_is_ranging"]`) |
 | **2** | cross-layer: `hmm_state`→`regime_hmm_id`, `in_range_phase`→`h4move_is_ranging`, write-site translations | identical output + bridge dry-run + DB insert/select sanity |
 | **3 ✅** | 8 ADX/DI **boundary-only** rename. features.py: feat-key WRITE side canonical (2 loops hand-edited to `f[f"adx_{tf.lower()}_strength"]` / `f[f"di_{tf.lower()}_direction"]`; 42 literal renames in FEATURE_COLS/families/prune/`_ADX_RAW_10`); **raw `a["M15_ADX"]` / `a[f"{tf}_ADX"]` reads (MT5 parity boundary) untouched** (11 preserved). inference.py: 4 feat_dict lookups + **HMM `adx_row` remap** (legacy-key/canonical-value split — HMM.features carries `M15_ADX..H4_ADX`). Registry `ACTIVE_ZONES` = all 3 zones, MIGRATED=66 | **backtest bit-identical** (0 diffs, 41 trades — proves HMM state predictions unchanged); `compare_adx_parity.py` references 0 feat names (raw-CSV only), so parity is not reopened |
-| **4** | retrain (separate): PRE_BACKTEST_AUDIT → retrain (canonical `feature_names` in meta) → POST_BACKTEST_AUDIT | live old models on shim meanwhile |
+| **4 ✅** | `train.py` aligned (`h4_df["in_range_phase"]`→`["h4move_is_ranging"]`, 2× `feat_full+["hmm_state"]`→`["regime_hmm_id"]`). Retrained to `test_workspace_p4`, verified **41 trades +6.0R** (summary+signals identical to baseline; only `tp_mult` cosmetic diff 3.0→1.5, TP-cap off). Production models updated (old backed up to `final_pre_p4_rename_backup`). `feature_names` in all `.pkl` now carry canonical names — **no legacy names remain**. Load-shim stays permanent for any old model/branch. | Retrained + verified |
 
 Local commit after each phase (no push until Imtiyaz says so — standing rule).
 

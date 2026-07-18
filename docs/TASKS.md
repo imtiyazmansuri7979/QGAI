@@ -43,11 +43,10 @@ gated migration. Foundation: `engine/feature_registry.py` (single source of trut
 - **Gate every phase:** 2026-06-15→29 backtest **bit-identical to baseline** (summary/trades/signals 0 diffs,
   41 trades +6.0R). Live path static-verified. Commits `3e8f710`, `52d9c9d`, `db0c711`, `6409300`.
 - **Docs:** `docs/FEATURE_RENAME_ARCHITECTURE.md` (design + phase table), `docs/FIXES_CHANGELOG4.md` (per-phase).
-- ⏳ **Phase 4 (retrain) — NOT done, needs Imtiyaz go-ahead:** bakes canonical names into model
-  `feature_names` metadata; **overwrites production `.pkl` files** so it's not bit-identical-gateable.
-  Prereq: align `train.py` deferred edits (`h4_df["in_range_phase"]`→`["h4move_is_ranging"]`,
-  `feat_full+["hmm_state"]`→`["regime_hmm_id"]`), then PRE_BACKTEST_AUDIT → test-run → retrain →
-  POST_BACKTEST_AUDIT. **Until then the live system runs correctly on old models via the load-shim.**
+- ✅ **Phase 4 (retrain) — DONE 2026-07-18:** `train.py` aligned, retrained to `test_workspace_p4`,
+  backtest verified (41 trades +6.0R, summary+signals identical), production models updated
+  (old backed up to `final_pre_p4_rename_backup`). All `.pkl` `feature_names` now canonical.
+  **Feature-name refactor COMPLETE.**
 
 ---
 

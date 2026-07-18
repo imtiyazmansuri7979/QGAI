@@ -96,8 +96,22 @@ gate = output bit-identical to pre-rename baseline (shim active).
 
 **Rename complete (Phases 0–3):** all 66 cryptic names now have canonical
 aliases live on the feature side; old `.pkl` models still run bit-identically via
-the load-shim. Remaining: **Phase 4** — retrain so `feature_names` metadata
-carries the canonical names (align `train.py`, then PRE→retrain→POST audit).
+the load-shim.
+
+### Phase 4 shipped (2026-07-18) — retrain with canonical names, production models updated
+- `train.py` aligned: `h4_df["in_range_phase"]`→`["h4move_is_ranging"]` (line 195),
+  `feat_full + ["hmm_state"]`→`["regime_hmm_id"]` (lines 296, 528).
+  `get_hmm_states` reads raw `adx_df` with `hmm_model.features` — both legacy, no
+  change needed.
+- Retrained to `data/models/test_workspace_p4` (QGAI_CORE_ONLY=1 for speed),
+  verified: all model `feature_names` carry canonical names (no legacy).
+  Backtest: 41 trades +6.0R, summary+signals identical to Phase 0 baseline;
+  only `tp_mult` diff (3.0→1.5 — cosmetic, TP-cap off).
+- Production `data/models/final/` updated (old backed up to
+  `data/models/final_pre_p4_rename_backup/`). Load-shim stays permanent.
+- **Feature-name refactor COMPLETE (all 4 phases).** 66 cryptic → canonical names
+  live on the feature side, canonical names baked in model metadata, old models
+  still run via permanent shim, raw MT5-parity layer untouched.
 
 ## 2026-07-17 — Manual-trade risk manager: CUT-based protection (v2)
 
