@@ -209,6 +209,7 @@ from features import (compute_features, load_ohlc, load_adx,
                       load_news, build_h4_range_table,
                       build_ob_table,
                       FEATURE_COLS, STATE_FEATURE_MAP)
+from feature_registry import remap_model_feature_names  # phase-aware load-shim
 from hmm_model import MarketStateHMM
 from xgb_model import WinProbabilityModel
 from prediction_model import BigWinPredictor, DurationPredictor, get_dynamic_tp_sl
@@ -785,7 +786,11 @@ class LiveInferenceEngine:
 
         def _make_X_hybrid(model):
             """Build feature vector using model's own feature_names."""
-            cols = getattr(model, "feature_names", None) or FEATURE_COLS + ["hmm_state"]
+            # Load-shim: a model pickled with legacy names is remapped to the
+            # migrated-canonical names so lookups line up with the renamed
+            # feat_dict (positional vector — names not sent to the model).
+            cols = remap_model_feature_names(getattr(model, "feature_names", None)) \
+                or FEATURE_COLS + ["hmm_state"]
             missing = [c for c in cols if c not in feat_dict]
             if missing:
                 # FIX #21: also send to logging — print() never reached
@@ -864,7 +869,8 @@ class LiveInferenceEngine:
 
         # X_main for BigWin/Duration — use combined model's full feature set
         # feat_dict["hmm_state"] already set as integer above
-        _fn = getattr(self.xgb, "feature_names", None) or FEATURE_COLS + ["hmm_state"]
+        _fn = remap_model_feature_names(getattr(self.xgb, "feature_names", None)) \
+            or FEATURE_COLS + ["hmm_state"]
         X_main = np.array([[feat_dict.get(c, 0) for c in _fn]], dtype=np.float32)
 
         # ── Prediction models (BigWin + Duration) ────────────
@@ -1009,7 +1015,7 @@ class LiveInferenceEngine:
         reason = (f"prob={final_prob:.2%} | "
                   f"model={_routing} | "
                   f"state={hmm_state_name} | vol={vol_regime} | "
-                  f"slot_wr={feat_dict.get('slot_win_rate',0):.2%}")
+                  f"slot_wr={feat_dict.get('time_1hr_winrate',0):.2%}")
 
         # Bug #7 fix: cache last features + timestamp for on_trade_closed reuse
         self._last_features   = feat_dict
@@ -1168,7 +1174,12 @@ class LiveInferenceEngine:
             import pandas as _pd3
             pack = self.move_models[(d, 50)]
             cols = pack["features"]
-            row = _pd3.DataFrame([{c: feat_dict.get(c, 0) for c in cols}]).fillna(0)
+            # Keep the DataFrame's column NAMES legacy (the model was trained
+            # with them and indexes by pk["features"]), but fetch each VALUE via
+            # the phase-aware canonical name, since feat_dict is renamed.
+            _canon = remap_model_feature_names(cols)
+            row = _pd3.DataFrame([{leg: feat_dict.get(can, 0)
+                                   for leg, can in zip(cols, _canon)}]).fillna(0)
             atr_pct = 0.2   # L7b: ATR removed — fixed 0.2% move-model normalization (must match train_move_model)
             for q in (25, 50, 75):
                 pk = self.move_models.get((d, q))
@@ -1220,12 +1231,12 @@ class LiveInferenceEngine:
             "tp_multiplier":getattr(self,"_last_dyn",{}).get("tp_multiplier",1.5),
             "hmm_state":    state_name,
             "reason":       reason,
-            "slot":         feat_dict.get("15_min_slot", -1),
-            "slot_wr":      round(feat_dict.get("slot_win_rate", 0), 3),
+            "slot":         feat_dict.get("time_15min_slot", -1),
+            "slot_wr":      round(feat_dict.get("time_1hr_winrate", 0), 3),
             "mins_to_3star":feat_dict.get("mins_to_next_3star", 999),
-            "before_eia":      feat_dict.get("before_eia", 0),
+            "before_eia":      feat_dict.get("news_before_eia_flag", 0),
             "is_post_big_move":feat_dict.get("is_post_big_move", 0),
-            "big_move_dir":    feat_dict.get("big_move_direction", 0),
+            "big_move_dir":    feat_dict.get("h4_bigmove_direction", 0),
             "in_range_phase":  feat_dict.get("in_range_phase", 0),
             # dominant-TF momentum (for counter-trend-fade filter — config skip_counter_trend_fade)
             "H1_ADX":          feat_dict.get("H1_ADX", 0),
@@ -1237,9 +1248,9 @@ class LiveInferenceEngine:
             # ── ts_* trend-signal features (for the trend-pullback entry gate — ET1 — + market-intel box) ──
             "ts_line_dist_pct":   feat_dict.get("ts_line_dist_pct", 0),   # signed % dist price↔active ratchet line
             "ts_htf_agreement":   feat_dict.get("ts_htf_agreement", 0),   # trend_m15+h1+h4 (-3..+3)
-            "ts_adx_switch_trend":feat_dict.get("ts_adx_switch_trend", 0),# EA rule: H4 trend if H4 ADX>=19 else H1
-            "ts_flip_recent":     feat_dict.get("ts_flip_recent", 0),     # 1 = SMMA flip within last 3 M15 bars
-            "ts_bars_since_flip": feat_dict.get("ts_bars_since_flip", 999),
+            "ts_adx_switch_trend":feat_dict.get("smma_adx_switch_trend_flag", 0),# EA rule: H4 trend if H4 ADX>=19 else H1
+            "ts_flip_recent":     feat_dict.get("smma_recent_flip_flag", 0),     # 1 = SMMA flip within last 3 M15 bars
+            "ts_bars_since_flip": feat_dict.get("smma_bars_since_flip", 999),
             "ts_trend_m15":       feat_dict.get("ts_trend_m15", 0),       # +1 up / -1 down (M15 SMMA)
             "ts_trend_h1":        feat_dict.get("ts_trend_h1", 0),        # +1 / -1 (H1)
             "ts_trend_h4":        feat_dict.get("ts_trend_h4", 0),        # +1 / -1 (H4)
@@ -1247,22 +1258,22 @@ class LiveInferenceEngine:
             "h4_resist_dist":  feat_dict.get("h4_resist_dist", 999),
             "h4_support_dist": feat_dict.get("h4_support_dist", 999),
             "h4_in_ob_zone":   feat_dict.get("h4_in_ob_zone", 0),
-            "h4_ob_strength":  feat_dict.get("h4_ob_strength", 0),
+            "h4_ob_strength":  feat_dict.get("ob_h4_strength", 0),
             "h1_resist_dist":  feat_dict.get("h1_resist_dist", 999),
             "h1_support_dist": feat_dict.get("h1_support_dist", 999),
             "h1_in_ob_zone":   feat_dict.get("h1_in_ob_zone", 0),
-            "h1_ob_strength":  feat_dict.get("h1_ob_strength", 0),
+            "h1_ob_strength":  feat_dict.get("ob_h1_strength", 0),
             # M1: predicted move size (info-only, dashboard display)
             **self._predict_move("BUY" if feat_dict.get("is_buy", 1) else "SELL", feat_dict),
             "is_pre_news":     feat_dict.get("is_pre_news", 0),
             "is_post_news":    feat_dict.get("is_post_news", 0),
             # FIX #B5: the dashboard's "3★ Dev Sign" field read this key
             # but it was never copied from features → stuck at "--"
-            "last_3star_dev_sign": feat_dict.get("last_3star_dev_sign", 0),
+            "last_3star_dev_sign": feat_dict.get("news_last_deviation_sign", 0),
             "corr_imp_ratio":  feat_dict.get("corr_imp_ratio", 1.0),
             # FIX #B5: dashboard's "3★ Dev Sign" read this key but it was
             # never copied from features → permanent "--".
-            "last_3star_dev_sign": feat_dict.get("last_3star_dev_sign", 0),
+            "last_3star_dev_sign": feat_dict.get("news_last_deviation_sign", 0),
             "vol_regime":      getattr(self,"_last_vol_regime","normal"),
         }
 

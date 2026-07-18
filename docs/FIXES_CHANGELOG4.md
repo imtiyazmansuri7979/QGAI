@@ -37,6 +37,23 @@ registry + 4 guards. Full design → [`FEATURE_RENAME_ARCHITECTURE.md`](FEATURE_
 hmm_state split) · Phase 3 (ADX/DI boundary) · Phase 4 (retrain). Each phase
 gate = output bit-identical to pre-rename baseline (shim active).
 
+### Phase 1 shipped (2026-07-18) — 35 pure features renamed, backtest bit-identical
+- `features.py`: 35 pure names → canonical (Zone-A: `f[...]` keys, FEATURE_COLS,
+  families, prune lists), 249 replacements; FEATURE_ALIASES block untouched.
+  Wired guard-4 (`validate_feature_names`) on QGAI_ABLATE/UNPRUNE + an
+  import-time guard that rejects any migrated-legacy name left in the feature
+  lists.
+- `inference.py`: renamed only `feat_dict` lookups (12 sites); result-dict KEYS
+  and `sig.get(...)` kept legacy (Zone-B). Wired the phase-aware load-shim
+  `remap_model_feature_names` at `_make_X_hybrid`, `X_main`, and `_predict_move`
+  (legacy-column/canonical-value split for the DataFrame-based move/sl models).
+- `feature_registry.py`: guards made phase-aware via `ACTIVE_ZONES` /
+  `MIGRATED` (currently `{"pure"}`, 35 names). Advance = add `"cross"` (P2),
+  `"adx_raw"` (P3).
+- **Gate:** re-ran the 2026-06-15→29 backtest — summary/trades/signals all
+  **0 differing cells** vs baseline (41 trades, +6.0R) after normalizing the
+  renamed `f_*` feature-column headers. Old models ran unchanged via the shim.
+
 ## 2026-07-17 — Manual-trade risk manager: CUT-based protection (v2)
 
 **Replaces hedge-based v1 (same day).** Imtiyaz changed the approach: instead of

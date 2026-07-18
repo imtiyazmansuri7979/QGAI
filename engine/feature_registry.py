@@ -145,18 +145,31 @@ _RENAMED = {old: new for old, new in LEGACY_TO_NEW.items() if old != new}
 
 # The set of every valid CANONICAL feature name (what the ML pipeline uses).
 ALL_CANONICAL = set(LEGACY_TO_NEW.values())
-# Legacy names that must NEVER appear as a feat_dict key after rename
-# (identity pairs are allowed; they are legitimately still their own name).
-_BANNED_LEGACY = set(_RENAMED.keys())
+
+# ─────────────────────────────────────────────────────────────
+# PHASED MIGRATION CONTROL — the single knob that advances the rollout.
+# A feature is "migrated" once compute_features() emits its CANONICAL name in
+# feat_dict. Until then it stays legacy in feat_dict, so the load-shim must NOT
+# remap it (or a still-legacy model name would miss it, and vice-versa).
+# Advance by adding the next zone:  {"pure"} -> +"cross" -> +"adx_raw".
+# "excluded" is never migrated (raw MT5 columns).
+# ─────────────────────────────────────────────────────────────
+ACTIVE_ZONES = {"pure"}          # Phase 1. Phase 2: add "cross". Phase 3: add "adx_raw".
+
+MIGRATED = {old for old, (new, z, d) in REGISTRY.items()
+            if z in ACTIVE_ZONES and old != new}
+# active legacy->canonical map (only migrated features)
+ACTIVE_MAP = {old: LEGACY_TO_NEW[old] for old in MIGRATED}
 
 
 def remap_model_feature_names(names):
-    """GUARD 1 — load-shim. Given a model's stored feature_names (which may be
-    legacy), return the canonical list so an old pickle runs on the renamed
-    pipeline unchanged. Identity for names already canonical / unknown."""
+    """GUARD 1 — load-shim (phase-aware). Remap ONLY already-migrated legacy
+    names to canonical, so a model pickled with legacy names lines up with the
+    partially-renamed feat_dict. Un-migrated legacy names are left as-is on
+    purpose (feat_dict still emits them legacy this phase)."""
     if not names:
         return names
-    return [LEGACY_TO_NEW.get(n, n) for n in names]
+    return [ACTIVE_MAP.get(n, n) for n in names]
 
 
 def to_legacy(name):
@@ -170,29 +183,30 @@ def to_canonical(name):
 
 
 def assert_canonical(feature_names, where="model"):
-    """GUARD 2 — startup assertion. Every name (after remap) must be a known
-    canonical name. Raises with the offending names so train/serve skew is
-    caught immediately instead of surfacing as silent zeros at predict time."""
+    """GUARD 2 — startup assertion (phase-aware). After remap, no MIGRATED
+    legacy name may survive — that would mean the shim failed to line the model
+    up with the renamed feat_dict, i.e. train/serve skew. Caught here instead
+    of surfacing as silent zeros at predict time. Names outside the registry
+    (e.g. band_width_pct, hmm_state) and un-migrated legacy names are allowed."""
     remapped = remap_model_feature_names(feature_names)
-    unknown = [n for n in remapped
-               if n not in ALL_CANONICAL and not str(n).startswith("_")]
-    if unknown:
+    survived = [n for n in remapped if n in MIGRATED]
+    if survived:
         raise ValueError(
-            f"[feature_registry] {where}: unknown feature name(s) {unknown}. "
-            f"Every model/pipeline feature must be a canonical name in "
-            f"feature_registry.REGISTRY (or map from a legacy name).")
+            f"[feature_registry] {where}: migrated-legacy name(s) survived "
+            f"remap: {survived}. Model/pipeline out of sync — expected "
+            f"canonical {[LEGACY_TO_NEW[n] for n in survived]}.")
     return remapped
 
 
 def guard_feat_dict(feat_dict, where="compute_features"):
-    """GUARD 3 — no legacy feature name may leak out of the feature builder.
-    Ignores internal helper keys (leading '_') and Zone-B-only keys that are
-    legitimately still logged under their legacy name (handled by callers)."""
-    leaked = [k for k in feat_dict.keys() if k in _BANNED_LEGACY]
+    """GUARD 3 — no MIGRATED legacy feature name may leak out of the feature
+    builder. Un-migrated legacy keys (cross/adx in earlier phases) are allowed
+    until their phase lands; internal '_'-keys ignored."""
+    leaked = [k for k in feat_dict.keys() if k in MIGRATED]
     if leaked:
         raise ValueError(
-            f"[feature_registry] {where}: legacy feature key(s) leaked: "
-            f"{leaked}. Use the canonical name(s) "
+            f"[feature_registry] {where}: migrated-legacy feature key(s) "
+            f"leaked: {leaked}. Use canonical "
             f"{[LEGACY_TO_NEW[k] for k in leaked]} instead.")
     return feat_dict
 
@@ -239,14 +253,20 @@ if __name__ == "__main__":
                 and ZONE[k] != "excluded"}
     assert not mismatch, f"registry<->FEATURE_ALIASES drift: {mismatch}"
 
-    # Guard smoke tests
+    # Guard smoke tests (phase-aware: ACTIVE_ZONES currently {"pure"})
+    print("ACTIVE_ZONES:", ACTIVE_ZONES, "| MIGRATED count:", len(MIGRATED))
+    # pure name migrated -> remapped; cross/adx_raw NOT yet -> stay legacy
     assert remap_model_feature_names(["M15_ADX", "hmm_state", "price_pos"]) == \
-        ["adx_m15_strength", "regime_hmm_id", "bb_price_position"]
+        ["M15_ADX", "hmm_state", "bb_price_position"], "phase-aware remap wrong"
     assert to_legacy("regime_hmm_id") == "hmm_state"
+    # guard fires on a MIGRATED (pure) legacy key, not on an un-migrated one
     try:
-        guard_feat_dict({"M15_ADX": 1}); raise SystemExit("guard failed to fire")
+        guard_feat_dict({"price_pos": 1}); raise SystemExit("guard failed to fire")
     except ValueError:
         pass
+    guard_feat_dict({"M15_ADX": 1})  # adx_raw not migrated yet -> allowed
+    # assert_canonical passes for a legacy-named model (remap lines it up)
+    assert_canonical(["price_pos", "M15_ADX", "hmm_state", "band_width_pct"])
     try:
         validate_feature_names(["nonexistent_feat"]); raise SystemExit("validate failed")
     except ValueError:

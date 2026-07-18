@@ -130,7 +130,7 @@ def engineer_ohlc(df: pd.DataFrame) -> pd.DataFrame:
     # Price position (0=day low, 1=day high) — already relative
     df["high_20"]    = df["high"].rolling(20).max()
     df["low_20"]     = df["low"].rolling(20).min()
-    df["price_pos"]  = ((df["close"] - df["low_20"]) / (df["high_20"] - df["low_20"] + 1e-9)).round(4)
+    df["bb_price_position"]  = ((df["close"] - df["low_20"]) / (df["high_20"] - df["low_20"] + 1e-9)).round(4)
 
     # ATR REMOVED 2026-06-19 — volatility is already captured by the 2-SMMA
     # (Period=2) trend/ratchet indicator, so the standalone ATR indicator is
@@ -147,13 +147,13 @@ def engineer_ohlc(df: pd.DataFrame) -> pd.DataFrame:
     # FAR below EMA200 (>$60): WR=52% (+15pp) ← BEST
     # BUY $0-30 below EMA: WR=29.7% ← 4 consecutive losses zone
     df["ema200"]          = df["close"].ewm(span=200, adjust=False).mean().round(2)
-    df["price_vs_ema200"] = ((df["close"] - df["ema200"]) / df["close"] * 100).round(4)  # % signed (KEPT)
+    df["ema200_distance_usd"] = ((df["close"] - df["ema200"]) / df["close"] * 100).round(4)  # % signed (KEPT)
     # Computed for debug/experiments; pruned from FEATURE_COLS unless QGAI_UNPRUNE restores them.
-    df["above_ema200"]    = (df["close"] > df["ema200"]).astype(int)
-    df["ema200_dist_abs"] = (df["close"] - df["ema200"]).abs().round(2)
-    df["near_ema200"]     = (df["ema200_dist_abs"] <= 10.0).astype(int)
-    # 2026-06-30 (Anisa): above_ema200 / ema200_dist_abs / near_ema200 REMOVED — keep ONLY
-    # price_vs_ema200. (ema200 raw stays as its intermediate.)
+    df["ema200_above_flag"]    = (df["close"] > df["ema200"]).astype(int)
+    df["ema200_distance_abs_usd"] = (df["close"] - df["ema200"]).abs().round(2)
+    df["ema200_near_flag"]     = (df["ema200_distance_abs_usd"] <= 10.0).astype(int)
+    # 2026-06-30 (Anisa): ema200_above_flag / ema200_distance_abs_usd / ema200_near_flag REMOVED — keep ONLY
+    # ema200_distance_usd. (ema200 raw stays as its intermediate.)
 
     # Only drop rows where critical price columns are NaN
     # (not volume rolling which has NaN in first 20 rows)
@@ -319,9 +319,9 @@ def get_ob_features(t: pd.Timestamp, price: float,
     if price is None or price <= 0:
         return {
             "h4_resist_dist": 999.0, "h4_support_dist": 999.0,
-            "h4_in_ob_zone": 0, "h4_ob_strength": 0.0,
+            "h4_in_ob_zone": 0, "ob_h4_strength": 0.0,
             "h1_resist_dist": 999.0, "h1_support_dist": 999.0,
-            "h1_in_ob_zone": 0, "h1_ob_strength": 0.0,
+            "h1_in_ob_zone": 0, "ob_h1_strength": 0.0,
         }
 
     def scan(ob_df, ob_col, high_col, low_col, ahead_is_above):
@@ -448,7 +448,7 @@ def get_range_features(t: pd.Timestamp, h4_df: pd.DataFrame) -> dict:
     if len(past_h4) < 4:
         return {
             "is_post_big_move":   0,
-            "big_move_direction": 0,
+            "h4_bigmove_direction": 0,
             "big_move_size_pct":  0.0,
             "in_range_phase":     0,
             # RAW continuous H4 move (2026-07-12): give the model the actual H4
@@ -468,7 +468,7 @@ def get_range_features(t: pd.Timestamp, h4_df: pd.DataFrame) -> dict:
     if len(big_move_rows) == 0:
         return {
             "is_post_big_move":   0,
-            "big_move_direction": 0,
+            "h4_bigmove_direction": 0,
             "big_move_size_pct":  0.0,
             "in_range_phase":     int(_last["in_range_phase"]),
             "h4_move_pct":        _h4mv,
@@ -480,7 +480,7 @@ def get_range_features(t: pd.Timestamp, h4_df: pd.DataFrame) -> dict:
 
     return {
         "is_post_big_move":   1,
-        "big_move_direction": int(last_big["big_move_dir"]),
+        "h4_bigmove_direction": int(last_big["big_move_dir"]),
         "big_move_size_pct":  float(last_big["big_move_size"]),
         "in_range_phase":     int(_last["in_range_phase"]),
         "h4_move_pct":        _h4mv,
@@ -550,18 +550,18 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
         return src.iloc[:idx]
 
     # ── GROUP 1: TIME + SLOT (11) ──
-    f["15_min_slot"]   = slot
-    f["slot_win_rate"] = round(slot_wr, 4)
+    f["time_15min_slot"]   = slot
+    f["time_1hr_winrate"] = round(slot_wr, 4)
     f["is_hot_slot"]   = int(slot_wr > 0.50)
     f["is_dead_slot"]  = int(slot_wr < 0.25)
     f["slot_sin"]      = round(np.sin(2 * np.pi * slot / 96), 4)
-    f["slot_cos"]      = round(np.cos(2 * np.pi * slot / 96), 4)
+    f["time_cyclical_encoding"]      = round(np.cos(2 * np.pi * slot / 96), 4)
     f["hour"]          = hour
     f["hour_sin"]      = round(np.sin(2 * np.pi * hour / 24), 4)
     f["hour_cos"]      = round(np.cos(2 * np.pi * hour / 24), 4)
     f["session_NY"]    = int(13 <= hour < 20)
     f["session_Asia"]  = int(1  <= hour < 8)
-    f["day_of_week"]   = pd.Timestamp(t).dayofweek  # 0=Mon...4=Fri
+    f["time_weekday"]   = pd.Timestamp(t).dayofweek  # 0=Mon...4=Fri
 
     # ── SESSION SCORE — Data-proven (2,788 trades backtest) ──
     # +2: 16-18 UTC (NY Open)   → WR=49-52% (+12-15pp) BEST
@@ -570,15 +570,15 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
     # -1: 10,11,13,22,23 UTC    → WR=29-36% (-1 to -8pp)
     # -2: 06,12 UTC             → WR=22-28% (-9 to -15pp) WORST
     if hour in [16, 17, 18]:
-        f["session_score"] = 2
+        f["time_session_quality_score"] = 2
     elif hour in [4, 5, 20, 21]:
-        f["session_score"] = 1
+        f["time_session_quality_score"] = 1
     elif hour in [6, 12]:
-        f["session_score"] = -2
+        f["time_session_quality_score"] = -2
     elif hour in [10, 11, 13, 22, 23]:
-        f["session_score"] = -1
+        f["time_session_quality_score"] = -1
     else:
-        f["session_score"] = 0
+        f["time_session_quality_score"] = 0
     f["is_ny_session"] = int(hour in [15, 16, 17, 18])  # WR=40-52%
     f["is_dead_hour"]  = int(hour in [9, 20])  # actual low WR hours: 09 UTC=57.1%, 20 UTC=58.8%
 
@@ -591,17 +591,17 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
         f["body_pct"]        = float(r["body_pct"])       # e.g. 0.1050%
         f["lower_wick_pct"]  = float(r["lower_wick_pct"]) # e.g. 0.0250%
         f["upper_wick_pct"]  = float(r["upper_wick_pct"]) # e.g. 0.0300%
-        f["price_pos"]       = float(r["price_pos"])      # 0-1 relative
+        f["bb_price_position"]       = float(r["bb_price_position"])      # 0-1 relative
         f["body_ratio"]      = float(r["body_ratio"])     # relative
         f["range_ratio"]     = float(r["range_ratio"])    # relative
         f["tick_volume"]     = float(r["tick_volume"])    # raw count
         f["is_bullish_candle"] = _safe_int(r.get("is_bullish", 0)) if str(r.get("is_bullish","nan")) not in ("nan","NaN","") else 0
 
-        # ── EMA200 FEATURE (keep only price_vs_ema200 — Anisa 2026-06-30) ──
-        f["price_vs_ema200"] = float(r["price_vs_ema200"]) if "price_vs_ema200" in r.index else 0.0
-        f["above_ema200"]    = _safe_int(r.get("above_ema200", 0)) if str(r.get("above_ema200","nan")) not in ("nan","NaN","") else 0
-        f["ema200_dist_abs"] = float(r["ema200_dist_abs"]) if "ema200_dist_abs" in r.index else 0.0
-        f["near_ema200"]     = _safe_int(r.get("near_ema200", 0)) if str(r.get("near_ema200","nan")) not in ("nan","NaN","") else 0
+        # ── EMA200 FEATURE (keep only ema200_distance_usd — Anisa 2026-06-30) ──
+        f["ema200_distance_usd"] = float(r["ema200_distance_usd"]) if "ema200_distance_usd" in r.index else 0.0
+        f["ema200_above_flag"]    = _safe_int(r.get("ema200_above_flag", 0)) if str(r.get("ema200_above_flag","nan")) not in ("nan","NaN","") else 0
+        f["ema200_distance_abs_usd"] = float(r["ema200_distance_abs_usd"]) if "ema200_distance_abs_usd" in r.index else 0.0
+        f["ema200_near_flag"]     = _safe_int(r.get("ema200_near_flag", 0)) if str(r.get("ema200_near_flag","nan")) not in ("nan","NaN","") else 0
 
         # ── PRICE MOMENTUM FEATURES (data-proven, backtest analysis) ──
         # Key finding: BUY when 4hr price dropped → WR=31% (AVOID)
@@ -634,42 +634,42 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
         # 1hr move = price now vs 4 bars ago — zero if gap detected
         if len(ohlc_row) >= 5 and price_now > 0 and not _has_gap(4):
             price_1hr_ago = float(ohlc_row.iloc[-5]["close"])
-            f["move_1hr"] = round((price_now - price_1hr_ago) / price_1hr_ago * 100, 4) if price_1hr_ago > 0 else 0.0
+            f["price_change_1hr_usd"] = round((price_now - price_1hr_ago) / price_1hr_ago * 100, 4) if price_1hr_ago > 0 else 0.0
         else:
-            f["move_1hr"] = 0.0
+            f["price_change_1hr_usd"] = 0.0
 
         # 2hr move = price now vs 8 bars ago
         if len(ohlc_row) >= 9 and price_now > 0 and not _has_gap(8):
             price_2hr_ago = float(ohlc_row.iloc[-9]["close"])
-            f["move_2hr"] = round((price_now - price_2hr_ago) / price_2hr_ago * 100, 4) if price_2hr_ago > 0 else 0.0
+            f["price_change_2hr_usd"] = round((price_now - price_2hr_ago) / price_2hr_ago * 100, 4) if price_2hr_ago > 0 else 0.0
         else:
-            f["move_2hr"] = 0.0
+            f["price_change_2hr_usd"] = 0.0
 
         # 4hr move = price now vs 16 bars ago
         if len(ohlc_row) >= 17 and price_now > 0 and not _has_gap(16):
             price_4hr_ago = float(ohlc_row.iloc[-17]["close"])
-            f["move_4hr"] = round((price_now - price_4hr_ago) / price_4hr_ago * 100, 4) if price_4hr_ago > 0 else 0.0
+            f["price_change_4hr_usd"] = round((price_now - price_4hr_ago) / price_4hr_ago * 100, 4) if price_4hr_ago > 0 else 0.0
         else:
-            f["move_4hr"] = 0.0
+            f["price_change_4hr_usd"] = 0.0
 
         # 8hr move = price now vs 32 bars ago
         if len(ohlc_row) >= 33 and price_now > 0 and not _has_gap(32):
             price_8hr_ago = float(ohlc_row.iloc[-33]["close"])
-            f["move_8hr"] = round((price_now - price_8hr_ago) / price_8hr_ago * 100, 4) if price_8hr_ago > 0 else 0.0
+            f["price_change_8hr_usd"] = round((price_now - price_8hr_ago) / price_8hr_ago * 100, 4) if price_8hr_ago > 0 else 0.0
         else:
-            f["move_8hr"] = 0.0
+            f["price_change_8hr_usd"] = 0.0
         # Signal-aligned momentum: +1 if momentum agrees with signal, -1 if against
         _is_buy_m = int(str(trade_type).upper() == "BUY")
-        f["momentum_aligned_1hr"] = 1 if (_is_buy_m and f["move_1hr"] > 0) or (not _is_buy_m and f["move_1hr"] < 0) else -1 if f["move_1hr"] != 0 else 0
-        f["momentum_aligned_2hr"] = 1 if (_is_buy_m and f["move_2hr"] > 0) or (not _is_buy_m and f["move_2hr"] < 0) else -1 if f["move_2hr"] != 0 else 0
-        f["momentum_aligned_4hr"] = 1 if (_is_buy_m and f["move_4hr"] > 0) or (not _is_buy_m and f["move_4hr"] < 0) else -1 if f["move_4hr"] != 0 else 0
+        f["price_1hr_signal_agree"] = 1 if (_is_buy_m and f["price_change_1hr_usd"] > 0) or (not _is_buy_m and f["price_change_1hr_usd"] < 0) else -1 if f["price_change_1hr_usd"] != 0 else 0
+        f["price_2hr_signal_agree"] = 1 if (_is_buy_m and f["price_change_2hr_usd"] > 0) or (not _is_buy_m and f["price_change_2hr_usd"] < 0) else -1 if f["price_change_2hr_usd"] != 0 else 0
+        f["price_4hr_signal_agree"] = 1 if (_is_buy_m and f["price_change_4hr_usd"] > 0) or (not _is_buy_m and f["price_change_4hr_usd"] < 0) else -1 if f["price_change_4hr_usd"] != 0 else 0
     else:
         for k in ["range_pct","body_pct",
-                  "lower_wick_pct","upper_wick_pct","price_pos","body_ratio",
+                  "lower_wick_pct","upper_wick_pct","bb_price_position","body_ratio",
                   "range_ratio","tick_volume","is_bullish_candle",
-                  "move_1hr","move_2hr","move_4hr","move_8hr",
-                  "momentum_aligned_1hr","momentum_aligned_2hr","momentum_aligned_4hr",
-                  "price_vs_ema200"]:
+                  "price_change_1hr_usd","price_change_2hr_usd","price_change_4hr_usd","price_change_8hr_usd",
+                  "price_1hr_signal_agree","price_2hr_signal_agree","price_4hr_signal_agree",
+                  "ema200_distance_usd"]:
             f[k] = 0.0
 
     # ── GROUP 3: ADX (10) — already % scale ──
@@ -686,7 +686,7 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
                                (f"{tf}_di_eff",         0.0),
                                (f"{tf}_band_rel",       1.0)):
                 f[_hc] = round(float(a[_hc]), 4) if _hc in a.index else _dflt
-        f["adx_trend_count"]     = sum([int(a[f"{tf}_ADX"] > 20) for tf in ["M15","M30","H1","H4"]])
+        f["adx_multi_tf_trend_count"]     = sum([int(a[f"{tf}_ADX"] > 20) for tf in ["M15","M30","H1","H4"]])
         f["london_adx_filtered"] = int((1 <= hour < 13) and float(a["M15_ADX"]) > 25)
 
         # ── ADX SLOPE — ROLLING (updates every M15 bar, no lookahead) ──
@@ -736,17 +736,17 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
         _is_buy_f = int(str(trade_type).upper() == "BUY")
         _h1_aln   = (_h1_di > 10 and _is_buy_f == 1) or (_h1_di < -10 and _is_buy_f == 0)
         # Feature 1: H4 strongly trending + H1 confirms signal direction
-        f["h4_trending_h1_aligned"] = int(_h4_adx > 30 and _h1_aln)
+        f["regime_h4trending_h1aligned"] = int(_h4_adx > 30 and _h1_aln)
         # Feature 2: H4 ranging + H1 not overextended (early entry - good)
-        f["h4_ranging_h1_neutral"]  = int(_h4_adx < 20 and _h1_di_abs < 10)
+        f["regime_h4ranging_h1neutral"]  = int(_h4_adx < 20 and _h1_di_abs < 10)
         # Feature 3: H4 ranging + H1 already strongly extended (AVOID)
-        f["h4_ranging_h1_extended"] = int(_h4_adx < 20 and _h1_di_abs > 15)
+        f["regime_h4ranging_h1extended"] = int(_h4_adx < 20 and _h1_di_abs > 15)
         # Feature 4: Combined regime score (-1 to +2)
-        if   _h4_adx > 30 and _h1_aln:      f["h4_h1_regime_score"] = 2
-        elif _h4_adx > 25 and _h1_aln:      f["h4_h1_regime_score"] = 1
-        elif _h4_adx < 20 and _h1_di_abs < 10: f["h4_h1_regime_score"] = 1
-        elif _h4_adx < 20 and _h1_di_abs > 15: f["h4_h1_regime_score"] = -1
-        else:                                f["h4_h1_regime_score"] = 0
+        if   _h4_adx > 30 and _h1_aln:      f["adx_regime_quality_score"] = 2
+        elif _h4_adx > 25 and _h1_aln:      f["adx_regime_quality_score"] = 1
+        elif _h4_adx < 20 and _h1_di_abs < 10: f["adx_regime_quality_score"] = 1
+        elif _h4_adx < 20 and _h1_di_abs > 15: f["adx_regime_quality_score"] = -1
+        else:                                f["adx_regime_quality_score"] = 0
     else:
         for tf in ["M15","M30","H1","H4"]:
             f[f"{tf}_ADX"]            = 0.0
@@ -754,15 +754,15 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
             f[f"{tf}_band_width_pct"] = 0.0
             f[f"{tf}_di_eff"]         = 0.0
             f[f"{tf}_band_rel"]       = 1.0
-        f["adx_trend_count"]     = 0
+        f["adx_multi_tf_trend_count"]     = 0
         f["london_adx_filtered"] = 0
         f["h4_adx_slope"]        = 0.0
         f["h1_adx_slope"]        = 0.0
         f["h4_adx_rising"]       = 0
-        f["h4_trending_h1_aligned"] = 0
-        f["h4_ranging_h1_neutral"]  = 0
-        f["h4_ranging_h1_extended"] = 0
-        f["h4_h1_regime_score"]     = 0
+        f["regime_h4trending_h1aligned"] = 0
+        f["regime_h4ranging_h1neutral"]  = 0
+        f["regime_h4ranging_h1extended"] = 0
+        f["adx_regime_quality_score"]     = 0
         # PART 2 composites — zero fallback (mirror the if-branch)
         f["adx_dir_fast"] = 0.0
         f["adx_dir_slow"] = 0.0
@@ -780,19 +780,19 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
 
     f["mins_to_next_3star"]    = min((next3["datetime"].min() - t).total_seconds()/60 if len(next3)>0 else 240, 240)
     f["mins_to_next_2star"]    = min((next2["datetime"].min() - t).total_seconds()/60 if len(next2)>0 else 240, 240)
-    f["mins_since_last_3star"] = min((t - last3["datetime"].max()).total_seconds()/60 if len(last3)>0 else 240, 240)
+    f["news_mins_since_last"] = min((t - last3["datetime"].max()).total_seconds()/60 if len(last3)>0 else 240, 240)
 
     last3_dev = last3[last3["deviation"].notna()]
     f["last_deviation_sign"] = float(np.sign(last3_dev.iloc[-1]["deviation"])) if len(last3_dev)>0 else 0.0
     f["last_abs_deviation"]  = round(float(last3_dev.iloc[-1]["abs_dev"]), 4)  if len(last3_dev)>0 else 0.0
-    f["upcoming_3star_count"]= int((upcoming["impact"] == 3).sum())
+    f["news_upcoming_count_2hr"]= int((upcoming["impact"] == 3).sum())
 
     # ── NEWS MODE — data-proven separate behavior ──────────────
     # Pre-news:  WR=35.7% (-1.4pp) ← avoid or use special model
     # Post-news: WR=34.4% (-2.8pp) ← reversal opportunity
     # Normal:    WR=37.4% (+0.3pp) ← clean trading
     _is_pre_news  = int(f["mins_to_next_3star"]  < 15)   # 15min before 3★ ← data: only close window is bad
-    _is_post_news = int(f["mins_since_last_3star"] < 15)  # 15min after 3★ ← data: post-news GOOD after 15min!
+    _is_post_news = int(f["news_mins_since_last"] < 15)  # 15min after 3★ ← data: post-news GOOD after 15min!
     f["is_pre_news"]  = _is_pre_news
     f["is_post_news"] = _is_post_news
     # news_mode: 0=normal, 1=pre-news, 2=post-news
@@ -803,7 +803,7 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
     last2_all = news_df[(news_df["datetime"] <= t) & (news_df["impact"]==2) & news_df["deviation"].notna()]
 
     # Last 3-star deviation sign (+1/-1/0)
-    f["last_3star_dev_sign"] = float(last3_all.iloc[-1]["dev_sign"]) if len(last3_all)>0 else 0.0
+    f["news_last_deviation_sign"] = float(last3_all.iloc[-1]["dev_sign"]) if len(last3_all)>0 else 0.0
 
     # ── GROUP 5: EIA (2) ──
     _cache    = getattr(news_df, '_news_cache', {})
@@ -812,13 +812,13 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
     next_eia  = _eia_src.iloc[_eia_idx:]
     last_eia  = _eia_src.iloc[:_eia_idx]
     mins_to_eia = min((next_eia["datetime"].min() - t).total_seconds()/60 if len(next_eia)>0 else 999, 999)
-    f["before_eia"]          = int(mins_to_eia <= 120)
+    f["news_before_eia_flag"]          = int(mins_to_eia <= 120)
     f["mins_since_last_eia"] = min((t - last_eia["datetime"].max()).total_seconds()/60 if len(last_eia)>0 else 240, 240)
 
     # ── GROUP 6: TRADE (2) ──
-    # trade_direction replaces is_buy + is_sell (no contradiction possible)
+    # trade_direction_flag replaces is_buy + is_sell (no contradiction possible)
     t_upper = str(trade_type).upper()
-    f["trade_direction"] = 1 if t_upper == "BUY" else -1 if t_upper == "SELL" else 0
+    f["trade_direction_flag"] = 1 if t_upper == "BUY" else -1 if t_upper == "SELL" else 0
     # volume = tick_volume ratio to 20-bar mean (normalized: ~1.0 normal, >1.5 spike)
     # Capped at 5.0 to prevent extreme outlier domination
     _ohlc_last = _ohlc_upto()
@@ -845,7 +845,7 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
         rb = get_range_features(t, h4_df)
     else:
         rb = {"is_post_big_move":0,
-              "big_move_direction":0,"big_move_size_pct":0.0,"in_range_phase":0,
+              "h4_bigmove_direction":0,"big_move_size_pct":0.0,"in_range_phase":0,
               "h4_move_pct":0.0,"cum3_move_pct":0.0}
     f.update(rb)
 
@@ -858,8 +858,8 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
         _last_close    = float(_ohlc_last_row.iloc[-1]["close"]) if len(_ohlc_last_row) > 0 else 0
         ob = get_ob_features(t, _last_close, h1_ob, h4_ob_df, trade_type=trade_type)
     else:
-        ob = {"h4_resist_dist":999.0,"h4_support_dist":999.0,"h4_in_ob_zone":0,"h4_ob_strength":0.0,
-              "h1_resist_dist":999.0,"h1_support_dist":999.0,"h1_in_ob_zone":0,"h1_ob_strength":0.0}
+        ob = {"h4_resist_dist":999.0,"h4_support_dist":999.0,"h4_in_ob_zone":0,"ob_h4_strength":0.0,
+              "h1_resist_dist":999.0,"h1_support_dist":999.0,"h1_in_ob_zone":0,"ob_h1_strength":0.0}
     f.update(ob)
 
     # ── TREND SIGNALS — all indicator conditions (P=2, SMMA) ──────
@@ -874,7 +874,7 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
         f.pop("_h4_adx_rolling", None)   # internal only — not a model feature
     except Exception as _ts_err:
         f.update({k: 0.0 for k in TS_FEATURES})
-        f["ts_bars_since_flip"] = 999.0
+        f["smma_bars_since_flip"] = 999.0
 
     return f
 
@@ -889,7 +889,7 @@ def compute_features(t, trade_type, volume, ohlc_df, adx_df, news_df, slot_table
 # 2026-07-17: replaced Wilder smoothing with EMA (ewm span=14) to match
 # mt5_data_updater / regen_adx_asof / adx_merged.csv — one consistent
 # ADX calculation everywhere. Retrain required after this change.
-# Used by: h4_adx_slope, h1_adx_slope, ts_adx_switch_trend.
+# Used by: h4_adx_slope, h1_adx_slope, smma_adx_switch_trend_flag.
 # ═══════════════════════════════════════════════════════════════
 
 def _ema_adx(h, l, c, period=14):
@@ -987,13 +987,13 @@ TS_FEATURES = [
     "ts_trend_m15",        # +1 up / -1 down (M15, last CLOSED bar)
     "ts_trend_h1",         # +1 / -1 (H1)
     "ts_trend_h4",         # +1 / -1 (H4)
-    "ts_bars_since_flip",  # M15 bars since last flip (fresh vs old trend)
-    "ts_flip_recent",      # 1 = flip within last 3 closed M15 bars
+    "smma_bars_since_flip",  # M15 bars since last flip (fresh vs old trend)
+    "smma_recent_flip_flag",      # 1 = flip within last 3 closed M15 bars
     "ts_line_dist_pct",    # signed distance of price from active ratchet line (%)
     "ts_htf_agreement",    # trend_m15+trend_h1+trend_h4 (-3..+3)
-    "ts_adx_switch_trend", # EA rule: H4 ADX>=19 → H4 trend, else H1 trend
-    "ts_aligned",          # +1 trade dir matches M15 trend, -1 against
-    "ts_aligned_htf",      # +1 trade dir matches ADX-switch trend, -1 against
+    "smma_adx_switch_trend_flag", # EA rule: H4 ADX>=19 → H4 trend, else H1 trend
+    "smma_all_tf_aligned_flag",          # +1 trade dir matches M15 trend, -1 against
+    "smma_htf_aligned_flag",      # +1 trade dir matches ADX-switch trend, -1 against
 ]
 
 _TS_CACHE = {"key": None, "tables": None}
@@ -1043,7 +1043,7 @@ def get_trend_signal_features(t, trade_type, price_now, h4_adx, ts: dict) -> dic
     """All indicator conditions at decision time t — uses last fully CLOSED
     bar per timeframe (bar_open + tf <= t) so training == live, no lookahead."""
     f = {k: 0.0 for k in TS_FEATURES}
-    f["ts_bars_since_flip"] = 999.0
+    f["smma_bars_since_flip"] = 999.0
     if not ts:
         return f
     _t64 = t.to_datetime64() if hasattr(t, "to_datetime64") else np.datetime64(t)
@@ -1059,8 +1059,8 @@ def get_trend_signal_features(t, trade_type, price_now, h4_adx, ts: dict) -> dic
         tr = float(tb["trend"][i])
         f["ts_trend_m15"] = tr
         bsf = tb["bsf"][i]
-        f["ts_bars_since_flip"] = float(bsf) if not np.isnan(bsf) else 999.0
-        f["ts_flip_recent"] = float(f["ts_bars_since_flip"] <= 3)
+        f["smma_bars_since_flip"] = float(bsf) if not np.isnan(bsf) else 999.0
+        f["smma_recent_flip_flag"] = float(f["smma_bars_since_flip"] <= 3)
         line = tb["buy_line"][i] if tr > 0 else tb["sell_line"][i]
         if price_now and not np.isnan(line):
             f["ts_line_dist_pct"] = round((price_now - line) / price_now * 100.0, 6)
@@ -1072,11 +1072,11 @@ def get_trend_signal_features(t, trade_type, price_now, h4_adx, ts: dict) -> dic
     f["ts_htf_agreement"] = f["ts_trend_m15"] + f["ts_trend_h1"] + f["ts_trend_h4"]
     # EA confirmation rule: strong H1 trend → confirm on H4, else on H1
     # EA rule: H4 trending (ADX>=19) → confirm on H4; flat → drop to H1
-    f["ts_adx_switch_trend"] = f["ts_trend_h4"] if (h4_adx or 0) >= TS_ADX_SWITCH_LEVEL else f["ts_trend_h1"]
+    f["smma_adx_switch_trend_flag"] = f["ts_trend_h4"] if (h4_adx or 0) >= TS_ADX_SWITCH_LEVEL else f["ts_trend_h1"]
 
     d = 1.0 if str(trade_type).upper().startswith("B") else -1.0
-    f["ts_aligned"]     = d * f["ts_trend_m15"]
-    f["ts_aligned_htf"] = d * f["ts_adx_switch_trend"]
+    f["smma_all_tf_aligned_flag"]     = d * f["ts_trend_m15"]
+    f["smma_htf_aligned_flag"] = d * f["smma_adx_switch_trend_flag"]
     return f
 
 
@@ -1194,56 +1194,56 @@ FEATURE_ALIASES = {
 # effects between correlated features. Group by INFORMATION FAMILY (not
 # timeframe) because same-family features substitute for each other
 # across timeframes (e.g. M15_ADX ↔ H4_ADX), while same-TF features
-# from different families do NOT (e.g. 15_min_slot ≠ M15_ADX).
+# from different families do NOT (e.g. time_15min_slot ≠ M15_ADX).
 # Used by run_feature_sweep.py --mode group.
 # ─────────────────────────────────────────────────────────────
 FEATURE_FAMILIES = {
     "Timing": [
-        "15_min_slot", "slot_cos", "slot_win_rate", "day_of_week",
-        "session_score", "is_ny_session", "is_dead_hour",
+        "time_15min_slot", "time_cyclical_encoding", "time_1hr_winrate", "time_weekday",
+        "time_session_quality_score", "is_ny_session", "is_dead_hour",
     ],
     "ADX_DI": [
         "M15_ADX", "M30_ADX", "H1_ADX", "H4_ADX",
         "M15_DI_diff", "M30_DI_diff", "H1_DI_diff", "H4_DI_diff",
-        "h4_adx_slope", "h1_adx_slope", "adx_trend_count",
+        "h4_adx_slope", "h1_adx_slope", "adx_multi_tf_trend_count",
     ],
     "Regime": [
-        "hmm_state", "h4_h1_regime_score",
-        "h4_trending_h1_aligned", "h4_ranging_h1_neutral", "h4_ranging_h1_extended",
+        "hmm_state", "adx_regime_quality_score",
+        "regime_h4trending_h1aligned", "regime_h4ranging_h1neutral", "regime_h4ranging_h1extended",
         "in_range_phase",
     ],
     "Momentum": [
-        "move_1hr", "move_2hr", "move_4hr", "move_8hr",
-        "momentum_aligned_1hr", "momentum_aligned_2hr", "momentum_aligned_4hr",
+        "price_change_1hr_usd", "price_change_2hr_usd", "price_change_4hr_usd", "price_change_8hr_usd",
+        "price_1hr_signal_agree", "price_2hr_signal_agree", "price_4hr_signal_agree",
     ],
     "Candle": [
-        "price_pos", "body_pct", "range_pct",
+        "bb_price_position", "body_pct", "range_pct",
     ],
     "EMA200": [
-        "price_vs_ema200", "above_ema200", "ema200_dist_abs", "near_ema200",
+        "ema200_distance_usd", "ema200_above_flag", "ema200_distance_abs_usd", "ema200_near_flag",
     ],
     "News": [
-        "mins_to_next_3star", "mins_since_last_3star",
-        "upcoming_3star_count", "last_3star_dev_sign", "before_eia", "is_post_news",
+        "mins_to_next_3star", "news_mins_since_last",
+        "news_upcoming_count_2hr", "news_last_deviation_sign", "news_before_eia_flag", "is_post_news",
     ],
     "SMMA_Trend": [
-        "ts_bars_since_flip", "ts_htf_agreement",
+        "smma_bars_since_flip", "ts_htf_agreement",
         "ts_trend_m15", "ts_trend_h1", "ts_trend_h4",
-        "ts_line_dist_pct", "ts_flip_recent",
-        "ts_aligned", "ts_aligned_htf", "ts_adx_switch_trend",
+        "ts_line_dist_pct", "smma_recent_flip_flag",
+        "smma_all_tf_aligned_flag", "smma_htf_aligned_flag", "smma_adx_switch_trend_flag",
     ],
     "OrderBlock": [
-        "h4_resist_dist", "h4_support_dist", "h4_ob_strength", "h4_in_ob_zone",
-        "h1_resist_dist", "h1_support_dist", "h1_ob_strength", "h1_in_ob_zone",
+        "h4_resist_dist", "h4_support_dist", "ob_h4_strength", "h4_in_ob_zone",
+        "h1_resist_dist", "h1_support_dist", "ob_h1_strength", "h1_in_ob_zone",
     ],
     "PriceStructure": [
-        "big_move_direction", "is_post_big_move",
+        "h4_bigmove_direction", "is_post_big_move",
     ],
     "Volume": [
         "volume", "tick_volume",
     ],
     "Meta": [
-        "trade_direction",
+        "trade_direction_flag",
     ],
 }
 
@@ -1255,25 +1255,25 @@ FEATURE_FAMILIES = {
 
 FEATURE_COLS = [
     # ── FACTOR 1: Institutional Order Flow Timing (7) ──
-    "15_min_slot",           # direct slot timing (15-min — trade entry granularity)
-    "slot_win_rate",         # 1-HOUR slot win-rate (priority); leakage-fixed (train-split build)
-    "slot_cos",              # cyclical slot encoding
-    "day_of_week",           # day pattern
-    "session_score",         # data-proven session quality (-2=worst to +2=best NY)
+    "time_15min_slot",           # direct slot timing (15-min — trade entry granularity)
+    "time_1hr_winrate",         # 1-HOUR slot win-rate (priority); leakage-fixed (train-split build)
+    "time_cyclical_encoding",              # cyclical slot encoding
+    "time_weekday",           # day pattern
+    "time_session_quality_score",         # data-proven session quality (-2=worst to +2=best NY)
     "is_ny_session",         # 1=NY open 15-18 UTC (WR=40-52%) ← KEY
     "is_dead_hour",          # 1=low WR hours: 09 UTC=57.1%, 20 UTC=58.8% (data-proven)
-    "trade_direction",       # BUY/SELL alignment
+    "trade_direction_flag",       # BUY/SELL alignment
 
     # ── FACTOR 2: Bigger Wins Smaller Losses (9) ──
     "h4_resist_dist",        # H4 resistance OB %dist (profit-dir) ← NEW S/R
     "h4_support_dist",       # H4 support OB %dist (loss-dir) ← NEW S/R
     "h4_in_ob_zone",         # price inside H4 OB zone 0/1 ← NEW
-    "h4_ob_strength",        # H4 nearest resist OB strength ← NEW
+    "ob_h4_strength",        # H4 nearest resist OB strength ← NEW
     "h1_resist_dist",        # H1 resistance OB %dist ← NEW S/R
     "h1_support_dist",       # H1 support OB %dist ← NEW S/R
     "h1_in_ob_zone",         # price inside H1 OB zone 0/1 ← NEW
-    "h1_ob_strength",        # H1 nearest resist OB strength ← NEW
-    "price_pos",             # price position in range
+    "ob_h1_strength",        # H1 nearest resist OB strength ← NEW
+    "bb_price_position",             # price position in range
     "body_pct",              # candle body conviction
     "in_range_phase",        # range detection (binary; hardcoded H4 move<0.5%)
     # RAW h4_move_pct + cum3_move_pct TESTED & REJECTED 2026-07-12: single-backtest
@@ -1282,7 +1282,7 @@ FEATURE_COLS = [
     # get_range_features but not fed to the model.) REVERT-of-revert: re-add here.
     "corr_imp_ratio",        # correction/impulse ratio ← NEW
     "is_post_big_move",      # post big move flag ← NEW
-    "big_move_direction",    # big move direction ← NEW
+    "h4_bigmove_direction",    # big move direction ← NEW
 
     # ── FACTOR 3: Stronger Trending Moves (13) ──
     "M15_ADX",               # M15 trend strength
@@ -1293,14 +1293,14 @@ FEATURE_COLS = [
     "M30_DI_diff",           # M30 directional diff
     "H1_DI_diff",            # H1 directional diff ← NEW
     "H4_DI_diff",            # H4 directional diff
-    "adx_trend_count",       # consecutive trend bars
+    "adx_multi_tf_trend_count",       # consecutive trend bars
     "h4_adx_slope",          # H4 ADX change over 4hr — trend strengthening/dying
     "h1_adx_slope",          # H1 ADX change over 4hr
     # h4_adx_rising removed — redundant with slope, WF test: all-3 combo hurt OOS
-    "h4_trending_h1_aligned",# H4 trend + H1 confirms ← DATA-PROVEN +3.7pp
-    "h4_ranging_h1_neutral", # H4 range + H1 not extended ← +1.8pp
-    "h4_ranging_h1_extended",# H4 range + H1 extended ← AVOID -8.2pp
-    "h4_h1_regime_score",    # combined regime score (-1 to +2)
+    "regime_h4trending_h1aligned",# H4 trend + H1 confirms ← DATA-PROVEN +3.7pp
+    "regime_h4ranging_h1neutral", # H4 range + H1 not extended ← +1.8pp
+    "regime_h4ranging_h1extended",# H4 range + H1 extended ← AVOID -8.2pp
+    "adx_regime_quality_score",    # combined regime score (-1 to +2)
 
     # ── FACTOR 4: Real Price Momentum (7) ──
     "range_pct",             # candle range %
@@ -1313,25 +1313,25 @@ FEATURE_COLS = [
     # Keep f["tick_volume"] computed for data/debug compatibility only.
     # ── PRICE MOMENTUM (data-proven) ─────────────────────────
     # Backtest: BUY when 4hr dropped → WR=31%, BUY when 4hr rose → WR=52%
-    "move_1hr",              # Gold price change last 1hr ($) ← data #1 edge +27.7pp
-    "move_2hr",              # Gold price change last 2hr ($) ← NEW data #2 edge +15.7pp
-    "move_4hr",              # Gold price change last 4hr ($) ← KEY feature
-    "move_8hr",              # Gold price change last 8hr ($)
-    "momentum_aligned_1hr",  # +1 signal matches 1hr momentum, -1 against
-    "momentum_aligned_2hr",  # +1 signal matches 2hr momentum ← NEW
-    "momentum_aligned_4hr",  # +1 signal matches 4hr momentum, -1 against ← KEY
+    "price_change_1hr_usd",              # Gold price change last 1hr ($) ← data #1 edge +27.7pp
+    "price_change_2hr_usd",              # Gold price change last 2hr ($) ← NEW data #2 edge +15.7pp
+    "price_change_4hr_usd",              # Gold price change last 4hr ($) ← KEY feature
+    "price_change_8hr_usd",              # Gold price change last 8hr ($)
+    "price_1hr_signal_agree",  # +1 signal matches 1hr momentum, -1 against
+    "price_2hr_signal_agree",  # +1 signal matches 2hr momentum ← NEW
+    "price_4hr_signal_agree",  # +1 signal matches 4hr momentum, -1 against ← KEY
     # ── EMA200 (data-proven: +3.8pp WR, +$8,709 P&L) ────────────
-    "price_vs_ema200",       # distance from EMA200 in $ (signed)
-    "above_ema200",          # 1=above EMA, 0=below
-    "ema200_dist_abs",       # absolute distance (far=good, near=bad)
-    "near_ema200",           # 1=within ±$10 danger zone (WR=31%)
+    "ema200_distance_usd",       # distance from EMA200 in $ (signed)
+    "ema200_above_flag",          # 1=above EMA, 0=below
+    "ema200_distance_abs_usd",       # absolute distance (far=good, near=bad)
+    "ema200_near_flag",           # 1=within ±$10 danger zone (WR=31%)
 
     # ── NEWS EVENTS: 2★ & 3★ Calendar (8) ──────────────────
     "mins_to_next_3star",    # mins to next 3★ event ← NEW
-    "mins_since_last_3star", # mins since last 3★ event ← NEW
-    "upcoming_3star_count",  # upcoming 3★ count in 2hrs ← NEW
-    "last_3star_dev_sign",   # last 3★ beat/miss sign ← NEW
-    "before_eia",            # EIA crude oil event flag ← NEW
+    "news_mins_since_last", # mins since last 3★ event ← NEW
+    "news_upcoming_count_2hr",  # upcoming 3★ count in 2hrs ← NEW
+    "news_last_deviation_sign",   # last 3★ beat/miss sign ← NEW
+    "news_before_eia_flag",            # EIA crude oil event flag ← NEW
     "is_post_news",          # 1=within 15min after 3★ news ← data: post-news WR=41-44% GREAT!
     # is_pre_news removed — mins_to_next_3star < 15 already covers it
 
@@ -1339,13 +1339,13 @@ FEATURE_COLS = [
     "ts_trend_m15",          # M15 trend state +1/-1
     "ts_trend_h1",           # H1 trend state
     "ts_trend_h4",           # H4 trend state
-    "ts_bars_since_flip",    # M15 bars since flip (freshness)
-    "ts_flip_recent",        # flip within last 3 bars
+    "smma_bars_since_flip",    # M15 bars since flip (freshness)
+    "smma_recent_flip_flag",        # flip within last 3 bars
     "ts_line_dist_pct",      # distance from ratchet line %
     "ts_htf_agreement",      # M15+H1+H4 agreement (-3..+3)
-    "ts_adx_switch_trend",   # EA rule: H4 ADX>=19→H4 else H1
-    "ts_aligned",            # trade dir vs M15 trend
-    "ts_aligned_htf",        # trade dir vs ADX-switch trend
+    "smma_adx_switch_trend_flag",   # EA rule: H4 ADX>=19→H4 else H1
+    "smma_all_tf_aligned_flag",            # trade dir vs M15 trend
+    "smma_htf_aligned_flag",        # trade dir vs ADX-switch trend
 ]
 
 
@@ -1382,15 +1382,15 @@ def build_feature_matrix(trades_df, ohlc_df, adx_df, news_df, slot_table, h4_df=
 
 # ── LAYER 1: Core — always ON in every market state (17) ──────
 CORE_FEATURES = [
-    "slot_win_rate",           # 1-HOUR slot win-rate (priority); leakage-fixed (train-split build)
-    "day_of_week",             # weekday effect
-    "session_score",           # session quality score ← data-proven
+    "time_1hr_winrate",           # 1-HOUR slot win-rate (priority); leakage-fixed (train-split build)
+    "time_weekday",             # weekday effect
+    "time_session_quality_score",           # session quality score ← data-proven
     "is_ny_session",           # NY session flag
     "is_dead_hour",            # dead hour flag
     "mins_to_next_3star",      # upcoming high-impact news
-    "mins_since_last_3star",   # last high-impact news
-    "trade_direction",         # BUY=1 / SELL=0
-    "price_pos",               # price in 20-candle range (0-1)
+    "news_mins_since_last",   # last high-impact news
+    "trade_direction_flag",         # BUY=1 / SELL=0
+    "bb_price_position",               # price in 20-candle range (0-1)
     "body_pct",                # candle body %
     "range_pct",               # candle range %
     # atr20_pct / atr14_pct REMOVED 2026-06-19 — lagging indicator, dropped from model features
@@ -1399,24 +1399,24 @@ CORE_FEATURES = [
     "M30_DI_diff",             # M30 direction
     "H1_DI_diff",              # H1 direction
     "hmm_state",               # market state (0/1/2)
-    "h4_h1_regime_score",      # H4/H1 regime alignment score (data-proven)
-    "move_4hr",                # 4hr price momentum — KEY: BUY↓=31%WR, BUY↑=52%WR
-    "move_2hr",                # 2hr momentum ← NEW data-proven +15.7pp edge
-    "momentum_aligned_4hr",    # signal matches 4hr momentum (+1) or against (-1)
-    "momentum_aligned_2hr",    # signal matches 2hr momentum ← NEW
-    "price_vs_ema200",         # EMA200 distance — key context feature
-    "near_ema200",             # danger zone flag (WR=31% when near)
+    "adx_regime_quality_score",      # H4/H1 regime alignment score (data-proven)
+    "price_change_4hr_usd",                # 4hr price momentum — KEY: BUY↓=31%WR, BUY↑=52%WR
+    "price_change_2hr_usd",                # 2hr momentum ← NEW data-proven +15.7pp edge
+    "price_4hr_signal_agree",    # signal matches 4hr momentum (+1) or against (-1)
+    "price_2hr_signal_agree",    # signal matches 2hr momentum ← NEW
+    "ema200_distance_usd",         # EMA200 distance — key context feature
+    "ema200_near_flag",             # danger zone flag (WR=31% when near)
     # ── TREND SIGNALS (indicator P=2 SMMA, all conditions) ──
     "ts_trend_m15",            # M15 trend state
     "ts_trend_h1",             # H1 trend state
     "ts_trend_h4",             # H4 trend state
-    "ts_bars_since_flip",      # flip freshness
-    "ts_flip_recent",          # fresh flip flag
+    "smma_bars_since_flip",      # flip freshness
+    "smma_recent_flip_flag",          # fresh flip flag
     "ts_line_dist_pct",        # ratchet line distance %
     "ts_htf_agreement",        # multi-TF agreement
-    "ts_adx_switch_trend",     # EA ADX-switch confirmation
-    "ts_aligned",              # dir vs M15 trend
-    "ts_aligned_htf",          # dir vs ADX-switch trend
+    "smma_adx_switch_trend_flag",     # EA ADX-switch confirmation
+    "smma_all_tf_aligned_flag",              # dir vs M15 trend
+    "smma_htf_aligned_flag",          # dir vs ADX-switch trend
     "h4_adx_slope",            # ADX direction — trend strengthening/dying
     "h1_adx_slope",
 ]
@@ -1431,17 +1431,17 @@ RANGING_FEATURES = (
         "h4_resist_dist",      # H4 resistance OB %dist ← NEW S/R
         "h4_support_dist",     # H4 support OB %dist ← NEW S/R
         "h4_in_ob_zone",       # price inside H4 OB zone ← NEW
-        "h4_ob_strength",      # H4 resist OB strength ← NEW
+        "ob_h4_strength",      # H4 resist OB strength ← NEW
         "h1_resist_dist",      # H1 resistance OB %dist ← NEW S/R
         "h1_support_dist",     # H1 support OB %dist ← NEW S/R
         "h1_in_ob_zone",       # price inside H1 OB zone ← NEW
-        "h1_ob_strength",      # H1 resist OB strength ← NEW
-        "h4_ranging_h1_neutral",   # H4 range + H1 not extended (good entry)
-        "h4_ranging_h1_extended",  # H4 range + H1 extended (avoid)
-        "move_1hr",                # 1hr momentum — important in ranging
-        "momentum_aligned_1hr",    # 1hr momentum alignment
-        "ema200_dist_abs",         # ✅ data-proven: +5pp AUC — EMA bounce zone
-        # note: near_ema200 + price_vs_ema200 already in CORE_FEATURES — not repeated
+        "ob_h1_strength",      # H1 resist OB strength ← NEW
+        "regime_h4ranging_h1neutral",   # H4 range + H1 not extended (good entry)
+        "regime_h4ranging_h1extended",  # H4 range + H1 extended (avoid)
+        "price_change_1hr_usd",                # 1hr momentum — important in ranging
+        "price_1hr_signal_agree",    # 1hr momentum alignment
+        "ema200_distance_abs_usd",         # ✅ data-proven: +5pp AUC — EMA bounce zone
+        # note: ema200_near_flag + ema200_distance_usd already in CORE_FEATURES — not repeated
     ]
 )
 
@@ -1453,26 +1453,26 @@ TRENDING_FEATURES = (
         "H4_ADX",              # H4 trend strength
         "M15_DI_diff",         # M15 direction
         "H4_DI_diff",          # H4 direction
-        "adx_trend_count",     # timeframes with ADX > 20
-        "h4_trending_h1_aligned",  # H4 trend + H1 confirms ← +3.7pp WR
-        "move_8hr",                # 8hr momentum — trend persistence
-        "above_ema200",            # trend direction vs EMA
-        "ema200_dist_abs",         # keep — data: removing = -5.3pp AUC
-        # note: move_4hr + momentum_aligned_4hr already in CORE_FEATURES — not repeated
+        "adx_multi_tf_trend_count",     # timeframes with ADX > 20
+        "regime_h4trending_h1aligned",  # H4 trend + H1 confirms ← +3.7pp WR
+        "price_change_8hr_usd",                # 8hr momentum — trend persistence
+        "ema200_above_flag",            # trend direction vs EMA
+        "ema200_distance_abs_usd",         # keep — data: removing = -5.3pp AUC
+        # note: price_change_4hr_usd + price_4hr_signal_agree already in CORE_FEATURES — not repeated
     ]
 )
 
 # VOLATILE (hmm=2): news + volume, remove lagging trend features
-# Removed: h4_ranging_h1_extended (ranging concept, not volatile)
+# Removed: regime_h4ranging_h1extended (ranging concept, not volatile)
 #          is_pre_news (mins_to_next_3star already covers it)
-# Added  : ema200_dist_abs (data-proven: +4.2pp AUC)
+# Added  : ema200_distance_abs_usd (data-proven: +4.2pp AUC)
 VOLATILE_FEATURES = (
     [f for f in CORE_FEATURES if f not in ("M15_ADX", "H1_ADX", "M30_DI_diff", "H1_DI_diff")]
     + [
-        "last_3star_dev_sign",   # news surprise direction ← 0.856 importance!
-        "before_eia",            # before EIA release
+        "news_last_deviation_sign",   # news surprise direction ← 0.856 importance!
+        "news_before_eia_flag",            # before EIA release
         "is_post_news",          # post-news reversal setup
-        "ema200_dist_abs",       # ✅ data-proven: +4.2pp AUC in volatile
+        "ema200_distance_abs_usd",       # ✅ data-proven: +4.2pp AUC in volatile
     ]
 )
 
@@ -1485,12 +1485,12 @@ STATE_FEATURE_MAP = {
 # 2026-06-19: prune ZERO-importance features — XGB feature_importances_ = 0.0000
 # on the full retrain (the model never split on them; mostly redundant with
 # correlated features it DID use, e.g. ts_line_dist_pct / ts_htf_agreement /
-# ema200_dist_abs). Dropped from EVERY feature list to cut overfitting/noise.
+# ema200_distance_abs_usd). Dropped from EVERY feature list to cut overfitting/noise.
 # Reversible: delete this block to restore them.
 _ZERO_IMP = {
-    "ts_aligned_htf", "ts_aligned", "h4_ranging_h1_extended", "near_ema200",
-    "above_ema200", "ts_trend_m15", "ts_trend_h4", "ts_flip_recent",
-    "is_post_news", "before_eia", "big_move_direction", "is_dead_hour",
+    "smma_htf_aligned_flag", "smma_all_tf_aligned_flag", "regime_h4ranging_h1extended", "ema200_near_flag",
+    "ema200_above_flag", "ts_trend_m15", "ts_trend_h4", "smma_recent_flip_flag",
+    "is_post_news", "news_before_eia_flag", "h4_bigmove_direction", "is_dead_hour",
 }
 # Manual low-importance prune (2026-06-19, user-selected). These are NOT zero
 # (importance 0.0096-0.0129) — the model uses them a little, so watch the AUC
@@ -1510,10 +1510,10 @@ _MANUAL_PRUNE = {
                                # from `run_feature_sweep.py`'s HIGH_PROB_TIER test list for the same
                                # reason. REVERT: restore both deleted functions from git history
                                # (search this file's git log for 2026-07-16) before uncommenting.
-    "h1_in_ob_zone", "last_3star_dev_sign", "ts_trend_h1", "is_post_big_move",
-    "session_score", "ts_adx_switch_trend", "move_2hr", "move_8hr",
+    "h1_in_ob_zone", "news_last_deviation_sign", "ts_trend_h1", "is_post_big_move",
+    "time_session_quality_score", "smma_adx_switch_trend_flag", "price_change_2hr_usd", "price_change_8hr_usd",
     # round 2 — only useful in the main model (0.0158/0.0174), zero in BUY/SELL:
-    "is_ny_session", "upcoming_3star_count",
+    "is_ny_session", "news_upcoming_count_2hr",
     # round 3 (2026-06-23) — remove volume dependency entirely (like ATR). vol_spike
     # was already in _ZERO_IMP; `volume` is low-importance (0.02) and the data showed
     # volume is not a useful lever (entry/exit filters both failed). SL-hunting noise.
@@ -1524,12 +1524,12 @@ _MANUAL_PRUNE = {
     # distance as a feature). ⚠️ NEEDS A RETRAIN (3_Train_Models.bat): the live .pkl still
     # expects it, so the bot will mismatch until retrained. REVERT: delete this line.
     "ts_line_dist_pct",
-    # 2026-06-30 (Anisa): keep ONLY price_vs_ema200 — drop the other EMA200 features from ALL
-    # models. ema200_dist_abs was a live feature (rank 37) → NEEDS RETRAIN; above_ema200 /
-    # near_ema200 were already pruned. REVERT: delete these 3 lines.
-    "ema200_dist_abs",
-    "above_ema200",
-    "near_ema200",
+    # 2026-06-30 (Anisa): keep ONLY ema200_distance_usd — drop the other EMA200 features from ALL
+    # models. ema200_distance_abs_usd was a live feature (rank 37) → NEEDS RETRAIN; ema200_above_flag /
+    # ema200_near_flag were already pruned. REVERT: delete these 3 lines.
+    "ema200_distance_abs_usd",
+    "ema200_above_flag",
+    "ema200_near_flag",
     # 2026-07-07 (Imtiyaz) PART 1 — drop 6 DEAD EA-threshold-combo features. All
     # scored EXACTLY 0.0000 in the retrained model (data/models/final/feature_
     # importance.csv) — they are hand-crafted combos of raw ADX/DI features the
@@ -1538,28 +1538,28 @@ _MANUAL_PRUNE = {
     # strength composite). ⚠️ NEEDS A RETRAIN (Start/3_Train_Models.bat) → live
     # .pkl still expects them until retrained. WFO-gate ≥ +393.7R before adopting.
     # REVERT: delete these 6 lines + retrain.
-    "adx_trend_count",         # EA: count of TFs ADX>20 (0.0 — collinear w/ raw ADX)
-    # 2026-07-12 individual A/B test: B3 (h4_h1_regime_score) = +14.8R (KEEP),
+    "adx_multi_tf_trend_count",         # EA: count of TFs ADX>20 (0.0 — collinear w/ raw ADX)
+    # 2026-07-12 individual A/B test: B3 (adx_regime_quality_score) = +14.8R (KEEP),
     # B1/B2/B4 individually positive but B3+B4 combo = flat (interference).
     # B3 already encodes B1+B2 info as gradient score. Keep ONLY B3.
-    "h4_trending_h1_aligned",  # B1: +10.6R alone but redundant with B3 score=+2
-    "h4_ranging_h1_neutral",   # B2: +10.2R alone but redundant with B3 score=+1
-    "trade_direction",         # B4: +12.3R alone but interferes with B3 in combo
+    "regime_h4trending_h1aligned",  # B1: +10.6R alone but redundant with B3 score=+2
+    "regime_h4ranging_h1neutral",   # B2: +10.2R alone but redundant with B3 score=+1
+    "trade_direction_flag",         # B4: +12.3R alone but interferes with B3 in combo
     "h4_in_ob_zone",           # 0.0 — redundant with h4_resist_dist / h4_support_dist
     # 2026-07-12 ADX redundancy test: D1/D2/D3 all >= baseline when dropped.
     # D3 (H1_ADX) = +18.0R vs baseline +14.8R (+22%). Overfeed confirmed.
-    "h4_ranging_h1_extended",  # D1: exactly =baseline (B3 score=-1 covers it)
+    "regime_h4ranging_h1extended",  # D1: exactly =baseline (B3 score=-1 covers it)
     "M30_ADX",                 # D2: +15.3R without (middle TF redundant)
     "H1_ADX",                  # D3: +18.0R without (+22% gain, h1_slope+DI sufficient)
     # 2026-07-12 OB redundancy retrain test (3-month): D6 was best.
     # Drop H1 support+strength as a pair: +34.7R vs baseline +31.8R (+2.9R).
     # Single drops were weak, so keep this as a paired prune. Needs retrain to affect live .pkl.
     "h1_support_dist",
-    "h1_ob_strength",
+    "ob_h1_strength",
     # 2026-07-12 OB redundancy retrain test: D5 was second best.
     # Drop H4 resist+strength as a pair: +34.5R vs baseline +31.8R (+2.7R).
     "h4_resist_dist",
-    "h4_ob_strength",
+    "ob_h4_strength",
     # 2026-07-12 Imtiyaz: remove remaining OB/SR model inputs too.
     # This completes the OB/SR prune from FEATURE_COLS. Retrain required for live .pkl.
     "h4_support_dist",
@@ -1570,14 +1570,14 @@ _MANUAL_PRUNE = {
     # AND this 1-year OOS window (the other 4 candidates in that same test
     # FLIPPED to CORE_KEEP on OOS1Y and were correctly NOT dropped — see
     # FIXES_CHANGELOG4.md 2026-07-16 for the full 6-feature comparison).
-    # 15_min_slot: 3-month +3.1R, OOS1Y +5.9R without it (both confirm drop).
+    # time_15min_slot: 3-month +3.1R, OOS1Y +5.9R without it (both confirm drop).
     # M15_ADX:     3-month +0.8R, OOS1Y +6.8R without it (both confirm drop).
     # Imtiyaz approved dropping from live now, with a WFO confirmation run
     # (registry ID TBD, same pattern as FS67-21) in parallel as further
     # due-diligence, not as a live-adoption gate this time.
     # ⚠️ NEEDS A RETRAIN (Start/3_Train_Models.bat) — the live .pkl still
     # expects both columns until retrained. REVERT: delete these 2 lines + retrain.
-    "15_min_slot",
+    "time_15min_slot",
     "M15_ADX",
 }
 _ZERO_IMP = _ZERO_IMP | _MANUAL_PRUNE
@@ -1585,14 +1585,17 @@ _ZERO_IMP = _ZERO_IMP | _MANUAL_PRUNE
 # ALSO drop those features for one test WFO — WITHOUT editing the committed lists,
 # so the production retrain is unaffected. Empty/unset = normal behaviour.
 import os as _os_abl
+from feature_registry import validate_feature_names as _vfn, MIGRATED as _MIGRATED_LEGACY
 _unprune_env = _os_abl.getenv("QGAI_UNPRUNE", "").strip()
 if _unprune_env:
     _unprune_set = {x.strip() for x in _unprune_env.split(",") if x.strip()}
+    _vfn(_unprune_set, where="QGAI_UNPRUNE")   # GUARD 4: reject unknown/typo names
     _ZERO_IMP = _ZERO_IMP - _unprune_set
     print(f"  [UNPRUNE] features restored for this run: {sorted(_unprune_set)}")
 _abl_env = _os_abl.getenv("QGAI_ABLATE", "").strip()
 if _abl_env:
     _abl_set = {x.strip() for x in _abl_env.split(",") if x.strip()}
+    _vfn(_abl_set, where="QGAI_ABLATE")        # GUARD 4: reject unknown/typo names
     _ZERO_IMP = _ZERO_IMP | _abl_set
     print(f"  [ABLATE] extra features removed for this run: {sorted(_abl_set)}")
 FEATURE_COLS      = [f for f in FEATURE_COLS      if f not in _ZERO_IMP]
@@ -1600,6 +1603,13 @@ CORE_FEATURES     = [f for f in CORE_FEATURES     if f not in _ZERO_IMP]
 RANGING_FEATURES  = [f for f in RANGING_FEATURES  if f not in _ZERO_IMP]
 TRENDING_FEATURES = [f for f in TRENDING_FEATURES if f not in _ZERO_IMP]
 VOLATILE_FEATURES = [f for f in VOLATILE_FEATURES if f not in _ZERO_IMP]
+# GUARD (import-time): no migrated-legacy name may remain in the canonical
+# feature lists — catches an incomplete Phase rename immediately at import.
+_leaked_cols = _MIGRATED_LEGACY & (set(FEATURE_COLS) | set(CORE_FEATURES)
+               | set(RANGING_FEATURES) | set(TRENDING_FEATURES) | set(VOLATILE_FEATURES))
+if _leaked_cols:
+    raise ValueError(f"[feature_registry] migrated-legacy name(s) still in "
+                     f"feature lists: {sorted(_leaked_cols)} — rename incomplete.")
 
 # ── PART 2 (2026-07-07, Fable-5): ADX composite mode toggle ──────────────
 # QGAI_ADX_MODE=composite → REPLACE the 10 raw ADX/DI features with the 5

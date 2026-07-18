@@ -1,7 +1,7 @@
 # Feature Rename Architecture — Permanent Naming Foundation
 
 **Created:** 2026-07-18 · **Owner:** Imtiyaz · **Architect opinion:** Fable-5
-**Status:** Phase 0 DONE · Phases 1–4 pending
+**Status:** Phase 0 ✅ · Phase 1 ✅ (35 pure renamed, backtest bit-identical) · Phases 2–4 pending
 **Code:** [`engine/feature_registry.py`](../engine/feature_registry.py)
 
 > ગુજરાતી સાર: ~67 cryptic feature નામ (દા.ત. `M15_ADX`, `hmm_state`, `body_pct`)
@@ -102,8 +102,8 @@ leakage-style parity test that runs without retraining.
 
 | Phase | Scope | Gate |
 |-------|-------|------|
-| **0 ✅** | registry + 4 guards + shim (no name changed) | self-test PASS; capture baseline TEST-bat run |
-| **1** | 35 pure names; wire guards | golden-vector old-vs-new `compute_features` equal + TEST bat identical to baseline |
+| **0 ✅** | registry + 4 guards + shim (no name changed) | self-test PASS; captured baseline (2026-06-15→29, 41 trades +6.0R) |
+| **1 ✅** | 35 pure names renamed (features.py Zone-A + inference.py feat_dict lookups); shim wired at `_make_X_hybrid`/`X_main`/`_predict_move`; guard-4 on ablate env; import-time FEATURE_COLS guard | **backtest bit-identical to baseline** (summary 5×16, trades 41×133, signals 982×24 — all 0 diffs). Registry `ACTIVE_ZONES={"pure"}`, MIGRATED=35 |
 | **2** | cross-layer: `hmm_state`→`regime_hmm_id`, `in_range_phase`→`h4move_is_ranging`, write-site translations | identical output + bridge dry-run + DB insert/select sanity |
 | **3** | ADX/DI boundary rename | identical output + **`compare_adx_parity.py` still passes** |
 | **4** | retrain (separate): PRE_BACKTEST_AUDIT → retrain (canonical `feature_names` in meta) → POST_BACKTEST_AUDIT | live old models on shim meanwhile |
